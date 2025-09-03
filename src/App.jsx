@@ -1,4 +1,5 @@
 import React, {useMemo, useState, useEffect} from 'react'
+import { CollageService } from './client/CollageService'
 
 /**
  * Vail Love Hunt — React single-page app for a couples' scavenger/date experience in Vail.
@@ -197,11 +198,11 @@ function getRandomStops() {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
   
-  // Return first 3 locations
-  return shuffled.slice(0, 3)
+  // Return first 5 locations
+  return shuffled.slice(0, 5)
 }
 
-// Generate random selection of 3 stops from all available locations
+// Generate random selection of 5 stops from all available locations
 const STOPS = getRandomStops()
 
 // localStorage key used for persisting progress
@@ -254,6 +255,10 @@ export default function App() {
   const {progress, setProgress, completeCount, percent} = useProgress()
   const [showTips, setShowTips] = useState(false)
   const [storybookUrl, setStorybookUrl] = useState(null)
+  const [collageLoading, setCollageLoading] = useState(false)
+  const [collageUrl, setCollageUrl] = useState(null)
+  const [fullSizeImageUrl, setFullSizeImageUrl] = useState(null)
+  const [expandedStops, setExpandedStops] = useState({})
 
   // Build a shareable collage ("storybook") from images + titles
   const buildStorybook = async (photos, titles) => {
@@ -343,6 +348,72 @@ export default function App() {
     return canvas.toDataURL('image/png')
   }
 
+  // Helper function to convert base64 to File object
+  const base64ToFile = (base64String, filename) => {
+    const arr = base64String.split(',')
+    const mime = arr[0].match(/:(.*?);/)[1]
+    const bstr = atob(arr[1])
+    let n = bstr.length
+    const u8arr = new Uint8Array(n)
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n)
+    }
+    return new File([u8arr], filename, { type: mime })
+  }
+
+  // Create real collage from completed stops using Cloudinary
+  const createPrizeCollage = async () => {
+    console.log('🎯 Starting prize collage creation...')
+    setCollageLoading(true)
+    
+    try {
+      // Get all completed stops with photos
+      const completedStops = STOPS.filter(stop => progress[stop.id]?.photo)
+      console.log('📸 Found', completedStops.length, 'completed stops with photos:', completedStops.map(s => s.title))
+      
+      if (completedStops.length === 0) {
+        console.warn('⚠️ No completed stops found')
+        alert('No completed stops with photos found!')
+        return
+      }
+
+      // Convert base64 images to File objects
+      console.log('🔄 Converting base64 images to File objects...')
+      const files = completedStops.map((stop, index) => {
+        const base64 = progress[stop.id].photo
+        console.log(`  Converting ${stop.title}: base64 length = ${base64.length} characters`)
+        const file = base64ToFile(base64, `vail-${stop.id}.jpg`)
+        console.log(`  Created file: ${file.name}, size: ${file.size} bytes, type: ${file.type}`)
+        return file
+      })
+
+      // Get titles
+      const titles = completedStops.map(stop => stop.title)
+      console.log('📝 Titles:', titles)
+
+      console.log('☁️ Sending request to CollageService...')
+      console.log('  Files:', files.map(f => ({ name: f.name, size: f.size, type: f.type })))
+      console.log('  Titles:', titles)
+      
+      // Create collage using Cloudinary service
+      const url = await CollageService.createCollage(files, titles)
+      
+      console.log('✅ Collage created successfully!')
+      console.log('  URL:', url)
+      setCollageUrl(url)
+      
+    } catch (error) {
+      console.error('❌ Failed to create prize collage:', error)
+      console.error('  Error name:', error.name)
+      console.error('  Error message:', error.message)
+      console.error('  Error stack:', error.stack)
+      alert(`Failed to create your prize collage: ${error.message}`)
+    } finally {
+      console.log('🏁 Prize collage creation finished')
+      setCollageLoading(false)
+    }
+  }
+
   // Preview using 3 sample images from public/images and random titles
   const previewStorybook = async () => {
     const samplePhotos = [
@@ -358,15 +429,21 @@ export default function App() {
   }
 
   // Reset all progress and notes (clears local state AND re-saves to localStorage via effect)
-  const reset = () => setProgress({})
+  const reset = () => {
+    setProgress({})
+    setCollageUrl(null)
+    setStorybookUrl(null)
+    setFullSizeImageUrl(null)
+    setExpandedStops({})
+  }
 
   // Share progress via Web Share API if available; otherwise copy URL + summary to clipboard.
   const share = async () => {
-    const text = `VailLoveHunt.com — ${completeCount}/${STOPS.length} stops complete!`
+    const text = `Vail Scavenger Hunt — ${completeCount}/${STOPS.length} stops complete!`
     const url = typeof window !== 'undefined' ? window.location.href : ''
     try {
       // Prefer native share dialogs on mobile for better UX.
-      if (navigator.share) await navigator.share({ title: 'VailLoveHunt.com', text, url })
+      if (navigator.share) await navigator.share({ title: 'Vail Scavenger Hunt', text, url })
       else {
         // Fallback: copy text to clipboard and alert the user for confirmation.
         await navigator.clipboard.writeText(`${text} ${url}`)
@@ -376,14 +453,14 @@ export default function App() {
   }
 
   return (
-    <div className='min-h-screen bg-gradient-to-b from-rose-50 to-white text-slate-900'>
-      <header className='sticky top-0 z-20 backdrop-blur-md bg-gradient-to-r from-rose-500/90 to-purple-600/90 border-b border-white/20'>
+    <div className='min-h-screen bg-gradient-to-b from-blue-50 to-white text-slate-900'>
+      <header className='sticky top-0 z-20 backdrop-blur-md bg-gradient-to-r from-blue-600/90 to-slate-700/90 border-b border-white/20'>
         <div className='max-w-screen-sm mx-auto px-4 py-4 flex items-center justify-between'>
           <div className='flex items-center gap-3'>
             <div className='w-8 h-8 rounded-full bg-white/20 flex items-center justify-center'>
               <span className='text-white text-lg'>🏔️</span>
             </div>
-            <h1 className='font-bold text-xl text-white'>VailLoveHunt.com</h1>
+            <h1 className='font-bold text-xl text-white'>Vail Scavenger Hunt</h1>
           </div>
           <button 
             onClick={reset} 
@@ -399,13 +476,36 @@ export default function App() {
           <h2 className='text-xl font-semibold'>Vail Village</h2>
           {percent === 100 ? (
             <div className='mt-2'>
-              <p className='text-emerald-600 text-lg font-semibold'>🎉 Congratulations!</p>
-              <button 
-                className='mt-3 px-6 py-3 bg-gradient-to-r from-rose-500 to-purple-600 hover:from-rose-600 hover:to-purple-700 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105'
-                onClick={() => window.open('https://vailloveprize.com', '_blank')}
-              >
-                🏆 Claim Prize
-              </button>
+              <p className='text-blue-600 text-lg font-semibold'>🎉 Congratulations!</p>
+              {!collageUrl ? (
+                <button 
+                  className='mt-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-slate-700 hover:from-blue-700 hover:to-slate-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:hover:scale-100'
+                  onClick={createPrizeCollage}
+                  disabled={collageLoading}
+                >
+                  {collageLoading ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Creating Your Prize...
+                    </span>
+                  ) : (
+                    <>🏆 Claim Prize</>
+                  )}
+                </button>
+              ) : (
+                <div className='mt-3'>
+                  <p className='text-blue-600 text-sm font-medium mb-2'>✨ Your prize collage is ready!</p>
+                  <button
+                    onClick={() => setFullSizeImageUrl(collageUrl)}
+                    className='w-full px-4 py-2 border border-blue-500 text-blue-600 hover:bg-blue-50 font-medium rounded-full transition-colors'
+                  >
+                    🏆 View Prize
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -413,10 +513,10 @@ export default function App() {
               
               {/* Progress Gauge */}
               <div className='mt-3 flex items-center gap-2 text-sm'>
-                <span className='text-emerald-600 font-semibold'>{completeCount}/{STOPS.length}</span>
+                <span className='text-blue-600 font-semibold'>{completeCount}/{STOPS.length}</span>
                 <div className='flex-1 bg-slate-200 rounded-full h-1.5'>
                   <div 
-                    className='bg-emerald-500 h-1.5 rounded-full transition-all duration-500'
+                    className='bg-blue-500 h-1.5 rounded-full transition-all duration-500'
                     style={{width: `${percent}%`}}
                   />
                 </div>
@@ -424,7 +524,7 @@ export default function App() {
               <div className='mt-3 flex gap-2'>
                 <button
                   onClick={previewStorybook}
-                  className='px-3 py-1.5 rounded-md text-sm bg-rose-100 text-rose-700 hover:bg-rose-200'
+                  className='px-3 py-1.5 rounded-md text-sm bg-gray-100 text-gray-700 hover:bg-gray-200'
                 >
                   Preview Storybook
                 </button>
@@ -442,29 +542,59 @@ export default function App() {
           )}
         </div>
 
-        {/* Render each stop with a clue and selfie mission. */}
-        {useMemo(() => {
-          // Sort stops: incomplete first, then completed
-          const sortedStops = [...STOPS].map((stop, originalIndex) => ({
+        {/* Full-size image display container */}
+        {fullSizeImageUrl && (
+          <div className='border rounded-lg shadow-lg p-4 bg-white mt-5 mb-5'>
+            <div className='flex justify-between items-center mb-4'>
+              <h3 className='text-lg font-semibold text-slate-700'>Full Size View</h3>
+              <button
+                onClick={() => setFullSizeImageUrl(null)}
+                className='px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-colors'
+              >
+                ✕ Close
+              </button>
+            </div>
+            <div className='flex justify-center'>
+              <img 
+                src={fullSizeImageUrl} 
+                alt="Full size collage" 
+                className='max-w-full h-auto rounded-lg shadow-md'
+                style={{ maxHeight: '70vh' }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Pre-compute random guides for all stops to avoid hook violations */}
+        {(() => {
+          // Pre-compute guides for ALL stops to maintain stable hook order
+          const allGuides = {}
+          STOPS.forEach(stop => {
+            allGuides[stop.id] = useRandomGuide()
+          })
+          
+          const stopsWithNumbers = [...STOPS].map((stop, originalIndex) => ({
             ...stop,
             originalNumber: originalIndex + 1
-          })).sort((a, b) => {
-            const aComplete = progress[a.id]?.done || false
-            const bComplete = progress[b.id]?.done || false
-            
-            // If both are complete or both incomplete, maintain original order
-            if (aComplete === bComplete) return 0
-            // Put incomplete stops first
-            return aComplete ? 1 : -1
-          })
-          return sortedStops
-        }, [progress]).map((s, i) => {
-          const state = progress[s.id] || { done: false, notes: '', photo: null, revealedHints: 1 }
-          // CAUTION: Hook call inside a map. This currently runs in stable order, but changing
-          // the length/order of STOPS can violate the Rules of Hooks. Consider refactoring
-          // by precomputing guides with useMemo, or use an extracted component.
-          const guide = useRandomGuide()
-          const displayImage = state.photo || guide
+          }))
+          
+          // Find the first incomplete stop
+          const firstIncomplete = stopsWithNumbers.find(stop => !(progress[stop.id]?.done))
+          
+          // Get all completed stops
+          const completedStops = stopsWithNumbers.filter(stop => progress[stop.id]?.done)
+          
+          // Return current incomplete stop first, then all completed stops
+          const stopsToShow = []
+          if (firstIncomplete) {
+            stopsToShow.push(firstIncomplete)
+          }
+          stopsToShow.push(...completedStops)
+          
+          return stopsToShow.map((s, i) => {
+            const state = progress[s.id] || { done: false, notes: '', photo: null, revealedHints: 1 }
+            const guide = allGuides[s.id]
+            const displayImage = state.photo || guide
           
           const compressImage = (file, maxWidth = 800, quality = 0.8) => {
             return new Promise((resolve) => {
@@ -522,92 +652,110 @@ export default function App() {
             }
           }
           
+          const isExpanded = expandedStops[s.id] || false
+          const toggleExpanded = () => {
+            if (state.done) {
+              setExpandedStops(prev => ({
+                ...prev,
+                [s.id]: !prev[s.id]
+              }))
+            }
+          }
+          
           return (
-            <div key={s.id} className={`mt-6 shadow-sm border rounded-lg bg-white p-4 ${state.done ? 'border-emerald-200' : ''}`}>
+            <div 
+              key={s.id} 
+              className={`mt-6 shadow-sm border rounded-lg bg-white p-4 ${state.done ? 'border-blue-200 cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+              onClick={state.done ? toggleExpanded : undefined}
+            >
               <div className='flex items-start justify-between gap-3'>
-                <div>
+                <div className='flex-1'>
                   <div className='flex items-center gap-2'>
-                    <span className={`inline-flex items-center justify-center w-6 h-6 rounded ${state.done ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-900'}`}>{s.originalNumber}</span>
+                    <span className={`inline-flex items-center justify-center w-6 h-6 rounded ${state.done ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-900'}`}>{s.originalNumber}</span>
                     <h3 className={`text-base font-semibold ${!state.photo ? 'blur-sm' : ''}`}>{s.title}</h3>
+                    {state.done && (
+                      <span className='text-blue-500 ml-2'>
+                        {isExpanded ? '▼' : '▶'}
+                      </span>
+                    )}
                   </div>
-                  {!state.photo && (
-                    <div className='mt-1 space-y-1'>
-                      {s.hints.slice(0, state.revealedHints).map((hint, hintIndex) => (
-                        <p key={hintIndex} className={`text-sm ${hintIndex === 0 ? 'text-slate-800 font-medium' : hintIndex === 1 ? 'text-slate-700' : 'text-slate-600'}`}>
-                          {hintIndex + 1}. {hint}
-                        </p>
-                      ))}
-                      {state.revealedHints < s.hints.length && (
-                        <button
-                          onClick={revealNextHint}
-                          className='text-xs text-rose-600 hover:text-rose-700 underline mt-1'
-                        >
-                          + Need another hint?
-                        </button>
+                  
+                  {/* Show detailed content for incomplete stops or expanded completed stops */}
+                  {(!state.done || isExpanded) && (
+                    <>
+                      {!state.photo && (
+                        <div className='mt-1 space-y-1'>
+                          {s.hints.slice(0, state.revealedHints).map((hint, hintIndex) => (
+                            <p key={hintIndex} className={`text-sm ${hintIndex === 0 ? 'text-slate-800 font-medium' : hintIndex === 1 ? 'text-slate-700' : 'text-slate-600'}`}>
+                              {hintIndex + 1}. {hint}
+                            </p>
+                          ))}
+                          {state.revealedHints < s.hints.length && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                revealNextHint()
+                              }}
+                              className='text-xs text-gray-600 hover:text-gray-700 underline mt-1'
+                            >
+                              + Need another hint?
+                            </button>
+                          )}
+                        </div>
                       )}
-                    </div>
+                    </>
                   )}
                 </div>
               </div>
 
-              <div className='mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                <div className='rounded-xl border p-3'>
-                  <div className={`text-xs uppercase tracking-wide ${state.photo ? 'text-emerald-600' : 'text-slate-500'}`}>
-                    {state.photo ? '✅ Photo Mission Complete' : 'Photo Mission'}
+              {/* Detailed content only for incomplete stops or expanded completed stops */}
+              {(!state.done || isExpanded) && (
+                <>
+                  <div className='mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                    <div className='rounded-xl border p-3'>
+                      <div className={`text-xs uppercase tracking-wide ${state.photo ? 'text-blue-600' : 'text-slate-500'}`}>
+                        {state.photo ? '✅ Photo Mission Complete' : 'Photo Mission'}
+                      </div>
+                      {!state.photo && <div className='mt-1 text-sm'>Capture a creative selfie together at this location.</div>}
+                      {/* If this image fails to load, confirm the path root (see PHOTO_GUIDES note). */}
+                      {displayImage && <img src={displayImage} alt='Selfie' className='mt-2 rounded-md object-cover w-full h-40' onError={(e)=>{e.currentTarget.style.display='none'}} />}
+                      <div className='mt-2 flex items-center gap-2 text-xs text-slate-500'>
+                        {state.photo ? '✨ Your photo' : '📷 Be playful — style your shot!'}
+                      </div>
+                    </div>
                   </div>
-                  {!state.photo && <div className='mt-1 text-sm'>Capture a creative selfie together at this location.</div>}
-                  {/* If this image fails to load, confirm the path root (see PHOTO_GUIDES note). */}
-                  {displayImage && <img src={displayImage} alt='Selfie' className='mt-2 rounded-md object-cover w-full h-40' onError={(e)=>{e.currentTarget.style.display='none'}} />}
-                  <div className='mt-2 flex items-center gap-2 text-xs text-slate-500'>
-                    {state.photo ? '✨ Your photo' : '📷 Be playful — style your shot!'}
-                  </div>
-                </div>
-              </div>
 
-              {!state.photo && (
-                <div className='mt-3'>
-                  <label className='block'>
-                    <span className='text-xs text-slate-500 mb-1 block'>Upload your photo</span>
-                    <input 
-                      type='file' 
-                      accept='image/*' 
-                      onChange={handlePhotoUpload}
-                      className='block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-rose-100 file:text-rose-700 hover:file:bg-rose-200 cursor-pointer'
-                    />
-                  </label>
-                </div>
-              )}
+                  {!state.photo && (
+                    <div className='mt-3'>
+                      <input 
+                        type='file' 
+                        accept='image/*' 
+                        onChange={handlePhotoUpload}
+                        className='hidden'
+                        id={`file-${s.id}`}
+                      />
+                      <label 
+                        htmlFor={`file-${s.id}`}
+                        className='w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg cursor-pointer transition-colors flex items-center justify-center gap-2'
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        📸 Upload Photo
+                      </label>
+                    </div>
+                  )}
 
-              {state.done && (
-                <div className='mt-3 flex items-center gap-2 text-emerald-600 text-sm italic'>
-                  <span>❤</span> {s.funFact}
-                </div>
+                  {state.done && (
+                    <div className='mt-3 flex items-center gap-2 text-blue-600 text-sm italic'>
+                      <span>❤</span> {s.funFact}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )
-        })}
+        })
+        })()}
 
-        <div className='mt-6'>
-          <div className='shadow-sm border rounded-lg bg-white p-4'>
-            <div className='flex items-center justify-between'>
-              <div>
-                <h4 className='font-semibold'>Grand Reward</h4>
-                {/* Progress summary guiding users to the end-of-hunt celebration. */}
-                <p className='text-sm text-slate-600 mt-1'>Finish all stops to unlock your private toast back at your lodging. 🥂</p>
-              </div>
-              <div className='w-28 h-2 bg-slate-100 rounded'>
-                {/* Visual progress bar reflects `percent` derived from completed stops. */}
-                <div className='h-2 bg-emerald-500 rounded' style={{width: `${percent}%`}} />
-              </div>
-            </div>
-            {storybookUrl && (
-              <div className='mt-4'>
-                <div className='text-sm text-slate-600 mb-2'>Storybook Preview</div>
-                <img src={storybookUrl} alt='Storybook preview' className='w-full rounded border'/>
-              </div>
-            )}
-          </div>
-        </div>
 
         {showTips && (
           <div className='fixed inset-0 z-30'>
