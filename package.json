@@ -8,24 +8,32 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "tsx src/server/server.ts",
-    "server:dev": "tsx --watch src/server/server.ts"
+    "server:dev": "tsx --watch src/server/server.ts",
+    "state-server": "node src/server/stateServer.js",
+    "state-server:dev": "nodemon src/server/stateServer.js",
+    "start": "concurrently --prefix-colors \"cyan,magenta\" --prefix \"[UI],[API]\" \"npm run dev\" \"npm run server:dev\"",
+    "start:full": "concurrently --prefix-colors \"cyan,magenta,yellow\" --prefix \"[UI],[API],[STATE]\" \"npm run dev\" \"npm run server:dev\" \"npm run state-server:dev\"",
+    "start:netlify": "netlify dev"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "@netlify/blobs": "^10.0.10",
     "cloudinary": "^2.0.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^1.4.5-lts.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "vite": "^5.4.0",
-    "tsx": "^4.7.1",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/multer": "^1.4.11",
     "@types/node": "^20.11.24",
-    "typescript": "^5.3.3"
+    "concurrently": "^9.2.1",
+    "nodemon": "^3.1.10",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.4.0"
   }
 }

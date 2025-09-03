@@ -1,5 +1,8 @@
 import React, {useMemo, useState, useEffect} from 'react'
 import { CollageService } from './client/CollageService'
+import { NetlifyStateService } from './client/NetlifyStateService'
+import ProgressGauge from './components/ProgressGauge'
+import AlbumViewer from './components/AlbumViewer'
 
 /**
  * Vail Love Hunt — React single-page app for a couples' scavenger/date experience in Vail.
@@ -185,6 +188,48 @@ const STOPS = getRandomStops()
 const STORAGE_KEY = 'vail-love-hunt-progress'
 
 /**
+ * Helper function to convert base64 to File object
+ * Pure function - doesn't depend on component state
+ */
+const base64ToFile = (base64String, filename) => {
+  const arr = base64String.split(',')
+  const mime = arr[0].match(/:(.*?);/)[1]
+  const bstr = atob(arr[1])
+  let n = bstr.length
+  const u8arr = new Uint8Array(n)
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n)
+  }
+  return new File([u8arr], filename, { type: mime })
+}
+
+/**
+ * Compress an image file to reduce size
+ * Pure function - returns a promise
+ */
+const compressImage = (file, maxWidth = 800, quality = 0.8) => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    
+    img.onload = () => {
+      // Calculate new dimensions
+      const ratio = Math.min(maxWidth / img.width, maxWidth / img.height)
+      canvas.width = img.width * ratio
+      canvas.height = img.height * ratio
+      
+      // Draw and compress
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', quality)
+      resolve(compressedDataUrl)
+    }
+    
+    img.src = URL.createObjectURL(file)
+  })
+}
+
+/**
  * useProgress
  * Manages per-stop completion and notes with localStorage persistence.
  * Returns { progress, setProgress, completeCount, percent }.
@@ -227,6 +272,17 @@ function useProgress() {
  * App
  * Top-level component composing the header, stops list, progress, and tips overlay.
  */
+/**
+ * Generate a UUID v4 GUID
+ */
+const generateGuid = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 export default function App() {
   const {progress, setProgress, completeCount, percent} = useProgress()
   const [showTips, setShowTips] = useState(false)
@@ -234,10 +290,52 @@ export default function App() {
   const [collageLoading, setCollageLoading] = useState(false)
   const [collageUrl, setCollageUrl] = useState(null)
   const [fullSizeImageUrl, setFullSizeImageUrl] = useState(null)
-  const [imageLoaded, setImageLoaded] = useState(false)
-  const [albumExpanded, setAlbumExpanded] = useState(true)
   const [expandedStops, setExpandedStops] = useState({})
   const [transitioningStops, setTransitioningStops] = useState(new Set())
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [locationName, setLocationName] = useState('Vail Valley')
+  const [teamName, setTeamName] = useState('')
+
+  // Initialize session on app startup
+  useEffect(() => {
+    const initializeSession = async () => {
+      try {
+        const sessionId = generateGuid();
+        const sessionData = {
+          id: sessionId,
+          location: locationName,
+          startTime: new Date().toISOString(),
+          userAgent: navigator.userAgent
+        };
+        
+        console.log('🚀 Initializing session:', sessionId);
+        
+        // Use direct fetch to local state server
+        const response = await fetch('http://localhost:3002/api/state', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            key: `session:${sessionId}`,
+            value: sessionData
+          })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ Session initialized successfully:', result);
+        } else {
+          const error = await response.json();
+          console.error('❌ Failed to initialize session:', error);
+        }
+      } catch (error) {
+        console.error('❌ Failed to initialize session:', error);
+      }
+    };
+    
+    initializeSession();
+  }, []) // Empty dependency array means this runs once on mount
 
   // Build a shareable collage ("storybook") from images + titles
   const buildStorybook = async (photos, titles) => {
@@ -327,18 +425,6 @@ export default function App() {
     return canvas.toDataURL('image/png')
   }
 
-  // Helper function to convert base64 to File object
-  const base64ToFile = (base64String, filename) => {
-    const arr = base64String.split(',')
-    const mime = arr[0].match(/:(.*?);/)[1]
-    const bstr = atob(arr[1])
-    let n = bstr.length
-    const u8arr = new Uint8Array(n)
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n)
-    }
-    return new File([u8arr], filename, { type: mime })
-  }
 
   // Create real collage from completed stops using Cloudinary
   const createPrizeCollage = async () => {
@@ -381,7 +467,6 @@ export default function App() {
       console.log('  URL:', url)
       setCollageUrl(url)
       setFullSizeImageUrl(url)
-      setImageLoaded(false) // Reset image loaded state for new image
       
     } catch (error) {
       console.error('❌ Failed to create prize collage:', error)
@@ -415,8 +500,6 @@ export default function App() {
     setCollageUrl(null)
     setStorybookUrl(null)
     setFullSizeImageUrl(null)
-    setImageLoaded(false)
-    setAlbumExpanded(true)
     setExpandedStops({})
     setTransitioningStops(new Set())
   }
@@ -446,18 +529,30 @@ export default function App() {
             </div>
             <h1 className='font-bold text-xl text-white'>Vail Scavenger Hunt</h1>
           </div>
-          <button 
-            onClick={reset} 
-            className='px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/30 rounded-full text-white text-sm font-medium transition-all duration-200 hover:scale-105'
-          >
-            ↻
-          </button>
         </div>
       </header>
 
       <main className='max-w-screen-sm mx-auto px-4 py-5'>
-        <div className='border rounded-lg shadow-sm p-4 bg-white'>
-          <h2 className='text-xl font-semibold'>Vail Village</h2>
+        <div className='border rounded-lg shadow-sm p-4 bg-white relative'>
+          <button 
+            onClick={reset} 
+            className='absolute top-4 right-4 p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-colors'
+            title='Reset Progress'
+          >
+            ↻
+          </button>
+          <div className='flex items-center gap-2'>
+            <h2 className='text-xl font-semibold'>{locationName}</h2>
+            <button 
+              onClick={() => setIsEditMode(!isEditMode)}
+              className='p-1 text-gray-500 hover:text-blue-600 transition-colors'
+              title='Edit location and team'
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
+              </svg>
+            </button>
+          </div>
           {percent === 100 ? (
             <div className='mt-2'>
               <p className='text-blue-600 text-lg font-semibold'>🎉 Congratulations! You completed the scavenger hunt.</p>
@@ -486,93 +581,24 @@ export default function App() {
               <p className='text-slate-600 mt-2'>Each stop: <span className='font-medium'>Clue → Selfie</span>. Complete all to unlock your reward.</p>
               
               {/* Enhanced Progress Gauge */}
-              <div className='mt-4'>
-                <div className='flex items-center justify-between mb-2'>
-                  <span className='text-xs font-medium text-slate-600 uppercase tracking-wider'>Progress</span>
-                  <span className='text-sm font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent'>
-                    {percent}% Complete
-                  </span>
-                </div>
-                <div className='relative'>
-                  {/* Background track */}
-                  <div className='overflow-hidden h-3 bg-slate-100 rounded-full shadow-inner'>
-                    <div 
-                      className='h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000 ease-out relative overflow-hidden'
-                      style={{width: `${percent}%`}}
-                    >
-                      {/* Animated shimmer effect */}
-                      <div className='absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse' />
-                    </div>
-                  </div>
-                  {/* Progress dots */}
-                  <div className='absolute top-0 left-0 w-full h-3 flex items-center justify-between px-1'>
-                    {STOPS.map((stop, i) => (
-                      <div 
-                        key={stop.id}
-                        className={`w-2 h-2 rounded-full transition-all duration-500 ${
-                          progress[stop.id]?.done 
-                            ? 'bg-white shadow-sm scale-110' 
-                            : 'bg-slate-300/50 scale-75'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div className='flex justify-between mt-2'>
-                  <span className='text-xs text-slate-500'>{completeCount} of {STOPS.length} stops</span>
-                  {completeCount > 0 && completeCount < STOPS.length && (
-                    <span className='text-xs font-medium text-purple-600'>
-                      {STOPS.length - completeCount} to go! 
-                    </span>
-                  )}
-                </div>
-              </div>
+              <ProgressGauge 
+                percent={percent}
+                completeCount={completeCount}
+                totalStops={STOPS.length}
+                stops={STOPS}
+                progress={progress}
+              />
               
             </>
           )}
         </div>
 
-        {/* Album container - collapsible after prize is claimed */}
-        {collageUrl && (
-          <div className={`mt-6 shadow-sm border rounded-lg bg-white p-4 ${
-            albumExpanded ? 'border-blue-200' : 'border-gray-200'
-          }`}>
-            <div 
-              className='flex justify-between items-center cursor-pointer'
-              onClick={() => setAlbumExpanded(!albumExpanded)}
-            >
-              <div className='flex items-center gap-2'>
-                <span className='text-lg'>📸</span>
-                <h3 className='text-lg font-semibold text-slate-700'>Album</h3>
-              </div>
-              <span className='text-blue-500'>
-                {albumExpanded ? '▼' : '▶'}
-              </span>
-            </div>
-            
-            {albumExpanded && imageLoaded && (
-              <div className='flex justify-center transition-all duration-300 ease-in-out mt-4'>
-                <img 
-                  src={fullSizeImageUrl} 
-                  alt="Full size collage" 
-                  className='max-w-full h-auto rounded-lg shadow-md'
-                  style={{ maxHeight: '70vh' }}
-                />
-              </div>
-            )}
-          </div>
-        )}
-        
-        {/* Hidden image for preloading */}
-        {fullSizeImageUrl && !imageLoaded && (
-          <img 
-            src={fullSizeImageUrl} 
-            alt="Preloading collage" 
-            className='hidden'
-            onLoad={() => setImageLoaded(true)}
-            onError={() => setImageLoaded(true)} // Show even if there's an error
-          />
-        )}
+        {/* Album Viewer Component */}
+        <AlbumViewer 
+          collageUrl={collageUrl}
+          imageUrl={fullSizeImageUrl}
+          initialExpanded={true}
+        />
 
         {/* Render stops using a single generic placeholder until a photo is added */}
         {(() => {
@@ -609,27 +635,6 @@ export default function App() {
             const state = progress[s.id] || { done: false, notes: '', photo: null, revealedHints: 1 }
             const displayImage = state.photo || PLACEHOLDER
           
-          const compressImage = (file, maxWidth = 800, quality = 0.8) => {
-            return new Promise((resolve) => {
-              const canvas = document.createElement('canvas')
-              const ctx = canvas.getContext('2d')
-              const img = new Image()
-              
-              img.onload = () => {
-                // Calculate new dimensions
-                const ratio = Math.min(maxWidth / img.width, maxWidth / img.height)
-                canvas.width = img.width * ratio
-                canvas.height = img.height * ratio
-                
-                // Draw and compress
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-                const compressedDataUrl = canvas.toDataURL('image/jpeg', quality)
-                resolve(compressedDataUrl)
-              }
-              
-              img.src = URL.createObjectURL(file)
-            })
-          }
 
           const handlePhotoUpload = async (e) => {
             const file = e.target.files[0]

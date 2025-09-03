@@ -4,7 +4,8 @@
       "Bash(npm install)",
       "Bash(npm run dev:*)",
       "Bash(curl:*)",
-      "WebFetch(domain:res.cloudinary.com)"
+      "WebFetch(domain:res.cloudinary.com)",
+      "Bash(npm run:*)"
     ],
     "deny": [],
     "ask": []

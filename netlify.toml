@@ -1,0 +1,54 @@
+[build]
+  # Build command for React app
+  command = "npm run build"
+  # Output directory after build
+  publish = "dist"
+  # Functions directory
+  functions = "netlify/functions"
+
+[build.environment]
+  # Node.js version
+  NODE_VERSION = "18"
+
+# Redirect API calls to functions
+[[redirects]]
+  from = "/api/state-get/*"
+  to = "/.netlify/functions/state-get/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/state-set"
+  to = "/.netlify/functions/state-set"
+  status = 200
+
+[[redirects]]
+  from = "/api/state-delete/*"
+  to = "/.netlify/functions/state-delete/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/state-list"
+  to = "/.netlify/functions/state-list"
+  status = 200
+
+[[redirects]]
+  from = "/api/state-clear"
+  to = "/.netlify/functions/state-clear"
+  status = 200
+
+# SPA fallback - serve index.html for all routes
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for CORS
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Headers = "Content-Type"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+
+# Environment variables (set these in Netlify dashboard)
+# NETLIFY_BLOBS_STORE_NAME = "vail-hunt-state"
