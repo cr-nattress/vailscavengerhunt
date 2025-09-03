@@ -1,8 +1,11 @@
 import React, {useMemo, useState, useEffect} from 'react'
 import { CollageService } from './client/CollageService'
 import { NetlifyStateService } from './client/NetlifyStateService'
+import { HybridStorageService } from './client/HybridStorageService'
+import { DualWriteService } from './client/DualWriteService'
 import ProgressGauge from './components/ProgressGauge'
 import AlbumViewer from './components/AlbumViewer'
+import { VAIL_VALLEY } from './data/vail-valley'
 
 /**
  * Vail Love Hunt — React single-page app for a couples' scavenger/date experience in Vail.
@@ -28,140 +31,6 @@ const PLACEHOLDER = '/images/selfie-placeholder.svg'
 // - hints: array of progressive clues
 // - funFact: romantic trivia about the location
 // - maps: convenience Google Maps link
-const ALL_LOCATIONS = [
-  { 
-    id: 'covered-bridge', 
-    title: 'Covered Bridge', 
-    hints: [
-      'Begin where timber frames something precious flowing beneath.',
-      'Lovers pause under wooden shelter as water rushes below.',
-      'The iconic covered bridge spans Gore Creek in Vail Village.'
-    ], 
-    funFact: 'Vail\'s most popular proposal spot, decorated with thousands of twinkling lights in winter!',
-    maps: 'https://www.google.com/maps/search/?api=1&query=Covered+Bridge+Vail+Colorado' 
-  },
-  { 
-    id: 'betty-ford-gardens', 
-    title: 'Betty Ford Alpine Gardens', 
-    hints: [
-      'Seek the highest place where wildflowers dance in mountain air.',
-      'A former First Lady\'s name graces this botanical sanctuary.',
-      'North America\'s highest botanical garden blooms at 8,200 feet.'
-    ], 
-    funFact: 'Features a dramatic 120-foot waterfall cascading through the Alpine Rock Garden!',
-    maps: 'https://www.google.com/maps/search/?api=1&query=Betty+Ford+Alpine+Gardens+Vail' 
-  },
-  { 
-    id: 'gondola-one', 
-    title: 'Gondola One (Eagle Bahn)', 
-    hints: [
-      'Rise above the village where hearts take flight.',
-      'Soar like eagles in suspended chambers above the trees.',
-      'The Eagle Bahn Gondola lifts you from Lionshead Village.'
-    ], 
-    funFact: 'At over 10,000 feet, this is the top proposal spot with Mount of the Holy Cross views!',
-    maps: 'https://www.google.com/maps/search/?api=1&query=Eagle+Bahn+Gondola+Vail' 
-  },
-  { 
-    id: 'international-bridge', 
-    title: 'International Bridge', 
-    hints: [
-      'Where many nations unite in colorful display above flowing water.',
-      'Flags of the world flutter as you cross from one side to another.',
-      'The International Bridge spans Gore Creek with flags from every continent.'
-    ], 
-    funFact: 'Features flags from every continent creating a United Nations of romance!',
-    maps: 'https://www.google.com/maps/search/?api=1&query=International+Bridge+Vail+Village' 
-  },
-  { 
-    id: 'vail-chapel', 
-    title: 'Vail Interfaith Chapel', 
-    hints: [
-      'Find peace where all faiths gather by rushing waters.',
-      'A sanctuary nestled among pines where vows echo eternally.',
-      'The Interfaith Chapel sits quietly beside Gore Creek.'
-    ], 
-    funFact: 'Tyrolean design with modernist glue-laminated arches creates unique sacred geometry!',
-    maps: 'https://www.google.com/maps/search/?api=1&query=Vail+Interfaith+Chapel' 
-  },
-  { 
-    id: 'mountain-plaza', 
-    title: 'Solaris Plaza', 
-    hints: [
-      'Where fire pits warm hearts beneath twinkling lights.',
-      'A gathering place where warmth glows beneath the stars.',
-      'Solaris Plaza offers cozy fire pits and evening ambiance.'
-    ], 
-    funFact: 'Features cozy fire pits perfect for roasting s\'mores under the mountain stars!',
-    maps: 'https://www.google.com/maps/search/?api=1&query=Solaris+Plaza+Vail' 
-  },
-  { 
-    id: 'arrabelle', 
-    title: 'Arrabelle at Vail Square', 
-    hints: [
-      'European elegance meets mountain majesty in luxury\'s embrace.',
-      'A grand hotel where alpine charm meets Continental sophistication.',
-      'The Arrabelle presides over Vail Square in Lionshead Village.'
-    ], 
-    funFact: 'Features an open-air ice skating rink in winter with European Old World charm!',
-    maps: 'https://www.google.com/maps/search/?api=1&query=Arrabelle+Vail+Square' 
-  },
-  { 
-    id: 'piney-river', 
-    title: 'Piney River Ranch', 
-    hints: [
-      'Journey beyond the village to where wilderness meets wonder.',
-      'A rustic ranch sits at the edge of pristine mountain waters.',
-      'Piney River Ranch offers serenity beside a crystal clear lake.'
-    ], 
-    funFact: 'A hidden wilderness gem offering pristine mountain lake reflections away from crowds!',
-    maps: 'https://www.google.com/maps/search/?api=1&query=Piney+River+Ranch+Vail' 
-  },
-  { 
-    id: 'sculpture-garden', 
-    title: 'Vail Village Sculpture Walk', 
-    hints: [
-      'Art speaks the language of love along winding pathways.',
-      'Bronze and stone creations line the cobblestone journey.',
-      'The Village Sculpture Walk displays art throughout Vail\'s pedestrian core.'
-    ], 
-    funFact: 'Features Einstein\'s bronze sculpture where you can sit and chat with a genius!',
-    maps: 'https://www.google.com/maps/search/?api=1&query=Vail+Village+Sculpture+Walk' 
-  },
-  { 
-    id: 'the-10th', 
-    title: 'The 10th Restaurant', 
-    hints: [
-      'Ascend to where champagne bubbles meet thin mountain air.',
-      'At the mountain\'s peak, toast with panoramic alpine views.',
-      'The 10th Restaurant crowns Vail Mountain at 11,570 feet elevation.'
-    ], 
-    funFact: 'At 11,570 feet elevation, toast with champagne where thin air makes bubbles extra special!',
-    maps: 'https://www.google.com/maps/search/?api=1&query=The+10th+Restaurant+Vail+Mountain' 
-  },
-  { 
-    id: 'vista-bahn', 
-    title: 'Vista Bahn Mid-Vail', 
-    hints: [
-      'Pause halfway to heaven where the valley spreads below.',
-      'A mid-mountain stop offers breathtaking panoramic views.',
-      'Vista Bahn\'s mid-station provides the perfect vantage point.'
-    ], 
-    funFact: 'The perfect "halfway to heaven" stop with breathtaking panoramic valley views!',
-    maps: 'https://www.google.com/maps/search/?api=1&query=Vista+Bahn+Mid-Vail' 
-  },
-  { 
-    id: 'ford-amphitheater', 
-    title: 'Gerald R. Ford Amphitheater', 
-    hints: [
-      'Where music and mountains create magic under starlit skies.',
-      'A presidential namesake hosts performances in natural grandeur.',
-      'The Gerald R. Ford Amphitheater sits in a natural mountain bowl.'
-    ], 
-    funFact: 'Natural mountain amphitheater setting with wildflowers peaking in July under the stars!',
-    maps: 'https://www.google.com/maps/search/?api=1&query=Gerald+R.+Ford+Amphitheater+Vail' 
-  },
-]
 
 /**
  * Randomly selects 3 locations from all available locations
@@ -169,7 +38,7 @@ const ALL_LOCATIONS = [
  */
 function getRandomStops() {
   // Create a copy of all locations to avoid mutating the original array
-  const shuffled = [...ALL_LOCATIONS]
+  const shuffled = [...VAIL_VALLEY]
   
   // Fisher-Yates shuffle algorithm
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -181,7 +50,7 @@ function getRandomStops() {
   return shuffled.slice(0, 5)
 }
 
-// Generate random selection of 5 stops from all available locations
+// Generate random selection of 5 stops from all available locations (Vail Valley)
 const STOPS = getRandomStops()
 
 // localStorage key used for persisting progress
@@ -296,10 +165,24 @@ export default function App() {
   const [locationName, setLocationName] = useState('Vail Valley')
   const [teamName, setTeamName] = useState('')
 
-  // Initialize session on app startup
+  // Initialize session and load saved settings on app startup
   useEffect(() => {
-    const initializeSession = async () => {
+    const initializeApp = async () => {
       try {
+        // Load saved settings using DualWriteService
+        const savedSettings = await DualWriteService.get('app-settings');
+        if (savedSettings) {
+          console.log('📱 Loaded saved settings:', savedSettings);
+          
+          if (savedSettings.location) {
+            setLocationName(savedSettings.location);
+          }
+          if (savedSettings.team) {
+            setTeamName(savedSettings.team);
+          }
+        }
+        
+        // Initialize session with current location name using DualWriteService
         const sessionId = generateGuid();
         const sessionData = {
           id: sessionId,
@@ -310,31 +193,14 @@ export default function App() {
         
         console.log('🚀 Initializing session:', sessionId);
         
-        // Use direct fetch to local state server
-        const response = await fetch('http://localhost:3002/api/state', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            key: `session:${sessionId}`,
-            value: sessionData
-          })
-        });
-        
-        if (response.ok) {
-          const result = await response.json();
-          console.log('✅ Session initialized successfully:', result);
-        } else {
-          const error = await response.json();
-          console.error('❌ Failed to initialize session:', error);
-        }
+        const results = await DualWriteService.createSession(sessionId, sessionData);
+        console.log('✅ Session initialized:', results);
       } catch (error) {
-        console.error('❌ Failed to initialize session:', error);
+        console.error('❌ Failed to initialize app:', error);
       }
     };
     
-    initializeSession();
+    initializeApp();
   }, []) // Empty dependency array means this runs once on mount
 
   // Build a shareable collage ("storybook") from images + titles
@@ -487,8 +353,8 @@ export default function App() {
       '/images/selfie-guide-2.png',
       '/images/selfie-guide-3.png',
     ]
-    // Random titles from ALL_LOCATIONS
-    const shuffled = [...ALL_LOCATIONS].sort(() => Math.random() - 0.5)
+    // Random titles from VAIL_VALLEY
+    const shuffled = [...VAIL_VALLEY].sort(() => Math.random() - 0.5)
     const titles = shuffled.slice(0, 3).map(s => s.title)
     const url = await buildStorybook(samplePhotos, titles)
     setStorybookUrl(url)
@@ -553,42 +419,114 @@ export default function App() {
               </svg>
             </button>
           </div>
-          {percent === 100 ? (
-            <div className='mt-2'>
-              <p className='text-blue-600 text-lg font-semibold'>🎉 Congratulations! You completed the scavenger hunt.</p>
-              <button 
-                className='mt-3 w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-slate-700 hover:from-blue-700 hover:to-slate-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:hover:scale-100'
-                onClick={createPrizeCollage}
-                disabled={collageLoading || collageUrl}
-              >
-                {collageLoading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Creating Your Prize...
-                  </span>
-                ) : collageUrl ? (
-                  <>✅ Prize Claimed</>
-                ) : (
-                  <>🏆 Claim Prize</>
-                )}
-              </button>
+          
+          {isEditMode ? (
+            /* Edit Mode Card */
+            <div className='mt-4'>
+              <div className='space-y-4'>
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Location
+                  </label>
+                  <input
+                    type='text'
+                    value={locationName}
+                    onChange={(e) => setLocationName(e.target.value)}
+                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                    placeholder='Enter location name'
+                  />
+                </div>
+                
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Team
+                  </label>
+                  <input
+                    type='text'
+                    value={teamName}
+                    onChange={(e) => setTeamName(e.target.value)}
+                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                    placeholder='Enter your team name'
+                  />
+                </div>
+                
+                <div className='flex gap-3'>
+                  <button
+                    onClick={async () => {
+                      try {
+                        // Save settings using DualWriteService
+                        const settingsData = {
+                          location: locationName,
+                          team: teamName,
+                          updatedAt: new Date().toISOString()
+                        };
+                        
+                        const results = await DualWriteService.saveSettings(settingsData);
+                        console.log('✅ Settings saved:', settingsData, results);
+                      } catch (error) {
+                        console.error('❌ Failed to save settings:', error);
+                      }
+                      
+                      setIsEditMode(false);
+                    }}
+                    className='flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors'
+                  >
+                    Save Changes
+                  </button>
+                  <button
+                    onClick={() => setIsEditMode(false)}
+                    className='flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-md transition-colors'
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
+            /* Normal Mode Card */
             <>
-              <p className='text-slate-600 mt-2'>Each stop: <span className='font-medium'>Clue → Selfie</span>. Complete all to unlock your reward.</p>
+              {teamName && (
+                <p className='text-blue-600 text-sm font-medium mt-2'>Team: {teamName}</p>
+              )}
               
-              {/* Enhanced Progress Gauge */}
-              <ProgressGauge 
-                percent={percent}
-                completeCount={completeCount}
-                totalStops={STOPS.length}
-                stops={STOPS}
-                progress={progress}
-              />
-              
+              {percent === 100 ? (
+                <div className='mt-2'>
+                  <p className='text-blue-600 text-lg font-semibold'>🎉 Congratulations! You completed the scavenger hunt.</p>
+                  <button 
+                    className='mt-3 w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-slate-700 hover:from-blue-700 hover:to-slate-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:hover:scale-100'
+                    onClick={createPrizeCollage}
+                    disabled={collageLoading || collageUrl}
+                  >
+                    {collageLoading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Creating Your Prize...
+                      </span>
+                    ) : collageUrl ? (
+                      <>✅ Prize Claimed</>
+                    ) : (
+                      <>🏆 Claim Prize</>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p className='text-slate-600 mt-2'>Each stop: <span className='font-medium'>Clue → Selfie</span>. Complete all to unlock your reward.</p>
+                  
+                  {/* Enhanced Progress Gauge */}
+                  <ProgressGauge 
+                    percent={percent}
+                    completeCount={completeCount}
+                    totalStops={STOPS.length}
+                    stops={STOPS}
+                    progress={progress}
+                  />
+                  
+                </>
+              )}
             </>
           )}
         </div>

@@ -1,0 +1,142 @@
+// Centralized data for all available scavenger-hunt locations in Vail Valley
+// Each entry includes:
+// - id: used as a stable key and in localStorage state
+// - title: display name
+// - hints: array of progressive clues
+// - funFact: romantic trivia about the location
+// - maps: convenience Google Maps link
+
+export const ALL_LOCATIONS = [
+  { 
+    id: 'covered-bridge', 
+    title: 'Covered Bridge', 
+    hints: [
+      'Begin where timber frames something precious flowing beneath.',
+      'Lovers pause under wooden shelter as water rushes below.',
+      'The iconic covered bridge spans Gore Creek in Vail Village.'
+    ], 
+    funFact: "Vail's most popular proposal spot, decorated with thousands of twinkling lights in winter!",
+    maps: 'https://www.google.com/maps/search/?api=1&query=Covered+Bridge+Vail+Colorado' 
+  },
+  { 
+    id: 'betty-ford-gardens', 
+    title: 'Betty Ford Alpine Gardens', 
+    hints: [
+      'Seek the highest place where wildflowers dance in mountain air.',
+      "A former First Lady's name graces this botanical sanctuary.",
+      "North America's highest botanical garden blooms at 8,200 feet."
+    ], 
+    funFact: 'Features a dramatic 120-foot waterfall cascading through the Alpine Rock Garden!',
+    maps: 'https://www.google.com/maps/search/?api=1&query=Betty+Ford+Alpine+Gardens+Vail' 
+  },
+  { 
+    id: 'gondola-one', 
+    title: 'Gondola One (Eagle Bahn)', 
+    hints: [
+      'Rise above the village where hearts take flight.',
+      'Soar like eagles in suspended chambers above the trees.',
+      'The Eagle Bahn Gondola lifts you from Lionshead Village.'
+    ], 
+    funFact: 'At over 10,000 feet, this is the top proposal spot with Mount of the Holy Cross views!',
+    maps: 'https://www.google.com/maps/search/?api=1&query=Eagle+Bahn+Gondola+Vail' 
+  },
+  { 
+    id: 'international-bridge', 
+    title: 'International Bridge', 
+    hints: [
+      'Where many nations unite in colorful display above flowing water.',
+      'Flags of the world flutter as you cross from one side to another.',
+      "The International Bridge spans Gore Creek with flags from every continent."
+    ], 
+    funFact: 'Features flags from every continent creating a United Nations of romance!',
+    maps: 'https://www.google.com/maps/search/?api=1&query=International+Bridge+Vail+Village' 
+  },
+  { 
+    id: 'vail-chapel', 
+    title: 'Vail Interfaith Chapel', 
+    hints: [
+      'Find peace where all faiths gather by rushing waters.',
+      'A sanctuary nestled among pines where vows echo eternally.',
+      'The Interfaith Chapel sits quietly beside Gore Creek.'
+    ], 
+    funFact: 'Tyrolean design with modernist glue-laminated arches creates unique sacred geometry!',
+    maps: 'https://www.google.com/maps/search/?api=1&query=Vail+Interfaith+Chapel' 
+  },
+  { 
+    id: 'mountain-plaza', 
+    title: 'Solaris Plaza', 
+    hints: [
+      'Where fire pits warm hearts beneath twinkling lights.',
+      'A gathering place where warmth glows beneath the stars.',
+      "Solaris Plaza offers cozy fire pits and evening ambiance."
+    ], 
+    funFact: "Features cozy fire pits perfect for roasting s'mores under the mountain stars!",
+    maps: 'https://www.google.com/maps/search/?api=1&query=Solaris+Plaza+Vail' 
+  },
+  { 
+    id: 'arrabelle', 
+    title: 'Arrabelle at Vail Square', 
+    hints: [
+      "European elegance meets mountain majesty in luxury's embrace.",
+      'A grand hotel where alpine charm meets Continental sophistication.',
+      'The Arrabelle presides over Vail Square in Lionshead Village.'
+    ], 
+    funFact: "Features an open-air ice skating rink in winter with European Old World charm!",
+    maps: 'https://www.google.com/maps/search/?api=1&query=Arrabelle+Vail+Square' 
+  },
+  { 
+    id: 'piney-river', 
+    title: 'Piney River Ranch', 
+    hints: [
+      'Journey beyond the village to where wilderness meets wonder.',
+      'A rustic ranch sits at the edge of pristine mountain waters.',
+      'Piney River Ranch offers serenity beside a crystal clear lake.'
+    ], 
+    funFact: 'A hidden wilderness gem offering pristine mountain lake reflections away from crowds!',
+    maps: 'https://www.google.com/maps/search/?api=1&query=Piney+River+Ranch+Vail' 
+  },
+  { 
+    id: 'sculpture-garden', 
+    title: 'Vail Village Sculpture Walk', 
+    hints: [
+      'Art speaks the language of love along winding pathways.',
+      'Bronze and stone creations line the cobblestone journey.',
+      "The Village Sculpture Walk displays art throughout Vail's pedestrian core."
+    ], 
+    funFact: "Features Einstein's bronze sculpture where you can sit and chat with a genius!",
+    maps: 'https://www.google.com/maps/search/?api=1&query=Vail+Village+Sculpture+Walk' 
+  },
+  { 
+    id: 'the-10th', 
+    title: 'The 10th Restaurant', 
+    hints: [
+      'Ascend to where champagne bubbles meet thin mountain air.',
+      "At the mountain's peak, toast with panoramic alpine views.",
+      'The 10th Restaurant crowns Vail Mountain at 11,570 feet elevation.'
+    ], 
+    funFact: 'At 11,570 feet elevation, toast with champagne where thin air makes bubbles extra special!',
+    maps: 'https://www.google.com/maps/search/?api=1&query=The+10th+Restaurant+Vail+Mountain' 
+  },
+  { 
+    id: 'vista-bahn', 
+    title: 'Vista Bahn Mid-Vail', 
+    hints: [
+      'Pause halfway to heaven where the valley spreads below.',
+      'A mid-mountain stop offers breathtaking panoramic views.',
+      "Vista Bahn's mid-station provides the perfect vantage point."
+    ], 
+    funFact: 'The perfect "halfway to heaven" stop with breathtaking panoramic valley views!',
+    maps: 'https://www.google.com/maps/search/?api=1&query=Vista+Bahn+Mid-Vail' 
+  },
+  { 
+    id: 'ford-amphitheater', 
+    title: 'Gerald R. Ford Amphitheater', 
+    hints: [
+      'Where music and mountains create magic under starlit skies.',
+      'A presidential namesake hosts performances in natural grandeur.',
+      'The Gerald R. Ford Amphitheater sits in a natural mountain bowl.'
+    ], 
+    funFact: 'Natural mountain amphitheater setting with wildflowers peaking in July under the stars!',
+    maps: 'https://www.google.com/maps/search/?api=1&query=Gerald+R.+Ford+Amphitheater+Vail' 
+  },
+];

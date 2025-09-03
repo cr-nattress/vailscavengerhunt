@@ -50,5 +50,25 @@
     Access-Control-Allow-Headers = "Content-Type"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
 
+# Netlify Blobs configuration
+[[blobs]]
+name = "kv"
+
+# Netlify Functions redirects for the new KV endpoints
+[[redirects]]
+  from = "/api/kv/upsert"
+  to = "/.netlify/functions/kv-upsert"
+  status = 200
+
+[[redirects]]
+  from = "/api/kv/get"
+  to = "/.netlify/functions/kv-get"
+  status = 200
+
+[[redirects]]
+  from = "/api/kv/list"
+  to = "/.netlify/functions/kv-list"
+  status = 200
+
 # Environment variables (set these in Netlify dashboard)
 # NETLIFY_BLOBS_STORE_NAME = "vail-hunt-state"

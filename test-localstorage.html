@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalStorage Service Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 50px auto; 
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button { 
+            margin: 5px; 
+            padding: 10px 15px; 
+            background: #0066cc; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer;
+        }
+        button:hover { background: #0052a3; }
+        input, textarea { 
+            margin: 5px; 
+            padding: 8px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px;
+            width: 200px;
+        }
+        textarea { width: 100%; height: 100px; }
+        .result { 
+            margin: 10px 0; 
+            padding: 15px; 
+            background: #f8f9fa; 
+            border-radius: 5px; 
+            white-space: pre-wrap; 
+            font-family: monospace;
+            border-left: 4px solid #0066cc;
+        }
+        .error { border-left-color: #dc3545; background: #fff5f5; }
+        .success { border-left-color: #28a745; background: #f8fff8; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗄️ LocalStorage Service Test</h1>
+        <p>Test the LocalStorageService for dictionary storage</p>
+
+        <div class="section">
+            <h3>Set Value</h3>
+            <input type="text" id="setKey" placeholder="Key" value="user:123">
+            <textarea id="setValue" placeholder="Value (JSON)">{"name": "John Doe", "age": 30, "location": "Vail Valley"}</textarea>
+            <button onclick="testSet()">Set Value</button>
+        </div>
+
+        <div class="section">
+            <h3>Get Value</h3>
+            <input type="text" id="getKey" placeholder="Key" value="user:123">
+            <button onclick="testGet()">Get Value</button>
+        </div>
+
+        <div class="section">
+            <h3>Dictionary Operations</h3>
+            <button onclick="testSetMultiple()">Set Multiple Values</button>
+            <button onclick="testGetAll()">Get All Values</button>
+            <button onclick="testListKeys()">List All Keys</button>
+        </div>
+
+        <div class="section">
+            <h3>Storage Management</h3>
+            <button onclick="testStorageInfo()">Storage Info</button>
+            <button onclick="testExport()">Export Data</button>
+            <button onclick="testClear()">Clear All</button>
+        </div>
+
+        <h3>Results</h3>
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        // Import the LocalStorageService (simulated since we can't import ES modules in this context)
+        // In a real app, you would: import { LocalStorageService } from './src/client/LocalStorageService.js';
+        
+        // For this demo, we'll include a simplified version
+        class LocalStorageService {
+            static get(key) {
+                try {
+                    const item = localStorage.getItem(key);
+                    if (item === null) return null;
+                    try {
+                        return JSON.parse(item);
+                    } catch {
+                        return item;
+                    }
+                } catch (error) {
+                    console.error('LocalStorageService.get error:', error);
+                    return null;
+                }
+            }
+
+            static set(key, value) {
+                try {
+                    localStorage.setItem(key, JSON.stringify(value));
+                    console.log(`✅ LocalStorage set: ${key}`);
+                    return true;
+                } catch (error) {
+                    console.error('LocalStorageService.set error:', error);
+                    return false;
+                }
+            }
+
+            static delete(key) {
+                try {
+                    localStorage.removeItem(key);
+                    console.log(`✅ LocalStorage deleted: ${key}`);
+                    return true;
+                } catch (error) {
+                    console.error('LocalStorageService.delete error:', error);
+                    return false;
+                }
+            }
+
+            static listKeys(prefix = '') {
+                try {
+                    const keys = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (!prefix || key.startsWith(prefix)) {
+                            keys.push(key);
+                        }
+                    }
+                    return keys.sort();
+                } catch (error) {
+                    console.error('LocalStorageService.listKeys error:', error);
+                    return [];
+                }
+            }
+
+            static getAll(prefix = '') {
+                try {
+                    const data = {};
+                    const keys = this.listKeys(prefix);
+                    for (const key of keys) {
+                        data[key] = this.get(key);
+                    }
+                    return data;
+                } catch (error) {
+                    console.error('LocalStorageService.getAll error:', error);
+                    return {};
+                }
+            }
+
+            static setMultiple(data) {
+                const results = { success: [], failed: [], total: Object.keys(data).length };
+                for (const [key, value] of Object.entries(data)) {
+                    if (this.set(key, value)) {
+                        results.success.push(key);
+                    } else {
+                        results.failed.push(key);
+                    }
+                }
+                return results;
+            }
+
+            static clear(prefix = '') {
+                try {
+                    if (!prefix) {
+                        const count = localStorage.length;
+                        localStorage.clear();
+                        return count;
+                    } else {
+                        const keys = this.listKeys(prefix);
+                        keys.forEach(key => localStorage.removeItem(key));
+                        return keys.length;
+                    }
+                } catch (error) {
+                    console.error('LocalStorageService.clear error:', error);
+                    return 0;
+                }
+            }
+
+            static getStorageInfo() {
+                try {
+                    let used = 0;
+                    const keyCount = localStorage.length;
+                    
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        const value = localStorage.getItem(key);
+                        used += key.length + value.length;
+                    }
+
+                    const estimated = 5 * 1024 * 1024; // 5MB estimate
+                    return {
+                        used: used,
+                        total: estimated,
+                        percentage: Math.round((used / estimated) * 100),
+                        keyCount: keyCount,
+                        formattedUsed: this.formatBytes(used),
+                        formattedTotal: this.formatBytes(estimated)
+                    };
+                } catch (error) {
+                    return { used: 0, total: 0, percentage: 0, keyCount: 0 };
+                }
+            }
+
+            static formatBytes(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            static exportData(prefix = '') {
+                return JSON.stringify(this.getAll(prefix), null, 2);
+            }
+        }
+
+        // Make it globally available for the button functions
+        window.LocalStorageService = LocalStorageService;
+
+        function log(message, type = 'result') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.textContent = typeof message === 'object' ? JSON.stringify(message, null, 2) : message;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        window.testSet = function() {
+            const key = document.getElementById('setKey').value;
+            const valueText = document.getElementById('setValue').value;
+            
+            let value;
+            try {
+                value = JSON.parse(valueText);
+            } catch {
+                value = valueText;
+            }
+
+            log(`Setting ${key}...`);
+            const success = LocalStorageService.set(key, value);
+            log(success ? `✅ Successfully set ${key}` : `❌ Failed to set ${key}`, success ? 'success' : 'error');
+        };
+
+        window.testGet = function() {
+            const key = document.getElementById('getKey').value;
+            log(`Getting ${key}...`);
+            
+            const value = LocalStorageService.get(key);
+            if (value !== null) {
+                log(value, 'success');
+            } else {
+                log(`Key "${key}" not found`, 'error');
+            }
+        };
+
+        window.testSetMultiple = function() {
+            const data = {
+                'session:abc123': { id: 'abc123', location: 'Vail Valley', team: 'Team Alpha' },
+                'session:def456': { id: 'def456', location: 'Aspen Valley', team: 'Team Beta' },
+                'app-settings': { theme: 'dark', language: 'en' },
+                'user-profile': { name: 'Jane Smith', preferences: { notifications: true } }
+            };
+
+            log('Setting multiple values...');
+            const results = LocalStorageService.setMultiple(data);
+            log(results, 'success');
+        };
+
+        window.testGetAll = function() {
+            log('Getting all values...');
+            const data = LocalStorageService.getAll();
+            log(data, 'success');
+        };
+
+        window.testListKeys = function() {
+            log('Listing all keys...');
+            const keys = LocalStorageService.listKeys();
+            log({ keys, count: keys.length }, 'success');
+        };
+
+        window.testStorageInfo = function() {
+            log('Getting storage info...');
+            const info = LocalStorageService.getStorageInfo();
+            log(info, 'success');
+        };
+
+        window.testExport = function() {
+            log('Exporting all data...');
+            const exported = LocalStorageService.exportData();
+            log(exported, 'success');
+        };
+
+        window.testClear = function() {
+            if (!confirm('Are you sure you want to clear all localStorage data?')) return;
+            
+            log('Clearing all data...');
+            const count = LocalStorageService.clear();
+            log(`✅ Cleared ${count} items`, 'success');
+        };
+
+        // Initialize with some info
+        log('🗄️ LocalStorage Service Ready');
+        log(`Browser: ${navigator.userAgent.split(' ').slice(-2).join(' ')}`);
+        
+        const info = LocalStorageService.getStorageInfo();
+        log(`Storage: ${info.keyCount} keys, ${info.formattedUsed} used of ~${info.formattedTotal} (${info.percentage}%)`);
+    </script>
+</body>
+</html>

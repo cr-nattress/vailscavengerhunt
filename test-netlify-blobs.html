@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netlify Blobs + DualWrite Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 50px auto; 
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button { 
+            margin: 5px; 
+            padding: 10px 15px; 
+            background: #6366f1; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer;
+        }
+        button:hover { background: #4f46e5; }
+        button:disabled { background: #9ca3af; cursor: not-allowed; }
+        input, textarea { 
+            margin: 5px; 
+            padding: 8px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px;
+            width: 200px;
+        }
+        textarea { width: 100%; height: 100px; }
+        .result { 
+            margin: 10px 0; 
+            padding: 15px; 
+            background: #f8f9fa; 
+            border-radius: 5px; 
+            white-space: pre-wrap; 
+            font-family: monospace;
+            border-left: 4px solid #6366f1;
+        }
+        .error { border-left-color: #dc3545; background: #fff5f5; }
+        .success { border-left-color: #16a34a; background: #f0fdf4; }
+        .warning { border-left-color: #eab308; background: #fefce8; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .status { padding: 10px; border-radius: 5px; margin-bottom: 15px; }
+        .status.online { background: #f0fdf4; border: 1px solid #16a34a; color: #166534; }
+        .status.offline { background: #fff5f5; border: 1px solid #dc3545; color: #991b1b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Netlify Blobs + DualWrite Test</h1>
+        <p>Test the dual-write pattern with Netlify Blobs and localStorage</p>
+
+        <div id="statusIndicator" class="status">
+            <strong>Status:</strong> <span id="statusText">Checking...</span>
+        </div>
+
+        <div class="section">
+            <h3>Session Creation</h3>
+            <input type="text" id="sessionLocation" placeholder="Location" value="Vail Valley">
+            <input type="text" id="sessionTeam" placeholder="Team Name" value="Adventure Team">
+            <button onclick="createSession()">Create Session</button>
+        </div>
+
+        <div class="section">
+            <h3>App Settings</h3>
+            <input type="text" id="settingsLocation" placeholder="Location" value="Aspen Valley">
+            <input type="text" id="settingsTeam" placeholder="Team" value="Mountain Explorers">
+            <button onclick="saveSettings()">Save Settings</button>
+            <button onclick="loadSettings()">Load Settings</button>
+        </div>
+
+        <div class="section">
+            <h3>Manual Key-Value</h3>
+            <input type="text" id="manualKey" placeholder="Key" value="test:manual">
+            <textarea id="manualValue" placeholder="Value (JSON)">{"message": "Hello from dual-write!", "timestamp": "2025-01-01T00:00:00Z"}</textarea>
+            <button onclick="setManual()">Set Value</button>
+            <button onclick="getManual()">Get Value</button>
+        </div>
+
+        <div class="section">
+            <h3>Data Management</h3>
+            <button onclick="listData()">List All Data</button>
+            <button onclick="checkStatus()">Check Storage Status</button>
+            <button onclick="syncToServer()">Sync localStorage to Server</button>
+        </div>
+
+        <h3>Results</h3>
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        // Simplified DualWriteService for testing
+        class TestDualWriteService {
+            static SERVER_BASE = window.location.hostname === 'localhost' 
+                ? 'http://localhost:8888' // Netlify Dev
+                : '';
+
+            // LocalStorage helpers
+            static setLocal(key, value) {
+                try {
+                    localStorage.setItem(key, JSON.stringify(value));
+                    return true;
+                } catch { return false; }
+            }
+
+            static getLocal(key) {
+                try {
+                    const item = localStorage.getItem(key);
+                    return item ? JSON.parse(item) : null;
+                } catch { return null; }
+            }
+
+            // Dual write operation
+            static async set(key, value, indexes = []) {
+                const results = { localStorage: false, server: false, errors: [] };
+
+                // Write to localStorage
+                if (this.setLocal(key, value)) {
+                    results.localStorage = true;
+                    console.log(`✅ LocalStorage: ${key}`);
+                } else {
+                    results.errors.push('localStorage failed');
+                }
+
+                // Write to server
+                try {
+                    const response = await fetch(`${this.SERVER_BASE}/.netlify/functions/kv-upsert`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ key, value, indexes })
+                    });
+
+                    if (response.ok) {
+                        results.server = true;
+                        console.log(`✅ Server: ${key}`);
+                    } else {
+                        const error = await response.json().catch(() => ({}));
+                        results.errors.push(`Server: ${error.error || response.statusText}`);
+                    }
+                } catch (error) {
+                    results.errors.push(`Server unavailable: ${error.message}`);
+                }
+
+                return results;
+            }
+
+            // Get operation
+            static async get(key) {
+                // Try localStorage first
+                const localValue = this.getLocal(key);
+                if (localValue) {
+                    console.log(`✅ From localStorage: ${key}`);
+                    return localValue;
+                }
+
+                // Try server
+                try {
+                    const response = await fetch(`${this.SERVER_BASE}/.netlify/functions/kv-get?key=${encodeURIComponent(key)}`);
+                    if (response.ok) {
+                        const result = await response.json();
+                        // Cache in localStorage
+                        this.setLocal(key, result.value);
+                        console.log(`✅ From server: ${key}`);
+                        return result.value;
+                    }
+                } catch (error) {
+                    console.warn(`Server get failed: ${error.message}`);
+                }
+
+                return null;
+            }
+
+            // List operation
+            static async list(prefix = '') {
+                const result = { keys: new Set(), data: {} };
+
+                // Get localStorage data
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (!prefix || key.startsWith(prefix)) {
+                        result.keys.add(key);
+                        result.data[key] = this.getLocal(key);
+                    }
+                }
+
+                // Try to get server data
+                try {
+                    const params = new URLSearchParams();
+                    if (prefix) params.set('prefix', prefix);
+                    params.set('includeValues', 'true');
+
+                    const response = await fetch(`${this.SERVER_BASE}/.netlify/functions/kv-list?${params}`);
+                    if (response.ok) {
+                        const serverResult = await response.json();
+                        serverResult.keys.forEach(key => result.keys.add(key));
+                        Object.assign(result.data, serverResult.data || {});
+                    }
+                } catch (error) {
+                    console.warn('Server list failed:', error.message);
+                }
+
+                return {
+                    keys: Array.from(result.keys).sort(),
+                    data: result.data,
+                    count: result.keys.size
+                };
+            }
+
+            // Helper methods
+            static async createSession(sessionId, sessionData) {
+                const indexes = [
+                    { key: 'index:sessions', member: sessionId },
+                    { key: `index:location:${sessionData.location}`, member: sessionId }
+                ];
+                return await this.set(`session:${sessionId}`, sessionData, indexes);
+            }
+
+            static async saveSettings(settings) {
+                const indexes = [{ key: 'index:settings', member: 'app-settings' }];
+                return await this.set('app-settings', settings, indexes);
+            }
+        }
+
+        window.DualWrite = TestDualWriteService;
+
+        function log(message, type = 'result') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.textContent = typeof message === 'object' ? JSON.stringify(message, null, 2) : message;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function generateGuid() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // Test functions
+        window.createSession = async function() {
+            const location = document.getElementById('sessionLocation').value;
+            const team = document.getElementById('sessionTeam').value;
+            const sessionId = generateGuid();
+            
+            log(`🚀 Creating session: ${sessionId}`);
+            
+            const sessionData = {
+                id: sessionId,
+                location,
+                team,
+                startTime: new Date().toISOString(),
+                userAgent: navigator.userAgent
+            };
+
+            const results = await DualWrite.createSession(sessionId, sessionData);
+            log(results, results.server && results.localStorage ? 'success' : 'warning');
+        };
+
+        window.saveSettings = async function() {
+            const location = document.getElementById('settingsLocation').value;
+            const team = document.getElementById('settingsTeam').value;
+            
+            log('💾 Saving app settings...');
+            
+            const settings = {
+                location,
+                team,
+                updatedAt: new Date().toISOString()
+            };
+
+            const results = await DualWrite.saveSettings(settings);
+            log(results, results.server && results.localStorage ? 'success' : 'warning');
+        };
+
+        window.loadSettings = async function() {
+            log('📖 Loading app settings...');
+            
+            const settings = await DualWrite.get('app-settings');
+            if (settings) {
+                log(settings, 'success');
+                
+                // Update form fields
+                document.getElementById('settingsLocation').value = settings.location || '';
+                document.getElementById('settingsTeam').value = settings.team || '';
+            } else {
+                log('No settings found', 'warning');
+            }
+        };
+
+        window.setManual = async function() {
+            const key = document.getElementById('manualKey').value;
+            const valueText = document.getElementById('manualValue').value;
+            
+            let value;
+            try {
+                value = JSON.parse(valueText);
+            } catch {
+                value = valueText;
+            }
+
+            log(`📝 Setting ${key}...`);
+            const results = await DualWrite.set(key, value);
+            log(results, results.server && results.localStorage ? 'success' : 'warning');
+        };
+
+        window.getManual = async function() {
+            const key = document.getElementById('manualKey').value;
+            
+            log(`📖 Getting ${key}...`);
+            const value = await DualWrite.get(key);
+            
+            if (value !== null) {
+                log(value, 'success');
+            } else {
+                log('Key not found', 'error');
+            }
+        };
+
+        window.listData = async function() {
+            log('📋 Listing all data...');
+            const data = await DualWrite.list();
+            log(data, 'success');
+        };
+
+        window.checkStatus = async function() {
+            log('🔍 Checking storage status...');
+            
+            // Test localStorage
+            const localAvailable = typeof Storage !== "undefined";
+            
+            // Test server
+            let serverAvailable = false;
+            try {
+                const response = await fetch(`${DualWrite.SERVER_BASE}/.netlify/functions/kv-list?prefix=__test__`);
+                serverAvailable = response.ok;
+            } catch (error) {
+                console.warn('Server check failed:', error);
+            }
+
+            const status = {
+                localStorage: { available: localAvailable, keys: localStorage.length },
+                server: { available: serverAvailable },
+                timestamp: new Date().toISOString()
+            };
+
+            log(status, serverAvailable ? 'success' : 'warning');
+            
+            // Update status indicator
+            updateStatusIndicator(serverAvailable);
+        };
+
+        window.syncToServer = async function() {
+            log('🔄 Syncing localStorage to server...');
+            
+            const localData = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                localData[key] = DualWrite.getLocal(key);
+            }
+
+            const results = { synced: [], failed: [] };
+            
+            for (const [key, value] of Object.entries(localData)) {
+                const result = await DualWrite.set(key, value);
+                if (result.server) {
+                    results.synced.push(key);
+                } else {
+                    results.failed.push(key);
+                }
+            }
+
+            log(results, 'success');
+        };
+
+        function updateStatusIndicator(serverOnline) {
+            const indicator = document.getElementById('statusIndicator');
+            const text = document.getElementById('statusText');
+            
+            if (serverOnline) {
+                indicator.className = 'status online';
+                text.textContent = 'Netlify Functions Online ✅';
+            } else {
+                indicator.className = 'status offline';
+                text.textContent = 'Netlify Functions Offline (using localStorage only) ⚠️';
+            }
+        }
+
+        // Initialize
+        log('🚀 DualWrite Test Ready');
+        log(`Environment: ${window.location.hostname === 'localhost' ? 'Development' : 'Production'}`);
+        log(`Server Base: ${DualWrite.SERVER_BASE || 'Same Origin'}`);
+        
+        // Check initial status
+        setTimeout(checkStatus, 500);
+    </script>
+</body>
+</html>

@@ -5,7 +5,8 @@
       "Bash(npm run dev:*)",
       "Bash(curl:*)",
       "WebFetch(domain:res.cloudinary.com)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(start C:UsersBLUEDownloadsVailLoveHunttest-localstorage.html)"
     ],
     "deny": [],
     "ask": []
