@@ -1,0 +1,13 @@
+﻿node_modules/
+dist/
+build/
+.vite/
+.env
+.env.*
+*.log
+npm-debug.log*
+yarn-error.log*
+.pnp*
+.vscode/
+.DS_Store
+Thumbs.db
