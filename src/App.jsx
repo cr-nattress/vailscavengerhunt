@@ -174,11 +174,11 @@ function getRandomStops() {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
   
-  // Return first 2 locations
-  return shuffled.slice(0, 2)
+  // Return first 5 locations
+  return shuffled.slice(0, 5)
 }
 
-// Generate random selection of 2 stops from all available locations
+// Generate random selection of 5 stops from all available locations
 const STOPS = getRandomStops()
 
 // localStorage key used for persisting progress
@@ -485,14 +485,46 @@ export default function App() {
             <>
               <p className='text-slate-600 mt-2'>Each stop: <span className='font-medium'>Clue → Selfie</span>. Complete all to unlock your reward.</p>
               
-              {/* Progress Gauge */}
-              <div className='mt-3 flex items-center gap-2 text-sm'>
-                <span className='text-blue-600 font-semibold'>{completeCount}/{STOPS.length}</span>
-                <div className='flex-1 bg-slate-200 rounded-full h-1.5'>
-                  <div 
-                    className='bg-blue-500 h-1.5 rounded-full transition-all duration-500'
-                    style={{width: `${percent}%`}}
-                  />
+              {/* Enhanced Progress Gauge */}
+              <div className='mt-4'>
+                <div className='flex items-center justify-between mb-2'>
+                  <span className='text-xs font-medium text-slate-600 uppercase tracking-wider'>Progress</span>
+                  <span className='text-sm font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent'>
+                    {percent}% Complete
+                  </span>
+                </div>
+                <div className='relative'>
+                  {/* Background track */}
+                  <div className='overflow-hidden h-3 bg-slate-100 rounded-full shadow-inner'>
+                    <div 
+                      className='h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000 ease-out relative overflow-hidden'
+                      style={{width: `${percent}%`}}
+                    >
+                      {/* Animated shimmer effect */}
+                      <div className='absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse' />
+                    </div>
+                  </div>
+                  {/* Progress dots */}
+                  <div className='absolute top-0 left-0 w-full h-3 flex items-center justify-between px-1'>
+                    {STOPS.map((stop, i) => (
+                      <div 
+                        key={stop.id}
+                        className={`w-2 h-2 rounded-full transition-all duration-500 ${
+                          progress[stop.id]?.done 
+                            ? 'bg-white shadow-sm scale-110' 
+                            : 'bg-slate-300/50 scale-75'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className='flex justify-between mt-2'>
+                  <span className='text-xs text-slate-500'>{completeCount} of {STOPS.length} stops</span>
+                  {completeCount > 0 && completeCount < STOPS.length && (
+                    <span className='text-xs font-medium text-purple-600'>
+                      {STOPS.length - completeCount} to go! 
+                    </span>
+                  )}
                 </div>
               </div>
               
@@ -602,26 +634,28 @@ export default function App() {
           const handlePhotoUpload = async (e) => {
             const file = e.target.files[0]
             if (file && file.type.startsWith('image/')) {
-              // Step 1: Add to transitioning stops to keep it in place
-              setTransitioningStops(prev => new Set([...prev, s.id]))
-              
               try {
                 const compressedPhoto = await compressImage(file)
                 
-                // Step 2: Mark as complete but keep in current position
+                // Step 1: First update the photo so user can see it
                 setProgress(p => ({
                   ...p,
                   [s.id]: { ...state, photo: compressedPhoto, done: true }
                 }))
                 
-                // Step 3: Wait for completion animation, then allow reorganization
+                // Step 2: After a delay to view the photo, start the transition
                 setTimeout(() => {
-                  setTransitioningStops(prev => {
-                    const newSet = new Set(prev)
-                    newSet.delete(s.id)
-                    return newSet
-                  })
-                }, 1500) // 1.5 second delay for user to see the completion
+                  setTransitioningStops(prev => new Set([...prev, s.id]))
+                  
+                  // Step 3: After transition animation, allow reorganization
+                  setTimeout(() => {
+                    setTransitioningStops(prev => {
+                      const newSet = new Set(prev)
+                      newSet.delete(s.id)
+                      return newSet
+                    })
+                  }, 1500) // 1.5 second celebration
+                }, 800) // 0.8 second delay to view uploaded photo
                 
               } catch (error) {
                 console.error('Error processing image:', error)
@@ -629,19 +663,26 @@ export default function App() {
                 const reader = new FileReader()
                 reader.onloadend = () => {
                   const photoData = reader.result
+                  
+                  // Step 1: First update the photo so user can see it
                   setProgress(p => ({
                     ...p,
                     [s.id]: { ...state, photo: photoData, done: true }
                   }))
                   
-                  // Same delay for fallback method
+                  // Step 2: After a delay to view the photo, start the transition
                   setTimeout(() => {
-                    setTransitioningStops(prev => {
-                      const newSet = new Set(prev)
-                      newSet.delete(s.id)
-                      return newSet
-                    })
-                  }, 1500)
+                    setTransitioningStops(prev => new Set([...prev, s.id]))
+                    
+                    // Step 3: After transition animation, allow reorganization
+                    setTimeout(() => {
+                      setTransitioningStops(prev => {
+                        const newSet = new Set(prev)
+                        newSet.delete(s.id)
+                        return newSet
+                      })
+                    }, 1500) // 1.5 second celebration
+                  }, 800) // 0.8 second delay to view uploaded photo
                 }
                 reader.readAsDataURL(file)
               }
