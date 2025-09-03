@@ -501,7 +501,7 @@ export default function App() {
         {fullSizeImageUrl && (
           <div className='border rounded-lg shadow-lg p-4 bg-white mt-5 mb-5'>
             <div className='flex justify-between items-center mb-4'>
-              <h3 className='text-lg font-semibold text-slate-700'>Selfie Collage</h3>
+              <h3 className='text-lg font-semibold text-slate-700'>Album</h3>
               <button
                 onClick={() => setFullSizeImageUrl(null)}
                 className='px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-colors'
