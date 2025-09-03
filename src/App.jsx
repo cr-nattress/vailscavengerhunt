@@ -461,37 +461,25 @@ export default function App() {
           {percent === 100 ? (
             <div className='mt-2'>
               <p className='text-blue-600 text-lg font-semibold'>🎉 Congratulations! You completed the scavenger hunt.</p>
-              <div 
-                className={`transition-all duration-1000 ease-out ${
-                  collageUrl && !collageLoading 
-                    ? 'opacity-0 transform scale-95 pointer-events-none' 
-                    : 'opacity-100 transform scale-100'
-                }`}
-                style={{ 
-                  maxHeight: collageUrl && !collageLoading ? '0px' : '200px',
-                  overflow: 'hidden'
-                }}
+              <button 
+                className='mt-3 w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-slate-700 hover:from-blue-700 hover:to-slate-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:hover:scale-100'
+                onClick={createPrizeCollage}
+                disabled={collageLoading || collageUrl}
               >
-                {!collageUrl && (
-                  <button 
-                    className='mt-3 w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-slate-700 hover:from-blue-700 hover:to-slate-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:hover:scale-100'
-                    onClick={createPrizeCollage}
-                    disabled={collageLoading}
-                  >
-                    {collageLoading ? (
-                      <span className="flex items-center gap-2">
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        Creating Your Prize...
-                      </span>
-                    ) : (
-                      <>🏆 Claim Prize</>
-                    )}
-                  </button>
+                {collageLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Creating Your Prize...
+                  </span>
+                ) : collageUrl ? (
+                  <>✅ Prize Claimed</>
+                ) : (
+                  <>🏆 Claim Prize</>
                 )}
-              </div>
+              </button>
             </div>
           ) : (
             <>
@@ -514,19 +502,15 @@ export default function App() {
 
         {/* Album container - collapsible after prize is claimed */}
         {collageUrl && (
-          <div className='border rounded-lg shadow-lg p-4 bg-white mt-5 mb-5'>
+          <div className={`mt-6 shadow-sm border rounded-lg bg-white p-4 ${
+            albumExpanded ? 'border-blue-200' : 'border-gray-200'
+          }`}>
             <div 
-              className='flex justify-between items-center mb-4 cursor-pointer'
+              className='flex justify-between items-center cursor-pointer'
               onClick={() => setAlbumExpanded(!albumExpanded)}
             >
               <div className='flex items-center gap-2'>
-                <svg className="w-5 h-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="m9 9-3 3 3 3"></path>
-                  <path d="m20 4-3 3-3-3"></path>
-                  <rect x="2" y="4" width="20" height="14" rx="2"></rect>
-                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                  <polyline points="21,15 16,10 5,21"></polyline>
-                </svg>
+                <span className='text-lg'>📸</span>
                 <h3 className='text-lg font-semibold text-slate-700'>Album</h3>
               </div>
               <span className='text-blue-500'>
@@ -535,7 +519,7 @@ export default function App() {
             </div>
             
             {albumExpanded && imageLoaded && (
-              <div className='flex justify-center transition-all duration-300 ease-in-out'>
+              <div className='flex justify-center transition-all duration-300 ease-in-out mt-4'>
                 <img 
                   src={fullSizeImageUrl} 
                   alt="Full size collage" 
