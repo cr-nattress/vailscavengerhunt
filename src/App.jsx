@@ -7,6 +7,7 @@ import ProgressGauge from './components/ProgressGauge'
 import AlbumViewer from './components/AlbumViewer'
 import vailValleyData from './data/vail-valley.json'
 import vailVillageData from './data/vail-village.json'
+import bhhsData from './data/bhhs-locations.json'
 
 /**
  * Vail Love Hunt — React single-page app for a couples' scavenger/date experience in Vail.
@@ -38,6 +39,8 @@ const PLACEHOLDER = '/images/selfie-placeholder.svg'
  */
 function getLocationData(locationName) {
   switch(locationName) {
+    case 'BHHS':
+      return bhhsData
     case 'Vail Village':
       return vailVillageData
     case 'Vail Valley':
@@ -46,7 +49,7 @@ function getLocationData(locationName) {
       // For TEST, return a subset of Vail Valley data
       return vailValleyData.slice(0, 3)
     default:
-      return vailValleyData
+      return bhhsData
   }
 }
 
@@ -54,7 +57,7 @@ function getLocationData(locationName) {
  * Randomly selects locations from the specified location data
  * Uses a seeded approach to ensure consistent selection per session
  */
-function getRandomStops(locationName = 'Vail Valley') {
+function getRandomStops(locationName = 'BHHS') {
   const locationData = getLocationData(locationName)
   
   // Create a copy of all locations to avoid mutating the original array
@@ -66,8 +69,9 @@ function getRandomStops(locationName = 'Vail Valley') {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
   
-  // Return first 5 locations (or all if less than 5)
-  return shuffled.slice(0, Math.min(5, shuffled.length))
+  // For BHHS, return all 9 locations; for others, return 5
+  const maxStops = locationName === 'BHHS' ? shuffled.length : 5
+  return shuffled.slice(0, Math.min(maxStops, shuffled.length))
 }
 
 // localStorage key used for persisting progress
@@ -170,9 +174,9 @@ const generateGuid = () => {
 }
 
 export default function App() {
-  const [locationName, setLocationName] = useState('Vail Valley')
+  const [locationName, setLocationName] = useState('BHHS')
   const [teamName, setTeamName] = useState('')
-  const [stops, setStops] = useState(() => getRandomStops('Vail Valley'))
+  const [stops, setStops] = useState(() => getRandomStops('BHHS'))
   const [isEditMode, setIsEditMode] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   
@@ -434,10 +438,8 @@ export default function App() {
         backgroundColor: 'var(--color-cabernet)', 
         borderBottomColor: 'var(--color-blush-pink)'
       }}>
-        <div className='max-w-screen-sm mx-auto px-4 py-4 flex items-center justify-between relative'>
-          <div className='flex-1'></div>
-          
-          <div className='flex items-center justify-center absolute left-1/2 transform -translate-x-1/2'>
+        <div className='max-w-screen-sm mx-auto px-4 py-4 flex items-center justify-between'>
+          <div className='flex items-center'>
             {/* Official Berkshire Hathaway HomeServices Logo */}
             <svg width="280" height="40" viewBox="0 0 280 40" className='text-white'>
               {/* House icon/symbol */}
@@ -586,8 +588,10 @@ export default function App() {
                   <select
                     value={locationName}
                     onChange={(e) => setLocationName(e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent opacity-50 cursor-not-allowed'
+                    disabled={true}
                   >
+                    <option value="BHHS">BHHS</option>
                     <option value="Vail Valley">Vail Valley</option>
                     <option value="Vail Village">Vail Village</option>
                     <option value="TEST">TEST</option>
@@ -670,41 +674,6 @@ export default function App() {
               {percent === 100 ? (
                 <div className='mt-2'>
                   <p className='text-lg font-semibold' style={{color: 'var(--color-cabernet)'}}>🎉 Congratulations! You completed the scavenger hunt.</p>
-                  <button 
-                    className='mt-3 w-full px-6 py-3 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 active:scale-[1.02] disabled:hover:scale-100'
-                    style={{
-                      background: `linear-gradient(135deg, var(--color-cabernet) 0%, var(--color-cabernet-active) 100%)`,
-                      boxShadow: 'var(--shadow-lg)'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!e.target.disabled) {
-                        e.target.style.background = `linear-gradient(135deg, var(--color-cabernet-hover) 0%, var(--color-cabernet) 100%)`
-                        e.target.style.boxShadow = 'var(--shadow-xl)'
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!e.target.disabled) {
-                        e.target.style.background = `linear-gradient(135deg, var(--color-cabernet) 0%, var(--color-cabernet-active) 100%)`
-                        e.target.style.boxShadow = 'var(--shadow-lg)'
-                      }
-                    }}
-                    onClick={createPrizeCollage}
-                    disabled={collageLoading || collageUrl}
-                  >
-                    {collageLoading ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        Creating Your Prize...
-                      </span>
-                    ) : collageUrl ? (
-                      <>✅ Prize Claimed</>
-                    ) : (
-                      <>🏆 Claim Prize</>
-                    )}
-                  </button>
                 </div>
               ) : (
                 <>
