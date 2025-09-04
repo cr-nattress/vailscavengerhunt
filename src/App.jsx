@@ -184,6 +184,7 @@ export default function App() {
   const [fullSizeImageUrl, setFullSizeImageUrl] = useState(null)
   const [expandedStops, setExpandedStops] = useState({})
   const [transitioningStops, setTransitioningStops] = useState(new Set())
+  const [uploadingStops, setUploadingStops] = useState(new Set())
 
   // Initialize session and load saved settings on app startup
   useEffect(() => {
@@ -454,7 +455,13 @@ export default function App() {
         
         {/* Dropdown Menu */}
         {isMenuOpen && (
-          <div className='absolute top-full right-0 left-0 bg-white shadow-lg border-t border-gray-200'>
+          <div 
+            className='absolute top-full right-0 left-0 bg-white shadow-lg border-t border-gray-200'
+            style={{
+              animation: 'slideDown 0.2s ease-out forwards',
+              transformOrigin: 'top'
+            }}
+          >
             <div className='max-w-screen-sm mx-auto px-4 py-4'>
               <nav className='space-y-2'>
                 <button 
@@ -462,7 +469,10 @@ export default function App() {
                     setShowTips(!showTips)
                     setIsMenuOpen(false)
                   }}
-                  className='w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-3'
+                  className='w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-all duration-150 transform hover:scale-[1.01] active:scale-[0.99] flex items-center gap-3 opacity-0'
+                  style={{
+                    animation: 'fadeInSlide 0.3s ease-out 0.1s forwards'
+                  }}
                 >
                   <svg className='w-5 h-5 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                     <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' />
@@ -475,7 +485,10 @@ export default function App() {
                     reset()
                     setIsMenuOpen(false)
                   }}
-                  className='w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-3'
+                  className='w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-all duration-150 transform hover:scale-[1.01] active:scale-[0.99] flex items-center gap-3 opacity-0'
+                  style={{
+                    animation: 'fadeInSlide 0.3s ease-out 0.2s forwards'
+                  }}
                 >
                   <svg className='w-5 h-5 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                     <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' />
@@ -483,7 +496,9 @@ export default function App() {
                   <span className='text-gray-700'>Reset</span>
                 </button>
                 
-                <div className='pt-3 mt-3 border-t border-gray-200'>
+                <div className='pt-3 mt-3 border-t border-gray-200 opacity-0' style={{
+                  animation: 'fadeInSlide 0.3s ease-out 0.3s forwards'
+                }}>
                   <div className='px-4 py-2 text-sm text-gray-500'>
                     Progress: {completeCount}/{stops.length} stops complete ({percent}%)
                   </div>
@@ -560,13 +575,13 @@ export default function App() {
                       
                       setIsEditMode(false);
                     }}
-                    className='flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors'
+                    className='flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium rounded-md transition-all duration-150 transform hover:scale-[1.02] active:scale-[0.98]'
                   >
                     Save Changes
                   </button>
                   <button
                     onClick={() => setIsEditMode(false)}
-                    className='flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-md transition-colors'
+                    className='flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-700 font-medium rounded-md transition-all duration-150 transform hover:scale-[1.02] active:scale-[0.98]'
                   >
                     Cancel
                   </button>
@@ -584,7 +599,7 @@ export default function App() {
                 <div className='mt-2'>
                   <p className='text-blue-600 text-lg font-semibold'>🎉 Congratulations! You completed the scavenger hunt.</p>
                   <button 
-                    className='mt-3 w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-slate-700 hover:from-blue-700 hover:to-slate-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:hover:scale-100'
+                    className='mt-3 w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-slate-700 hover:from-blue-700 hover:to-slate-800 active:from-blue-800 active:to-slate-900 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 active:scale-[1.02] disabled:hover:scale-100'
                     onClick={createPrizeCollage}
                     disabled={collageLoading || collageUrl}
                   >
@@ -666,55 +681,71 @@ export default function App() {
           const handlePhotoUpload = async (e) => {
             const file = e.target.files[0]
             if (file && file.type.startsWith('image/')) {
+              // Start loading state
+              setUploadingStops(prev => new Set([...prev, s.id]))
+              
               try {
                 const compressedPhoto = await compressImage(file)
                 
-                // Step 1: First update the photo so user can see it
+                // Step 1: Immediate feedback with photo
                 setProgress(p => ({
                   ...p,
                   [s.id]: { ...state, photo: compressedPhoto, done: true }
                 }))
                 
-                // Step 2: After a delay to view the photo, start the transition
+                // End loading state
+                setUploadingStops(prev => {
+                  const newSet = new Set(prev)
+                  newSet.delete(s.id)
+                  return newSet
+                })
+                
+                // Step 2: Quick celebration animation
                 setTimeout(() => {
                   setTransitioningStops(prev => new Set([...prev, s.id]))
                   
-                  // Step 3: After transition animation, allow reorganization
+                  // Step 3: Complete transition quickly
                   setTimeout(() => {
                     setTransitioningStops(prev => {
                       const newSet = new Set(prev)
                       newSet.delete(s.id)
                       return newSet
                     })
-                  }, 1500) // 1.5 second celebration
-                }, 800) // 0.8 second delay to view uploaded photo
+                  }, 600) // Reduced from 1500ms to 600ms
+                }, 150) // Reduced from 800ms to 150ms for quicker response
                 
               } catch (error) {
                 console.error('Error processing image:', error)
+                // End loading state on error
+                setUploadingStops(prev => {
+                  const newSet = new Set(prev)
+                  newSet.delete(s.id)
+                  return newSet
+                })
                 // Fallback to original method if compression fails
                 const reader = new FileReader()
                 reader.onloadend = () => {
                   const photoData = reader.result
                   
-                  // Step 1: First update the photo so user can see it
+                  // Step 1: Immediate feedback with photo
                   setProgress(p => ({
                     ...p,
                     [s.id]: { ...state, photo: photoData, done: true }
                   }))
                   
-                  // Step 2: After a delay to view the photo, start the transition
+                  // Step 2: Quick celebration animation
                   setTimeout(() => {
                     setTransitioningStops(prev => new Set([...prev, s.id]))
                     
-                    // Step 3: After transition animation, allow reorganization
+                    // Step 3: Complete transition quickly
                     setTimeout(() => {
                       setTransitioningStops(prev => {
                         const newSet = new Set(prev)
                         newSet.delete(s.id)
                         return newSet
                       })
-                    }, 1500) // 1.5 second celebration
-                  }, 800) // 0.8 second delay to view uploaded photo
+                    }, 600) // Reduced from 1500ms to 600ms
+                  }, 150) // Reduced from 800ms to 150ms for quicker response
                 }
                 reader.readAsDataURL(file)
               }
@@ -754,15 +785,25 @@ export default function App() {
               }`}
               onClick={state.done && !isTransitioning ? toggleExpanded : undefined}
               style={{
-                transform: isTransitioning ? 'scale(1.02)' : 'scale(1)',
-                transition: 'all 1.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: isTransitioning ? 'scale(1.05) translateY(-4px)' : 'scale(1)',
+                transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                animation: `fadeInSlide 0.4s ease-out ${i * 0.15}s forwards`,
+                opacity: 0
               }}
             >
               <div className='flex items-start justify-between gap-3'>
                 <div className='flex-1'>
                   <div className='flex items-center justify-between'>
                     <div className='flex items-center gap-2'>
-                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded ${state.done ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-900'}`}>{s.originalNumber}</span>
+                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded transition-all duration-300 ${state.done ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-900'}`}>
+                        {state.done ? (
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        ) : (
+                          s.originalNumber
+                        )}
+                      </span>
                       <h3 className={`text-base font-semibold ${!state.photo ? 'blur-sm' : ''}`}>{s.title}</h3>
                     </div>
                     {state.done && (
@@ -778,7 +819,7 @@ export default function App() {
                           e.stopPropagation()
                           revealNextHint()
                         }}
-                        className='px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 text-xs font-medium rounded-md transition-colors'
+                        className='px-3 py-1 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-600 hover:text-blue-700 text-xs font-medium rounded-md transition-all duration-150 transform hover:scale-105 active:scale-95'
                       >
                         💭 Hint
                       </button>
@@ -829,10 +870,24 @@ export default function App() {
                       />
                       <label 
                         htmlFor={`file-${s.id}`}
-                        className='w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg cursor-pointer transition-colors flex items-center justify-center gap-2'
+                        className={`w-full px-4 py-3 text-white font-medium rounded-lg cursor-pointer flex items-center justify-center gap-2 transition-all duration-200 transform ${
+                          uploadingStops.has(s.id) 
+                            ? 'bg-blue-500 cursor-wait' 
+                            : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 hover:scale-[1.02] active:scale-[0.98]'
+                        }`}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        📸 Upload Photo
+                        {uploadingStops.has(s.id) ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            Processing...
+                          </>
+                        ) : (
+                          <>📸 Upload Photo</>
+                        )}
                       </label>
                     </div>
                   )}
@@ -852,13 +907,24 @@ export default function App() {
 
         {showTips && (
           <div className='fixed inset-0 z-30'>
-            <div className='absolute inset-0 bg-black/40' onClick={()=>setShowTips(false)} />
-            <div className='absolute inset-x-0 bottom-0 rounded-t-3xl bg-white p-5 shadow-2xl'>
+            <div 
+              className='absolute inset-0 bg-black/40 backdrop-blur-sm' 
+              onClick={()=>setShowTips(false)}
+              style={{
+                animation: 'fadeIn 0.2s ease-out forwards'
+              }}
+            />
+            <div 
+              className='absolute inset-x-0 bottom-0 rounded-t-3xl bg-white p-5 shadow-2xl'
+              style={{
+                animation: 'slideUpModal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
+              }}
+            >
               <div className='mx-auto max-w-screen-sm'>
                 <div className='flex items-center justify-between'>
                   <h3 className='text-lg font-semibold flex items-center gap-2'>📖 Rules</h3>
                   <button 
-                    className='p-2 rounded-lg hover:bg-gray-100 transition-colors' 
+                    className='p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-all duration-150 transform hover:scale-110 active:scale-95' 
                     onClick={()=>setShowTips(false)}
                     aria-label='Close'
                   >

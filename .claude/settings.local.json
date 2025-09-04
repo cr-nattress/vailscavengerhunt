@@ -29,7 +29,8 @@
       "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt/**)",
       "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\netlify\\functions/**)",
       "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\netlify\\functions/**)",
-      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)"
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src\\components/**)"
     ],
     "deny": [],
     "ask": []

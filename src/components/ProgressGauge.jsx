@@ -24,7 +24,7 @@ const ProgressGauge = ({ percent, completeCount, totalStops, stops, progress }) 
         {/* Background track */}
         <div className='overflow-hidden h-3 bg-slate-100 rounded-full shadow-inner'>
           <div 
-            className='h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000 ease-out relative overflow-hidden'
+            className='h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full transition-all duration-700 ease-out relative overflow-hidden'
             style={{width: `${percent}%`}}
           >
             {/* Animated shimmer effect */}
