@@ -4,14 +4,8 @@
 export class NetlifyStateService {
   // Automatically detects environment - uses Netlify Functions in production, localhost in development
   static get API_BASE() {
-    // In development, use localhost if available, otherwise fall back to Netlify
-    if (typeof window !== 'undefined') {
-      const isDevelopment = window.location.hostname === 'localhost';
-      return isDevelopment 
-        ? (process.env.REACT_APP_LOCAL_API || 'http://localhost:3002/api')
-        : '/.netlify/functions';
-    }
-    return '/.netlify/functions';
+    // Always use the deployed Netlify API
+    return 'https://vaillovehunt.netlify.app/.netlify/functions';
   }
 
   /**

@@ -13,13 +13,8 @@ export class DualWriteService {
    * Environment detection for local development
    */
   static get API_BASE() {
-    if (typeof window !== 'undefined') {
-      const isDevelopment = window.location.hostname === 'localhost';
-      return isDevelopment 
-        ? 'http://localhost:8888' // Netlify Dev default port
-        : '';
-    }
-    return '';
+    // Always use the deployed Netlify API
+    return 'https://vaillovehunt.netlify.app';
   }
 
   /**

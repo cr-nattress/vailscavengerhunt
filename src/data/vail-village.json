@@ -10,6 +10,7 @@
     ],
     "answer": "International Bridge",
     "challenge": "Sneak under the bridge and snap a playful selfie looking up — bonus points if you catch the flags above your head.",
+    "funFact": "The flags lining the bridge often change with events and seasons, making it a living backdrop for photos.",
     "maps": "https://www.google.com/maps/search/?api=1&query=International+Bridge+Vail+Village+Colorado"
   },
   {
@@ -23,6 +24,7 @@
     ],
     "answer": "Yama Sushi",
     "challenge": "Pretend your fingers are chopsticks and do a \"sushi cheers\" pose — no sushi required.",
+    "funFact": "A compact, locals-loved spot where chefs sometimes finish dishes with a quick torch right at the bar.",
     "maps": "https://www.google.com/maps/search/?api=1&query=Yama+Sushi+Vail+Village+Colorado"
   },
   {
@@ -36,6 +38,7 @@
     ],
     "answer": "Lodge at Vail",
     "challenge": "Slip through the lodge and take a secret \"spy mission\" photo in the elevator — just the two of you.",
+    "funFact": "Opened in 1962, it was Vail’s first hotel and helped kickstart the village’s alpine vibe.",
     "maps": "https://www.google.com/maps/search/?api=1&query=Lodge+at+Vail+Colorado"
   },
   {
@@ -49,6 +52,7 @@
     ],
     "answer": "Patagonia",
     "challenge": "Try on the goofiest gear you can find and pose like you're heading to climb Everest… tomorrow.",
+    "funFact": "The brand donates 1% of sales to environmental causes and encourages repairing gear instead of replacing it.",
     "maps": "https://www.google.com/maps/search/?api=1&query=Patagonia+Store+Vail+Village+Colorado"
   },
   {
@@ -62,6 +66,7 @@
     ],
     "answer": "Pirate Ship Playground",
     "challenge": "Climb aboard and strike your fiercest pirate pose — \"Arrr!\" required.",
+    "funFact": "A beloved Vail icon that’s been rebuilt over the years thanks to heavy kid (and kid-at-heart) traffic.",
     "maps": "https://www.google.com/maps/search/?api=1&query=Pirate+Ship+Playground+Vail+Village+Colorado"
   },
   {
@@ -75,6 +80,7 @@
     ],
     "answer": "10th Mountain Division Memorial",
     "challenge": "Take a photo from the creekside, capturing the statue and the village bustle — like the soldier is still keeping watch.",
+    "funFact": "Vail’s founders included 10th Mountain Division veterans; many trained at nearby Camp Hale.",
     "maps": "https://www.google.com/maps/search/?api=1&query=10th+Mountain+Division+Memorial+Vail+Village+Colorado"
   },
   {
@@ -88,6 +94,7 @@
     ],
     "answer": "Covered Bridge",
     "challenge": "Get creative and snap the bridge from an unusual angle — the weirder, the better.",
+    "funFact": "Often called the most-photographed spot in Vail, it frames the village like a postcard.",
     "maps": "https://www.google.com/maps/search/?api=1&query=Covered+Bridge+Vail+Village+Colorado"
   },
   {
@@ -101,6 +108,7 @@
     ],
     "answer": "The Fitz",
     "challenge": "Order one appetizer and share it like you're in a food commercial — extra points if you fake slow-motion bites.",
+    "funFact": "Locals swear by the mac & cheese and the cozy fireplace after a Ford Park concert.",
     "maps": "https://www.google.com/maps/search/?api=1&query=The+Fitz+Manor+Vail+Lodge+Colorado"
   },
   {
@@ -114,6 +122,7 @@
     ],
     "answer": "Betty Ford Alpine Garden",
     "challenge": "Take a long-exposure shot of the creek so it looks like magical flowing mist — bonus if you pose like nature spirits.",
+    "funFact": "At roughly 8,200 feet, it’s among the highest-elevation botanical gardens in the world.",
     "maps": "https://www.google.com/maps/search/?api=1&query=Betty+Ford+Alpine+Garden+Vail+Colorado"
   }
 ]

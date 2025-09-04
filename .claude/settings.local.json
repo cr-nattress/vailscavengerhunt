@@ -9,7 +9,14 @@
       "Bash(start C:UsersBLUEDownloadsVailLoveHunttest-localstorage.html)",
       "WebFetch(domain:localhost)",
       "Bash(start test-location-loading.html)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src\\client/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src\\client/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\netlify\\functions/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\netlify\\functions/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\netlify\\functions/**)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
