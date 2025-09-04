@@ -429,20 +429,43 @@ export default function App() {
   }
 
   return (
-    <div className='min-h-screen bg-gradient-to-b from-blue-50 to-white text-slate-900'>
-      <header className='sticky top-0 z-20 backdrop-blur-md bg-gradient-to-r from-blue-600/90 to-slate-700/90 border-b border-white/20'>
-        <div className='max-w-screen-sm mx-auto px-4 py-4 flex items-center justify-between'>
-          <div className='flex items-center gap-3'>
-            <div className='w-8 h-8 rounded-full bg-white/20 flex items-center justify-center'>
-              <span className='text-white text-lg'>🏔️</span>
-            </div>
-            <h1 className='font-bold text-xl text-white'>Vail Scavenger Hunt</h1>
+    <div className='min-h-screen text-slate-900' style={{backgroundColor: 'var(--color-cream)'}}>
+      <header className='sticky top-0 z-20 backdrop-blur-md border-b' style={{
+        backgroundColor: 'var(--color-cabernet)', 
+        borderBottomColor: 'var(--color-blush-pink)'
+      }}>
+        <div className='max-w-screen-sm mx-auto px-4 py-4 flex items-center justify-between relative'>
+          <div className='flex-1'></div>
+          
+          <div className='flex items-center justify-center absolute left-1/2 transform -translate-x-1/2'>
+            {/* Official Berkshire Hathaway HomeServices Logo */}
+            <svg width="280" height="40" viewBox="0 0 280 40" className='text-white'>
+              {/* House icon/symbol */}
+              <g transform="translate(0,10)">
+                <path d="M8 8 L16 1 L24 8 L24 16 L20 16 L20 10 L12 10 L12 16 L8 16 Z" fill="white"/>
+                <rect x="15" y="3" width="2" height="4" fill="white"/>
+              </g>
+              
+              {/* BERKSHIRE HATHAWAY text */}
+              <text x="38" y="16" fill="white" fontSize="11" fontWeight="bold" fontFamily="Arial, sans-serif">BERKSHIRE HATHAWAY</text>
+              
+              {/* HomeServices text */}
+              <text x="38" y="30" fill="white" fontSize="9" fontWeight="normal" fontFamily="Arial, sans-serif">HomeServices</text>
+              
+              {/* Decorative line */}
+              <line x1="38" y1="20" x2="220" y2="20" stroke="white" strokeWidth="0.8"/>
+            </svg>
           </div>
           
           {/* Hamburger Menu Button */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className='relative p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors'
+            className='relative p-2 rounded-lg transition-colors'
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
             aria-label='Menu'
           >
             <div className='w-6 h-5 flex flex-col justify-between'>
@@ -456,8 +479,10 @@ export default function App() {
         {/* Dropdown Menu */}
         {isMenuOpen && (
           <div 
-            className='absolute top-full right-0 left-0 bg-white shadow-lg border-t border-gray-200'
+            className='absolute top-full right-0 left-0 shadow-lg border-t'
             style={{
+              backgroundColor: 'var(--color-white)',
+              borderTopColor: 'var(--color-blush-pink)',
               animation: 'slideDown 0.2s ease-out forwards',
               transformOrigin: 'top'
             }}
@@ -469,7 +494,11 @@ export default function App() {
                     setShowTips(!showTips)
                     setIsMenuOpen(false)
                   }}
-                  className='w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-all duration-150 transform hover:scale-[1.01] active:scale-[0.99] flex items-center gap-3 opacity-0'
+                  className='w-full text-left px-4 py-3 rounded-lg transition-all duration-150 transform hover:scale-[1.01] active:scale-[0.99] flex items-center gap-3 opacity-0'
+                  onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-light-pink)'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                  onMouseDown={(e) => e.target.style.backgroundColor = 'var(--color-blush-pink)'}
+                  onMouseUp={(e) => e.target.style.backgroundColor = 'var(--color-light-pink)'}
                   style={{
                     animation: 'fadeInSlide 0.3s ease-out 0.1s forwards'
                   }}
@@ -485,7 +514,11 @@ export default function App() {
                     reset()
                     setIsMenuOpen(false)
                   }}
-                  className='w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-all duration-150 transform hover:scale-[1.01] active:scale-[0.99] flex items-center gap-3 opacity-0'
+                  className='w-full text-left px-4 py-3 rounded-lg transition-all duration-150 transform hover:scale-[1.01] active:scale-[0.99] flex items-center gap-3 opacity-0'
+                  onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-light-pink)'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                  onMouseDown={(e) => e.target.style.backgroundColor = 'var(--color-blush-pink)'}
+                  onMouseUp={(e) => e.target.style.backgroundColor = 'var(--color-light-pink)'}
                   style={{
                     animation: 'fadeInSlide 0.3s ease-out 0.2s forwards'
                   }}
@@ -496,7 +529,8 @@ export default function App() {
                   <span className='text-gray-700'>Reset</span>
                 </button>
                 
-                <div className='pt-3 mt-3 border-t border-gray-200 opacity-0' style={{
+                <div className='pt-3 mt-3 border-t opacity-0' style={{
+                  borderTopColor: 'var(--color-light-grey)',
                   animation: 'fadeInSlide 0.3s ease-out 0.3s forwards'
                 }}>
                   <div className='px-4 py-2 text-sm text-gray-500'>
@@ -510,12 +544,20 @@ export default function App() {
       </header>
 
       <main className='max-w-screen-sm mx-auto px-4 py-5'>
-        <div className='border rounded-lg shadow-sm p-4 bg-white relative'>
+        <div className='border rounded-lg shadow-sm p-4 relative' style={{
+          backgroundColor: 'var(--color-white)',
+          borderColor: 'var(--color-light-grey)'
+        }}>
           <div className='flex items-center gap-2'>
             <h2 className='text-xl font-semibold'>{locationName}</h2>
             <button 
               onClick={() => setIsEditMode(!isEditMode)}
-              className='p-1 text-gray-500 hover:text-blue-600 transition-colors'
+              className='p-1 transition-colors'
+              style={{
+                color: 'var(--color-warm-grey)'
+              }}
+              onMouseEnter={(e) => e.target.style.color = 'var(--color-cabernet)'}
+              onMouseLeave={(e) => e.target.style.color = 'var(--color-warm-grey)'}
               title='Edit location and team'
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -575,13 +617,34 @@ export default function App() {
                       
                       setIsEditMode(false);
                     }}
-                    className='flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium rounded-md transition-all duration-150 transform hover:scale-[1.02] active:scale-[0.98]'
+                    className='flex-1 px-4 py-2 text-white font-medium rounded-md transition-all duration-150 transform hover:scale-[1.02] active:scale-[0.98]'
+                    style={{
+                      backgroundColor: 'var(--color-cabernet)'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-cabernet-hover)'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--color-cabernet)'}
+                    onMouseDown={(e) => e.target.style.backgroundColor = 'var(--color-cabernet-active)'}
+                    onMouseUp={(e) => e.target.style.backgroundColor = 'var(--color-cabernet-hover)'}
                   >
                     Save Changes
                   </button>
                   <button
                     onClick={() => setIsEditMode(false)}
-                    className='flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-700 font-medium rounded-md transition-all duration-150 transform hover:scale-[1.02] active:scale-[0.98]'
+                    className='flex-1 px-4 py-2 font-medium rounded-md transition-all duration-150 transform hover:scale-[1.02] active:scale-[0.98]'
+                    style={{
+                      backgroundColor: 'var(--color-light-grey)',
+                      color: 'var(--color-dark-neutral)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = 'var(--color-warm-grey)'
+                      e.target.style.color = 'var(--color-white)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = 'var(--color-light-grey)'
+                      e.target.style.color = 'var(--color-dark-neutral)'
+                    }}
+                    onMouseDown={(e) => e.target.style.backgroundColor = 'var(--color-blush-pink)'}
+                    onMouseUp={(e) => e.target.style.backgroundColor = 'var(--color-warm-grey)'}
                   >
                     Cancel
                   </button>
@@ -597,9 +660,25 @@ export default function App() {
               
               {percent === 100 ? (
                 <div className='mt-2'>
-                  <p className='text-blue-600 text-lg font-semibold'>🎉 Congratulations! You completed the scavenger hunt.</p>
+                  <p className='text-lg font-semibold' style={{color: 'var(--color-cabernet)'}}>🎉 Congratulations! You completed the scavenger hunt.</p>
                   <button 
-                    className='mt-3 w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-slate-700 hover:from-blue-700 hover:to-slate-800 active:from-blue-800 active:to-slate-900 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 active:scale-[1.02] disabled:hover:scale-100'
+                    className='mt-3 w-full px-6 py-3 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 active:scale-[1.02] disabled:hover:scale-100'
+                    style={{
+                      background: `linear-gradient(135deg, var(--color-cabernet) 0%, var(--color-cabernet-active) 100%)`,
+                      boxShadow: 'var(--shadow-lg)'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!e.target.disabled) {
+                        e.target.style.background = `linear-gradient(135deg, var(--color-cabernet-hover) 0%, var(--color-cabernet) 100%)`
+                        e.target.style.boxShadow = 'var(--shadow-xl)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!e.target.disabled) {
+                        e.target.style.background = `linear-gradient(135deg, var(--color-cabernet) 0%, var(--color-cabernet-active) 100%)`
+                        e.target.style.boxShadow = 'var(--shadow-lg)'
+                      }
+                    }}
                     onClick={createPrizeCollage}
                     disabled={collageLoading || collageUrl}
                   >
@@ -776,15 +855,18 @@ export default function App() {
           return (
             <div 
               key={s.id} 
-              className={`mt-6 shadow-sm border rounded-lg bg-white p-4 transition-all duration-1000 ease-in-out ${
-                isTransitioning 
-                  ? 'border-green-300 shadow-lg transform scale-105 bg-green-50' 
-                  : state.done 
-                    ? 'border-blue-200 cursor-pointer hover:shadow-md transition-shadow' 
-                    : ''
+              className={`mt-6 shadow-sm border rounded-lg p-4 transition-all duration-1000 ease-in-out ${
+                state.done ? 'cursor-pointer hover:shadow-md transition-shadow' : ''
               }`}
               onClick={state.done && !isTransitioning ? toggleExpanded : undefined}
               style={{
+                backgroundColor: isTransitioning ? 'var(--color-light-pink)' : 'var(--color-white)',
+                borderColor: isTransitioning 
+                  ? 'var(--color-success)' 
+                  : state.done 
+                    ? 'var(--color-blush-pink)'
+                    : 'var(--color-light-grey)',
+                borderWidth: isTransitioning ? '2px' : '1px',
                 transform: isTransitioning ? 'scale(1.05) translateY(-4px)' : 'scale(1)',
                 transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
                 animation: `fadeInSlide 0.4s ease-out ${i * 0.15}s forwards`,
@@ -795,7 +877,7 @@ export default function App() {
                 <div className='flex-1'>
                   <div className='flex items-center justify-between'>
                     <div className='flex items-center gap-2'>
-                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded transition-all duration-300 ${state.done ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-900'}`}>
+                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded transition-all duration-300 ${state.done ? 'text-white' : 'text-slate-900'}`} style={{ backgroundColor: state.done ? 'var(--color-success)' : 'var(--color-light-grey)' }}>
                         {state.done ? (
                           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -804,10 +886,10 @@ export default function App() {
                           s.originalNumber
                         )}
                       </span>
-                      <h3 className={`text-base font-semibold ${!state.photo ? 'blur-sm' : ''}`}>{s.title}</h3>
+                      <h3 className={`text-base font-semibold ${!state.photo ? 'blur-sm' : ''}`} style={{ color: 'var(--color-cabernet)' }}>{s.title}</h3>
                     </div>
                     {state.done && (
-                      <span className='text-blue-500'>
+                      <span style={{ color: 'var(--color-cabernet)' }}>
                         {isExpanded ? '▼' : '▶'}
                       </span>
                     )}
@@ -819,7 +901,7 @@ export default function App() {
                           e.stopPropagation()
                           revealNextHint()
                         }}
-                        className='px-3 py-1 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-600 hover:text-blue-700 text-xs font-medium rounded-md transition-all duration-150 transform hover:scale-105 active:scale-95'
+                        className='px-3 py-1 text-xs font-medium rounded-md transition-all duration-150 transform hover:scale-105 active:scale-95' style={{ backgroundColor: 'var(--color-light-pink)', color: 'var(--color-cabernet)', ':hover': { backgroundColor: 'var(--color-blush-pink)' } }} onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-blush-pink)'} onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--color-light-pink)'}
                       >
                         💭 Hint
                       </button>
@@ -848,7 +930,7 @@ export default function App() {
                 <>
                   <div className='mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3'>
                     <div className='rounded-xl border p-3'>
-                      <div className={`text-xs uppercase tracking-wide ${state.photo ? 'text-blue-600' : 'text-slate-500'}`}>
+                      <div className={`text-xs uppercase tracking-wide ${state.photo ? '' : ''}`} style={{ color: state.photo ? 'var(--color-success)' : 'var(--color-medium-grey)' }}>
                         {state.photo ? '✅ Photo Mission Complete' : 'Photo Mission'}
                       </div>
                       {/* If this image fails to load, confirm the path root (see PHOTO_GUIDES note). */}
@@ -872,9 +954,9 @@ export default function App() {
                         htmlFor={`file-${s.id}`}
                         className={`w-full px-4 py-3 text-white font-medium rounded-lg cursor-pointer flex items-center justify-center gap-2 transition-all duration-200 transform ${
                           uploadingStops.has(s.id) 
-                            ? 'bg-blue-500 cursor-wait' 
-                            : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 hover:scale-[1.02] active:scale-[0.98]'
-                        }`}
+                            ? 'cursor-wait hover:scale-[1.02] active:scale-[0.98]' 
+                            : 'hover:scale-[1.02] active:scale-[0.98]'
+                        }`} style={{ backgroundColor: uploadingStops.has(s.id) ? 'var(--color-warm-grey)' : 'var(--color-cabernet)' }} onMouseEnter={(e) => { if (!uploadingStops.has(s.id)) e.target.style.backgroundColor = 'var(--color-cabernet-hover)' }} onMouseLeave={(e) => { if (!uploadingStops.has(s.id)) e.target.style.backgroundColor = 'var(--color-cabernet)' }}
                         onClick={(e) => e.stopPropagation()}
                       >
                         {uploadingStops.has(s.id) ? (
@@ -893,7 +975,7 @@ export default function App() {
                   )}
 
                   {state.done && (
-                    <div className='mt-3 flex items-center gap-2 text-blue-600 text-sm italic'>
+                    <div className='mt-3 flex items-center gap-2 text-sm italic' style={{ color: 'var(--color-cabernet)' }}>
                       <span>❤</span> {s.funFact}
                     </div>
                   )}
@@ -915,25 +997,26 @@ export default function App() {
               }}
             />
             <div 
-              className='absolute inset-x-0 bottom-0 rounded-t-3xl bg-white p-5 shadow-2xl'
+              className='absolute inset-x-0 bottom-0 rounded-t-3xl p-5 shadow-2xl'
               style={{
+                backgroundColor: 'var(--color-white)',
                 animation: 'slideUpModal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
               }}
             >
               <div className='mx-auto max-w-screen-sm'>
                 <div className='flex items-center justify-between'>
-                  <h3 className='text-lg font-semibold flex items-center gap-2'>📖 Rules</h3>
+                  <h3 className='text-lg font-semibold flex items-center gap-2' style={{ color: 'var(--color-cabernet)' }}>📖 Rules</h3>
                   <button 
-                    className='p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-all duration-150 transform hover:scale-110 active:scale-95' 
+                    className='p-2 rounded-lg transition-all duration-150 transform hover:scale-110 active:scale-95' style={{ backgroundColor: 'transparent' }} onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-light-pink)'} onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'} 
                     onClick={()=>setShowTips(false)}
                     aria-label='Close'
                   >
-                    <svg className='w-5 h-5 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                    <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24' style={{ color: 'var(--color-medium-grey)' }}>
                       <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
                     </svg>
                   </button>
                 </div>
-                <div className='mt-3 space-y-3 text-sm text-slate-700'>
+                <div className='mt-3 space-y-3 text-sm' style={{ color: 'var(--color-dark-neutral)' }}>
                   <p className='font-medium'>Take a group photo in front of each location to prove you completed the clue.</p>
                   
                   <div className='space-y-2'>

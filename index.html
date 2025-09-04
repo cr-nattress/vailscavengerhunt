@@ -6,6 +6,45 @@
     <title>Vail Scavenger Hunt</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+      /* BHHS Color Palette CSS Variables */
+      :root {
+        --color-cabernet: #552448;
+        --color-cabernet-hover: #6B3057;
+        --color-cabernet-active: #441D39;
+        --color-cream: #EAE3D4;
+        --color-light-pink: #F5E6F0;
+        --color-blush-pink: #E8D1E1;
+        --color-warm-grey: #B8B0A6;
+        --color-light-grey: #D6D2CB;
+        --color-dark-neutral: #333333;
+        --color-medium-grey: #666666;
+        --color-success: #4A7C59;
+        --color-error: #8B4B47;
+        --color-warning: #A67C52;
+        --color-white: #FFFFFF;
+        --color-black: #000000;
+        
+        --font-family-primary: "Georgia", "Times New Roman", serif;
+        --font-family-secondary: "Helvetica Neue", "Arial", sans-serif;
+        
+        --shadow-sm: 0 1px 2px 0 rgba(85, 36, 72, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(85, 36, 72, 0.1), 0 2px 4px -1px rgba(85, 36, 72, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(85, 36, 72, 0.1), 0 4px 6px -2px rgba(85, 36, 72, 0.05);
+        --shadow-xl: 0 20px 25px -5px rgba(85, 36, 72, 0.1), 0 10px 10px -5px rgba(85, 36, 72, 0.04);
+      }
+      
+      /* Global Typography */
+      body {
+        font-family: var(--font-family-primary);
+        color: var(--color-dark-neutral);
+      }
+      
+      h1, h2, h3, h4, h5, h6 {
+        font-family: var(--font-family-primary);
+        color: var(--color-cabernet);
+        font-weight: 600;
+      }
+      
       /* Custom animations for enhanced UX */
       @keyframes slideDown {
         from {
@@ -50,7 +89,7 @@
       }
     </style>
   </head>
-  <body class="bg-rose-50">
+  <body style="background-color: var(--color-cream);">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

@@ -30,7 +30,22 @@
       "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\netlify\\functions/**)",
       "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\netlify\\functions/**)",
       "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
-      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src\\components/**)"
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src\\components/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "WebSearch",
+      "WebFetch(domain:en.logodownload.org)",
+      "WebFetch(domain:vectorseek.com)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)"
     ],
     "deny": [],
     "ask": []

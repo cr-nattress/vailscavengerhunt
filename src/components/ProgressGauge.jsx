@@ -15,20 +15,20 @@ const ProgressGauge = ({ percent, completeCount, totalStops, stops, progress }) 
   return (
     <div className='mt-4'>
       <div className='flex items-center justify-between mb-2'>
-        <span className='text-xs font-medium text-slate-600 uppercase tracking-wider'>Progress</span>
-        <span className='text-sm font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent'>
+        <span className='text-xs font-medium uppercase tracking-wider' style={{ color: 'var(--color-medium-grey)' }}>Progress</span>
+        <span className='text-sm font-bold' style={{ color: 'var(--color-cabernet)' }}>
           {percent}% Complete
         </span>
       </div>
       <div className='relative'>
         {/* Background track */}
-        <div className='overflow-hidden h-3 bg-slate-100 rounded-full shadow-inner'>
+        <div className='overflow-hidden h-3 rounded-full shadow-inner' style={{ backgroundColor: 'var(--color-light-grey)' }}>
           <div 
-            className='h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full transition-all duration-700 ease-out relative overflow-hidden'
+            className='h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden' style={{ background: 'linear-gradient(to right, var(--color-cabernet), var(--color-cabernet-hover))' }}
             style={{width: `${percent}%`}}
           >
             {/* Animated shimmer effect */}
-            <div className='absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse' />
+            <div className='absolute inset-0 animate-pulse' style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent)' }} />
           </div>
         </div>
         {/* Progress dots */}
@@ -39,16 +39,16 @@ const ProgressGauge = ({ percent, completeCount, totalStops, stops, progress }) 
               className={`w-2 h-2 rounded-full transition-all duration-500 ${
                 progress[stop.id]?.done 
                   ? 'bg-white shadow-sm scale-110' 
-                  : 'bg-slate-300/50 scale-75'
+                  : 'scale-75' }} style={{ backgroundColor: progress[stop.id]?.done ? 'white' : 'var(--color-warm-grey)'
               }`}
             />
           ))}
         </div>
       </div>
       <div className='flex justify-between mt-2'>
-        <span className='text-xs text-slate-500'>{completeCount} of {totalStops} stops</span>
+        <span className='text-xs' style={{ color: 'var(--color-medium-grey)' }}>{completeCount} of {totalStops} stops</span>
         {completeCount > 0 && completeCount < totalStops && (
-          <span className='text-xs font-medium text-purple-600'>
+          <span className='text-xs font-medium' style={{ color: 'var(--color-cabernet)' }}>
             {totalStops - completeCount} to go! 
           </span>
         )}
