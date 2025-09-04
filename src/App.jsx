@@ -174,6 +174,7 @@ export default function App() {
   const [teamName, setTeamName] = useState('')
   const [stops, setStops] = useState(() => getRandomStops('Vail Valley'))
   const [isEditMode, setIsEditMode] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   
   const {progress, setProgress, completeCount, percent} = useProgress(stops)
   const [showTips, setShowTips] = useState(false)
@@ -229,6 +230,20 @@ export default function App() {
     setStops(newStops);
     console.log(`✅ Updated stops for ${locationName}:`, newStops.map(s => s.title));
   }, [locationName])
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isMenuOpen && !event.target.closest('header')) {
+        setIsMenuOpen(false)
+      }
+    }
+    
+    if (isMenuOpen) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [isMenuOpen])
 
   // Build a shareable collage ("storybook") from images + titles
   const buildStorybook = async (photos, titles) => {
@@ -422,18 +437,65 @@ export default function App() {
             </div>
             <h1 className='font-bold text-xl text-white'>Vail Scavenger Hunt</h1>
           </div>
+          
+          {/* Hamburger Menu Button */}
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className='relative p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors'
+            aria-label='Menu'
+          >
+            <div className='w-6 h-5 flex flex-col justify-between'>
+              <span className={`block w-full h-0.5 bg-white transform transition-transform ${isMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
+              <span className={`block w-full h-0.5 bg-white transition-opacity ${isMenuOpen ? 'opacity-0' : ''}`}></span>
+              <span className={`block w-full h-0.5 bg-white transform transition-transform ${isMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
+            </div>
+          </button>
         </div>
+        
+        {/* Dropdown Menu */}
+        {isMenuOpen && (
+          <div className='absolute top-full right-0 left-0 bg-white shadow-lg border-t border-gray-200'>
+            <div className='max-w-screen-sm mx-auto px-4 py-4'>
+              <nav className='space-y-2'>
+                <button 
+                  onClick={() => {
+                    setShowTips(!showTips)
+                    setIsMenuOpen(false)
+                  }}
+                  className='w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-3'
+                >
+                  <svg className='w-5 h-5 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' />
+                  </svg>
+                  <span className='text-gray-700'>Rules</span>
+                </button>
+                
+                <button 
+                  onClick={() => {
+                    reset()
+                    setIsMenuOpen(false)
+                  }}
+                  className='w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-3'
+                >
+                  <svg className='w-5 h-5 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' />
+                  </svg>
+                  <span className='text-gray-700'>Reset</span>
+                </button>
+                
+                <div className='pt-3 mt-3 border-t border-gray-200'>
+                  <div className='px-4 py-2 text-sm text-gray-500'>
+                    Progress: {completeCount}/{stops.length} stops complete ({percent}%)
+                  </div>
+                </div>
+              </nav>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className='max-w-screen-sm mx-auto px-4 py-5'>
         <div className='border rounded-lg shadow-sm p-4 bg-white relative'>
-          <button 
-            onClick={reset} 
-            className='absolute top-4 right-4 p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-colors'
-            title='Reset Progress'
-          >
-            ↻
-          </button>
           <div className='flex items-center gap-2'>
             <h2 className='text-xl font-semibold'>{locationName}</h2>
             <button 
@@ -543,8 +605,6 @@ export default function App() {
                 </div>
               ) : (
                 <>
-                  <p className='text-slate-600 mt-2'>Each stop: <span className='font-medium'>Clue → Selfie</span>. Complete all to unlock your reward.</p>
-                  
                   {/* Enhanced Progress Gauge */}
                   <ProgressGauge 
                     percent={percent}
@@ -796,16 +856,32 @@ export default function App() {
             <div className='absolute inset-x-0 bottom-0 rounded-t-3xl bg-white p-5 shadow-2xl'>
               <div className='mx-auto max-w-screen-sm'>
                 <div className='flex items-center justify-between'>
-                  <h3 className='text-lg font-semibold flex items-center gap-2'>❤ Date Tips</h3>
-                  <button className='px-3 py-1.5' onClick={()=>setShowTips(false)}>Close</button>
+                  <h3 className='text-lg font-semibold flex items-center gap-2'>📖 Rules</h3>
+                  <button 
+                    className='p-2 rounded-lg hover:bg-gray-100 transition-colors' 
+                    onClick={()=>setShowTips(false)}
+                    aria-label='Close'
+                  >
+                    <svg className='w-5 h-5 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                      <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+                    </svg>
+                  </button>
                 </div>
-                <ul className='mt-3 space-y-2 text-sm text-slate-700 list-disc pl-5'>
-                  <li>Keep photos about <em>you two</em> and the place—no food in the frame.</li>
-                  <li>Golden hour (about an hour before sunset) = soft light, easy wins.</li>
-                  <li>Ask a passerby for one wide shot at the Gardens or the Bridge.</li>
-                  <li>If the locals' spot is slammed, pivot to another quick bite nearby and keep moving.</li>
-                  <li>End by adding a short gratitude note in the app's Notes at the finale stop.</li>
-                </ul>
+                <div className='mt-3 space-y-3 text-sm text-slate-700'>
+                  <p className='font-medium'>Take a group photo in front of each location to prove you completed the clue.</p>
+                  
+                  <div className='space-y-2'>
+                    <p className='font-medium'>Two winners will be crowned:</p>
+                    <ul className='list-disc pl-5 space-y-1'>
+                      <li>The team that finishes first.</li>
+                      <li>The team with the most creative photos.</li>
+                    </ul>
+                  </div>
+                  
+                  <p>Pay attention to your surroundings — details you notice along the way might help you.</p>
+                  
+                  <p>Work together, be creative, and enjoy exploring Vail Village!</p>
+                </div>
               </div>
             </div>
           </div>

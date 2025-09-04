@@ -4,8 +4,17 @@
 export class NetlifyStateService {
   // Automatically detects environment - uses Netlify Functions in production, localhost in development
   static get API_BASE() {
-    // Always use the deployed Netlify API
-    return 'https://vaillovehunt.netlify.app/.netlify/functions';
+    if (typeof window !== 'undefined') {
+      // Check for explicit API URL from environment or use default based on hostname  
+      const apiUrl = import.meta.env?.VITE_API_URL;
+      if (apiUrl) return apiUrl;
+      
+      const isDevelopment = window.location.hostname === 'localhost';
+      return isDevelopment 
+        ? 'http://localhost:8889/.netlify/functions' // Use local Netlify Dev server
+        : '/.netlify/functions';
+    }
+    return '/.netlify/functions';
   }
 
   /**

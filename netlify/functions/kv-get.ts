@@ -2,7 +2,17 @@
 import { NetlifyFunctionsResponse, HandlerEvent, HandlerContext } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 
-const store = getStore("kv"); // "kv" is the blob store name
+// Local development fallback storage (shared with kv-upsert)
+let localStore: Map<string, any> = new Map();
+
+const getKVStore = () => {
+  try {
+    return getStore("kv");
+  } catch (error) {
+    console.log("Using local development fallback store");
+    return null;
+  }
+};
 
 export const handler = async (event: HandlerEvent, context: HandlerContext): Promise<NetlifyFunctionsResponse> => {
   try {
@@ -43,8 +53,16 @@ export const handler = async (event: HandlerEvent, context: HandlerContext): Pro
 
     console.log(`📖 Reading blob: ${key}`);
 
-    // Get the value from Netlify Blob
-    const value = await store.getJSON(key);
+    const store = getKVStore();
+    let value = null;
+    
+    if (store) {
+      // Production: Use Netlify Blobs
+      value = await store.getJSON(key);
+    } else {
+      // Local development: Use in-memory fallback
+      value = localStore.get(key) || null;
+    }
     
     if (value === null) {
       console.log(`❌ Key not found: ${key}`);

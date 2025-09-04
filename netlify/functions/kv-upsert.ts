@@ -2,7 +2,18 @@
 import { NetlifyFunctionsResponse, HandlerEvent, HandlerContext } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 
-const store = getStore("kv"); // "kv" is the blob store name
+// Local development fallback storage
+let localStore: Map<string, any> = new Map();
+let localIndexes: Map<string, Set<string>> = new Map();
+
+const getKVStore = () => {
+  try {
+    return getStore("kv");
+  } catch (error) {
+    console.log("Using local development fallback store");
+    return null;
+  }
+};
 
 export const handler = async (event: HandlerEvent, context: HandlerContext): Promise<NetlifyFunctionsResponse> => {
   try {
@@ -47,17 +58,38 @@ export const handler = async (event: HandlerEvent, context: HandlerContext): Pro
 
     console.log(`📝 Storing blob: ${key}`);
 
-    // Write main record to Netlify Blob
-    await store.setJSON(key, value);
+    const store = getKVStore();
+    
+    if (store) {
+      // Production: Use Netlify Blobs
+      await store.setJSON(key, value);
 
-    // Handle indexes (append-only sets)
-    if (indexes && Array.isArray(indexes)) {
-      console.log(`🔍 Processing ${indexes.length} indexes`);
-      for (const ix of indexes) {
-        if (ix.key && ix.member) {
-          const set = store.set(ix.key);
-          await set.add(ix.member);
-          console.log(`✅ Added to index ${ix.key}: ${ix.member}`);
+      // Handle indexes (append-only sets)
+      if (indexes && Array.isArray(indexes)) {
+        console.log(`🔍 Processing ${indexes.length} indexes`);
+        for (const ix of indexes) {
+          if (ix.key && ix.member) {
+            const set = store.set(ix.key);
+            await set.add(ix.member);
+            console.log(`✅ Added to index ${ix.key}: ${ix.member}`);
+          }
+        }
+      }
+    } else {
+      // Local development: Use in-memory fallback
+      localStore.set(key, value);
+      
+      // Handle indexes for local development
+      if (indexes && Array.isArray(indexes)) {
+        console.log(`🔍 Processing ${indexes.length} indexes (local)`);
+        for (const ix of indexes) {
+          if (ix.key && ix.member) {
+            if (!localIndexes.has(ix.key)) {
+              localIndexes.set(ix.key, new Set());
+            }
+            localIndexes.get(ix.key)!.add(ix.member);
+            console.log(`✅ Added to local index ${ix.key}: ${ix.member}`);
+          }
         }
       }
     }

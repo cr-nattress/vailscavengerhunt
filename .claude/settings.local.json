@@ -16,7 +16,20 @@
       "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\netlify\\functions/**)",
       "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\netlify\\functions/**)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(netlify dev:*)",
+      "Bash(npm install:*)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\netlify\\functions/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\netlify\\functions/**)",
+      "Read(/C:\\Users\\BLUE\\Downloads\\VailLoveHunt\\src/**)"
     ],
     "deny": [],
     "ask": []
