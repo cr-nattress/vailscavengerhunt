@@ -189,6 +189,7 @@ export default function App() {
   const [expandedStops, setExpandedStops] = useState({})
   const [transitioningStops, setTransitioningStops] = useState(new Set())
   const [uploadingStops, setUploadingStops] = useState(new Set())
+  const [completedSectionExpanded, setCompletedSectionExpanded] = useState(false)
 
   // Initialize session and load saved settings on app startup
   useEffect(() => {
@@ -470,10 +471,19 @@ export default function App() {
             onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
             aria-label='Menu'
           >
-            <div className='w-6 h-5 flex flex-col justify-between'>
-              <span className={`block w-full h-0.5 bg-white transform transition-transform ${isMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
-              <span className={`block w-full h-0.5 bg-white transition-opacity ${isMenuOpen ? 'opacity-0' : ''}`}></span>
-              <span className={`block w-full h-0.5 bg-white transform transition-transform ${isMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
+            <div className='w-6 h-5 flex flex-col justify-between relative'>
+              <span 
+                className={`absolute top-0 left-0 right-0 h-0.5 bg-white transform transition-transform ${isMenuOpen ? 'rotate-45 translate-y-2' : ''}`}
+                style={{ width: '100%' }}
+              />
+              <span 
+                className={`absolute top-1/2 left-0 right-0 h-0.5 bg-white transition-opacity ${isMenuOpen ? 'opacity-0' : ''}`}
+                style={{ width: '100%', transform: 'translateY(-50%)' }}
+              />
+              <span 
+                className={`absolute bottom-0 left-0 right-0 h-0.5 bg-white transform transition-transform ${isMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}
+                style={{ width: '100%' }}
+              />
             </div>
           </button>
         </div>
@@ -713,24 +723,28 @@ export default function App() {
             ? stopsWithNumbers.find(stop => !(progress[stop.id]?.done))
             : null
           
-          // Get completed stops (excluding transitioning ones) and sort them in descending order
+          // Get completed stops (excluding transitioning ones) and sort them by completion order
           const completedStops = stopsWithNumbers
             .filter(stop => progress[stop.id]?.done && !transitioningStops.has(stop.id))
-            .sort((a, b) => b.originalNumber - a.originalNumber)
+            .sort((a, b) => a.originalNumber - b.originalNumber)
           
           // Get transitioning stops (keep them in their current position)
           const transitioningStopsArray = stopsWithNumbers
             .filter(stop => transitioningStops.has(stop.id))
           
-          // Return stops in order: transitioning first (in place), then incomplete, then completed
-          const stopsToShow = []
-          stopsToShow.push(...transitioningStopsArray)
-          if (firstIncomplete) {
-            stopsToShow.push(firstIncomplete)
-          }
-          stopsToShow.push(...completedStops)
+          // Get incomplete stops
+          const incompleteStops = stopsWithNumbers
+            .filter(stop => !progress[stop.id]?.done && !transitioningStops.has(stop.id))
           
-          return stopsToShow.map((s, i) => {
+          // Show transitioning and first incomplete stop
+          const activeStops = []
+          activeStops.push(...transitioningStopsArray)
+          if (firstIncomplete) {
+            activeStops.push(firstIncomplete)
+          }
+          
+          // Render active stops (current task)
+          const renderActiveStops = () => activeStops.map((s, i) => {
             const state = progress[s.id] || { done: false, notes: '', photo: null, revealedHints: 1 }
             const displayImage = state.photo || PLACEHOLDER
           
@@ -872,16 +886,33 @@ export default function App() {
                       </span>
                     )}
                     
-                    {/* Hint button positioned relative to title */}
+                    {/* Enhanced Hint button for mobile */}
                     {(!state.done || isExpanded) && !state.photo && state.revealedHints < s.hints.length && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           revealNextHint()
                         }}
-                        className='px-3 py-1 text-xs font-medium rounded-md transition-all duration-150 transform hover:scale-105 active:scale-95' style={{ backgroundColor: 'var(--color-light-pink)', color: 'var(--color-cabernet)', ':hover': { backgroundColor: 'var(--color-blush-pink)' } }} onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-blush-pink)'} onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--color-light-pink)'}
+                        className='px-4 py-2 text-sm font-semibold rounded-full shadow-sm min-h-[44px] flex flex-col items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95'
+                        style={{
+                          background: 'linear-gradient(135deg, var(--color-light-pink), var(--color-blush-pink))',
+                          color: 'var(--color-cabernet)',
+                          minWidth: '80px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = 'linear-gradient(135deg, var(--color-blush-pink), var(--color-cabernet-hover))'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'linear-gradient(135deg, var(--color-light-pink), var(--color-blush-pink))'
+                        }}
                       >
-                        💭 Hint
+                        <div className='flex items-center gap-1'>
+                          <span className='text-base'>💭</span>
+                          <span className='text-xs font-bold'>Hint</span>
+                        </div>
+                        <span className='text-xs opacity-75 leading-none'>
+                          {state.revealedHints}/{s.hints.length}
+                        </span>
                       </button>
                     )}
                   </div>
@@ -890,12 +921,39 @@ export default function App() {
                   {(!state.done || isExpanded) && (
                     <>
                       {!state.photo && (
-                        <div className='mt-3 ml-8 space-y-2'>
-                          {s.hints.slice(0, state.revealedHints).map((hint, hintIndex) => (
-                            <p key={hintIndex} className={`text-sm ${hintIndex === 0 ? 'text-slate-800 font-medium' : hintIndex === 1 ? 'text-slate-700' : 'text-slate-600'} leading-relaxed`}>
-                              {hint}
-                            </p>
-                          ))}
+                        <div className='mt-3 space-y-2'>
+                          {s.hints.slice(0, state.revealedHints).map((hint, hintIndex) => {
+                            const hintConfig = {
+                              0: { bg: 'var(--color-light-pink)', border: 'var(--color-cabernet)', text: 'var(--color-cabernet)', icon: '🎯' },
+                              1: { bg: '#f0f9ff', border: '#0ea5e9', text: '#0c4a6e', icon: '🔍' },
+                              2: { bg: '#faf5ff', border: '#a855f7', text: '#581c87', icon: '💡' }
+                            }[hintIndex] || { bg: '#f8fafc', border: '#64748b', text: '#334155', icon: (hintIndex + 1) }
+                            
+                            return (
+                              <div 
+                                key={hintIndex}
+                                className='border-l-3 p-3 rounded-r-lg transition-all duration-300'
+                                style={{
+                                  backgroundColor: hintConfig.bg,
+                                  borderColor: hintConfig.border,
+                                  animation: `slideInFromLeft 0.4s ease-out ${hintIndex * 0.1}s forwards`,
+                                  opacity: 0
+                                }}
+                              >
+                                <div className='flex items-center gap-2'>
+                                  <span 
+                                    className='flex-shrink-0 w-6 h-6 text-white text-xs font-bold rounded-full flex items-center justify-center'
+                                    style={{ backgroundColor: hintConfig.border }}
+                                  >
+                                    {hintConfig.icon}
+                                  </span>
+                                  <p className='text-sm leading-snug flex-1' style={{ color: hintConfig.text }}>
+                                    {hint}
+                                  </p>
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
                       )}
                     </>
@@ -962,6 +1020,108 @@ export default function App() {
             </div>
           )
         })
+          
+          // Render completed stops in accordion
+          const renderCompletedStops = () => {
+            if (completedStops.length === 0) return null
+            
+            return (
+              <div className='mt-6 border rounded-lg shadow-sm' style={{
+                backgroundColor: 'var(--color-white)',
+                borderColor: 'var(--color-light-grey)'
+              }}>
+                {/* Accordion Header */}
+                <button
+                  className='w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-t-lg'
+                  onClick={() => setCompletedSectionExpanded(!completedSectionExpanded)}
+                  style={{
+                    backgroundColor: completedSectionExpanded ? 'var(--color-light-pink)' : 'transparent'
+                  }}
+                >
+                  <div className='flex items-center gap-2'>
+                    <span className='text-lg font-semibold' style={{ color: 'var(--color-cabernet)' }}>
+                      📋 Completed Locations ({completedStops.length})
+                    </span>
+                  </div>
+                  <span style={{ color: 'var(--color-cabernet)' }}>
+                    {completedSectionExpanded ? '▼' : '▶'}
+                  </span>
+                </button>
+                
+                {/* Accordion Content */}
+                {completedSectionExpanded && (
+                  <div className='border-t' style={{ borderColor: 'var(--color-light-grey)' }}>
+                    {completedStops.map((s, index) => {
+                      const state = progress[s.id] || { done: false, notes: '', photo: null, revealedHints: 1 }
+                      const isExpanded = expandedStops[s.id] || false
+                      
+                      return (
+                        <div 
+                          key={s.id}
+                          className='border-b last:border-b-0 transition-colors'
+                          style={{ borderColor: 'var(--color-light-grey)' }}
+                        >
+                          <button
+                            className='w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left'
+                            onClick={() => setExpandedStops(prev => ({
+                              ...prev,
+                              [s.id]: !prev[s.id]
+                            }))}
+                          >
+                            <div className='flex items-center gap-3'>
+                              <span className='text-sm' style={{ color: 'var(--color-cabernet)' }}>
+                                {isExpanded ? '▼' : '▶'}
+                              </span>
+                              <h3 className='text-base font-medium' style={{ color: 'var(--color-dark-neutral)' }}>
+                                {s.title}
+                              </h3>
+                              <span className='inline-flex items-center justify-center w-5 h-5 rounded-full' style={{ 
+                                backgroundColor: 'var(--color-success)',
+                                color: 'white'
+                              }}>
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </span>
+                            </div>
+                            <span className='text-xs' style={{ color: 'var(--color-medium-grey)' }}>
+                              Stop #{s.originalNumber}
+                            </span>
+                          </button>
+                          
+                          {/* Expanded content */}
+                          {isExpanded && (
+                            <div className='px-4 pb-3'>
+                              {state.photo && (
+                                <div className='mb-3'>
+                                  <img 
+                                    src={state.photo} 
+                                    alt={`Photo at ${s.title}`} 
+                                    className='rounded-lg object-cover w-full max-h-48'
+                                  />
+                                </div>
+                              )}
+                              <div className='text-sm italic' style={{ color: 'var(--color-cabernet)' }}>
+                                <span>❤️</span> {s.funFact}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          }
+          
+          // Main return with both sections
+          return (
+            <>
+              {renderActiveStops()}
+              {renderCompletedStops()}
+            </>
+          )
         })()}
 
 
