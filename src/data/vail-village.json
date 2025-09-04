@@ -1,0 +1,119 @@
+[
+  {
+    "id": "international-bridge",
+    "title": "International Bridge",
+    "emoji": "🏞",
+    "hints": [
+      "Right next to the covered bridge, but this one is wide open to the sky.",
+      "It crosses Gore Creek where concerts and festivals often spill into the streets.",
+      "Look for the stone bridge lined with flags — you can't miss it."
+    ],
+    "answer": "International Bridge",
+    "challenge": "Sneak under the bridge and snap a playful selfie looking up — bonus points if you catch the flags above your head.",
+    "maps": "https://www.google.com/maps/search/?api=1&query=International+Bridge+Vail+Village+Colorado"
+  },
+  {
+    "id": "yama-sushi",
+    "title": "Yama Sushi",
+    "emoji": "🍣",
+    "hints": [
+      "Across from The Remedy Bar, this spot trades hot toddies for sake.",
+      "Small, modern, and often packed with locals after the slopes.",
+      "The Japanese restaurant near Solaris known for creative rolls and late-night vibes."
+    ],
+    "answer": "Yama Sushi",
+    "challenge": "Pretend your fingers are chopsticks and do a \"sushi cheers\" pose — no sushi required.",
+    "maps": "https://www.google.com/maps/search/?api=1&query=Yama+Sushi+Vail+Village+Colorado"
+  },
+  {
+    "id": "lodge-at-vail",
+    "title": "Lodge at Vail",
+    "emoji": "🏨",
+    "hints": [
+      "Just steps from Gondola One, across from the pirate ship playground.",
+      "One of Vail's original hotels, full of wood beams and alpine charm.",
+      "The classic mountain lodge where après ski feels timeless."
+    ],
+    "answer": "Lodge at Vail",
+    "challenge": "Slip through the lodge and take a secret \"spy mission\" photo in the elevator — just the two of you.",
+    "maps": "https://www.google.com/maps/search/?api=1&query=Lodge+at+Vail+Colorado"
+  },
+  {
+    "id": "patagonia",
+    "title": "Patagonia",
+    "emoji": "🧥",
+    "hints": [
+      "Near Mountain Standard and Sweet Basil, but it sells jackets instead of food.",
+      "A favorite shop for climbers and skiers looking for gear with a purpose.",
+      "The outdoor store with the mountain logo and eco-friendly mission."
+    ],
+    "answer": "Patagonia",
+    "challenge": "Try on the goofiest gear you can find and pose like you're heading to climb Everest… tomorrow.",
+    "maps": "https://www.google.com/maps/search/?api=1&query=Patagonia+Store+Vail+Village+Colorado"
+  },
+  {
+    "id": "pirate-ship",
+    "title": "Pirate Ship",
+    "emoji": "🏴‍☠️",
+    "hints": [
+      "If you're by Gondola One, you're close — just follow the sound of kids laughing.",
+      "A wooden fort where little ones climb while parents sip coffee.",
+      "The playground shaped like a ship at the base of the mountain."
+    ],
+    "answer": "Pirate Ship Playground",
+    "challenge": "Climb aboard and strike your fiercest pirate pose — \"Arrr!\" required.",
+    "maps": "https://www.google.com/maps/search/?api=1&query=Pirate+Ship+Playground+Vail+Village+Colorado"
+  },
+  {
+    "id": "10th-mountain-memorial",
+    "title": "10th Mountain Memorial",
+    "emoji": "🪖",
+    "hints": [
+      "Between the Covered Bridge and International Bridge, look for bronze.",
+      "It honors ski soldiers who trained in Colorado before WWII.",
+      "A statue of a soldier with skis, saluting history."
+    ],
+    "answer": "10th Mountain Division Memorial",
+    "challenge": "Take a photo from the creekside, capturing the statue and the village bustle — like the soldier is still keeping watch.",
+    "maps": "https://www.google.com/maps/search/?api=1&query=10th+Mountain+Division+Memorial+Vail+Village+Colorado"
+  },
+  {
+    "id": "covered-bridge",
+    "title": "Covered Bridge",
+    "emoji": "🌉",
+    "hints": [
+      "Right at the entrance to Vail Village — if you passed Starbucks, you're close.",
+      "The wooden bridge that frames almost every tourist photo.",
+      "The roofed walkway over Gore Creek that ushers you into the heart of town."
+    ],
+    "answer": "Covered Bridge",
+    "challenge": "Get creative and snap the bridge from an unusual angle — the weirder, the better.",
+    "maps": "https://www.google.com/maps/search/?api=1&query=Covered+Bridge+Vail+Village+Colorado"
+  },
+  {
+    "id": "the-fitz",
+    "title": "The Fitz",
+    "emoji": "🍸",
+    "hints": [
+      "Steps from Ford Amphitheater, tucked inside Manor Vail Lodge.",
+      "Known for warm fireplaces and mountain cocktails.",
+      "The rustic-chic bar and restaurant just before you reach the gardens."
+    ],
+    "answer": "The Fitz",
+    "challenge": "Order one appetizer and share it like you're in a food commercial — extra points if you fake slow-motion bites.",
+    "maps": "https://www.google.com/maps/search/?api=1&query=The+Fitz+Manor+Vail+Lodge+Colorado"
+  },
+  {
+    "id": "betty-ford-alpine-garden",
+    "title": "Betty Ford Alpine Garden",
+    "emoji": "🌸",
+    "hints": [
+      "Across from Ford Amphitheater, where wildflowers and waterfalls bloom.",
+      "The highest botanical garden in the world, right in Vail's backyard.",
+      "Stroll into the garden named after America's First Lady, filled with alpine beauty."
+    ],
+    "answer": "Betty Ford Alpine Garden",
+    "challenge": "Take a long-exposure shot of the creek so it looks like magical flowing mist — bonus if you pose like nature spirits.",
+    "maps": "https://www.google.com/maps/search/?api=1&query=Betty+Ford+Alpine+Garden+Vail+Colorado"
+  }
+]

@@ -5,7 +5,8 @@ import { HybridStorageService } from './client/HybridStorageService'
 import { DualWriteService } from './client/DualWriteService'
 import ProgressGauge from './components/ProgressGauge'
 import AlbumViewer from './components/AlbumViewer'
-import { VAIL_VALLEY } from './data/vail-valley'
+import vailValleyData from './data/vail-valley.json'
+import vailVillageData from './data/vail-village.json'
 
 /**
  * Vail Love Hunt — React single-page app for a couples' scavenger/date experience in Vail.
@@ -33,12 +34,31 @@ const PLACEHOLDER = '/images/selfie-placeholder.svg'
 // - maps: convenience Google Maps link
 
 /**
- * Randomly selects 3 locations from all available locations
+ * Get location data based on selected location name
+ */
+function getLocationData(locationName) {
+  switch(locationName) {
+    case 'Vail Village':
+      return vailVillageData
+    case 'Vail Valley':
+      return vailValleyData
+    case 'TEST':
+      // For TEST, return a subset of Vail Valley data
+      return vailValleyData.slice(0, 3)
+    default:
+      return vailValleyData
+  }
+}
+
+/**
+ * Randomly selects locations from the specified location data
  * Uses a seeded approach to ensure consistent selection per session
  */
-function getRandomStops() {
+function getRandomStops(locationName = 'Vail Valley') {
+  const locationData = getLocationData(locationName)
+  
   // Create a copy of all locations to avoid mutating the original array
-  const shuffled = [...VAIL_VALLEY]
+  const shuffled = [...locationData]
   
   // Fisher-Yates shuffle algorithm
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -46,12 +66,9 @@ function getRandomStops() {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
   
-  // Return first 5 locations
-  return shuffled.slice(0, 5)
+  // Return first 5 locations (or all if less than 5)
+  return shuffled.slice(0, Math.min(5, shuffled.length))
 }
-
-// Generate random selection of 5 stops from all available locations (Vail Valley)
-const STOPS = getRandomStops()
 
 // localStorage key used for persisting progress
 const STORAGE_KEY = 'vail-love-hunt-progress'
@@ -103,7 +120,7 @@ const compressImage = (file, maxWidth = 800, quality = 0.8) => {
  * Manages per-stop completion and notes with localStorage persistence.
  * Returns { progress, setProgress, completeCount, percent }.
  */
-function useProgress() {
+function useProgress(stops) {
   const [progress, setProgress] = useState(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
@@ -129,8 +146,8 @@ function useProgress() {
     }
   }, [progress])
   // Derived values for the progress UI
-  const completeCount = useMemo(() => STOPS.reduce((acc, s) => acc + ((progress[s.id]?.done) ? 1 : 0), 0), [progress])
-  const percent = Math.round((completeCount / STOPS.length) * 100)
+  const completeCount = useMemo(() => stops.reduce((acc, s) => acc + ((progress[s.id]?.done) ? 1 : 0), 0), [progress, stops])
+  const percent = Math.round((completeCount / stops.length) * 100)
   return {progress, setProgress, completeCount, percent}
 }
 
@@ -153,7 +170,12 @@ const generateGuid = () => {
 }
 
 export default function App() {
-  const {progress, setProgress, completeCount, percent} = useProgress()
+  const [locationName, setLocationName] = useState('Vail Valley')
+  const [teamName, setTeamName] = useState('')
+  const [stops, setStops] = useState(() => getRandomStops('Vail Valley'))
+  const [isEditMode, setIsEditMode] = useState(false)
+  
+  const {progress, setProgress, completeCount, percent} = useProgress(stops)
   const [showTips, setShowTips] = useState(false)
   const [storybookUrl, setStorybookUrl] = useState(null)
   const [collageLoading, setCollageLoading] = useState(false)
@@ -161,9 +183,6 @@ export default function App() {
   const [fullSizeImageUrl, setFullSizeImageUrl] = useState(null)
   const [expandedStops, setExpandedStops] = useState({})
   const [transitioningStops, setTransitioningStops] = useState(new Set())
-  const [isEditMode, setIsEditMode] = useState(false)
-  const [locationName, setLocationName] = useState('Vail Valley')
-  const [teamName, setTeamName] = useState('')
 
   // Initialize session and load saved settings on app startup
   useEffect(() => {
@@ -202,6 +221,14 @@ export default function App() {
     
     initializeApp();
   }, []) // Empty dependency array means this runs once on mount
+
+  // Update stops when location changes
+  useEffect(() => {
+    console.log(`🗺️ Location changed to: ${locationName}, updating stops...`);
+    const newStops = getRandomStops(locationName);
+    setStops(newStops);
+    console.log(`✅ Updated stops for ${locationName}:`, newStops.map(s => s.title));
+  }, [locationName])
 
   // Build a shareable collage ("storybook") from images + titles
   const buildStorybook = async (photos, titles) => {
@@ -299,7 +326,7 @@ export default function App() {
     
     try {
       // Get all completed stops with photos
-      const completedStops = STOPS.filter(stop => progress[stop.id]?.photo)
+      const completedStops = stops.filter(stop => progress[stop.id]?.photo)
       console.log('📸 Found', completedStops.length, 'completed stops with photos:', completedStops.map(s => s.title))
       
       if (completedStops.length === 0) {
@@ -353,8 +380,8 @@ export default function App() {
       '/images/selfie-guide-2.png',
       '/images/selfie-guide-3.png',
     ]
-    // Random titles from VAIL_VALLEY
-    const shuffled = [...VAIL_VALLEY].sort(() => Math.random() - 0.5)
+    // Random titles from current location data
+    const shuffled = [...stops].sort(() => Math.random() - 0.5)
     const titles = shuffled.slice(0, 3).map(s => s.title)
     const url = await buildStorybook(samplePhotos, titles)
     setStorybookUrl(url)
@@ -372,7 +399,7 @@ export default function App() {
 
   // Share progress via Web Share API if available; otherwise copy URL + summary to clipboard.
   const share = async () => {
-    const text = `Vail Scavenger Hunt — ${completeCount}/${STOPS.length} stops complete!`
+    const text = `Vail Scavenger Hunt — ${completeCount}/${stops.length} stops complete!`
     const url = typeof window !== 'undefined' ? window.location.href : ''
     try {
       // Prefer native share dialogs on mobile for better UX.
@@ -428,13 +455,15 @@ export default function App() {
                   <label className='block text-sm font-medium text-gray-700 mb-2'>
                     Location
                   </label>
-                  <input
-                    type='text'
+                  <select
                     value={locationName}
                     onChange={(e) => setLocationName(e.target.value)}
                     className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                    placeholder='Enter location name'
-                  />
+                  >
+                    <option value="Vail Valley">Vail Valley</option>
+                    <option value="Vail Village">Vail Village</option>
+                    <option value="TEST">TEST</option>
+                  </select>
                 </div>
                 
                 <div>
@@ -520,8 +549,8 @@ export default function App() {
                   <ProgressGauge 
                     percent={percent}
                     completeCount={completeCount}
-                    totalStops={STOPS.length}
-                    stops={STOPS}
+                    totalStops={stops.length}
+                    stops={stops}
                     progress={progress}
                   />
                   
@@ -541,7 +570,7 @@ export default function App() {
         {/* Render stops using a single generic placeholder until a photo is added */}
         {(() => {
           
-          const stopsWithNumbers = [...STOPS].map((stop, originalIndex) => ({
+          const stopsWithNumbers = [...stops].map((stop, originalIndex) => ({
             ...stop,
             originalNumber: originalIndex + 1
           }))

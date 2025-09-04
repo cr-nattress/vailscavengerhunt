@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Data Loading Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #f0fdf4; border-color: #16a34a; }
+        .error { background: #fff5f5; border-color: #dc3545; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+        button { padding: 10px 15px; margin: 5px; background: #6366f1; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #4f46e5; }
+    </style>
+</head>
+<body>
+    <h1>🗺️ Location Data Loading Test</h1>
+    
+    <div class="test-section">
+        <h3>Test Controls</h3>
+        <button onclick="testVailValley()">Test Vail Valley</button>
+        <button onclick="testVailVillage()">Test Vail Village</button>
+        <button onclick="testTEST()">Test TEST</button>
+        <button onclick="testAll()">Test All Locations</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        async function loadJSON(filename) {
+            try {
+                const response = await fetch(`/src/data/${filename}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                throw new Error(`Failed to load ${filename}: ${error.message}`);
+            }
+        }
+
+        function getLocationData(locationName, vailValleyData, vailVillageData) {
+            switch(locationName) {
+                case 'Vail Village':
+                    return vailVillageData;
+                case 'Vail Valley':
+                    return vailValleyData;
+                case 'TEST':
+                    return vailValleyData.slice(0, 3);
+                default:
+                    return vailValleyData;
+            }
+        }
+
+        function displayResult(testName, success, data, error) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-section ${success ? 'success' : 'error'}`;
+            
+            if (success) {
+                div.innerHTML = `
+                    <h3>✅ ${testName} - SUCCESS</h3>
+                    <p><strong>Locations loaded:</strong> ${data.length}</p>
+                    <p><strong>Sample locations:</strong></p>
+                    <pre>${JSON.stringify(data.slice(0, 2).map(loc => ({
+                        id: loc.id,
+                        title: loc.title,
+                        emoji: loc.emoji,
+                        hasHints: !!loc.hints,
+                        hintsCount: loc.hints?.length || 0,
+                        hasChallenge: !!loc.challenge,
+                        hasAnswer: !!loc.answer,
+                        hasFunFact: !!loc.funFact
+                    })), null, 2)}</pre>
+                `;
+            } else {
+                div.innerHTML = `
+                    <h3>❌ ${testName} - FAILED</h3>
+                    <p><strong>Error:</strong> ${error}</p>
+                `;
+            }
+            
+            results.appendChild(div);
+        }
+
+        async function testLocation(locationName) {
+            try {
+                console.log(`🧪 Testing ${locationName} data loading...`);
+                
+                // Load both JSON files
+                const [vailValleyData, vailVillageData] = await Promise.all([
+                    loadJSON('vail-valley.json'),
+                    loadJSON('vail-village.json')
+                ]);
+                
+                console.log('✅ JSON files loaded successfully');
+                
+                // Get location-specific data
+                const locationData = getLocationData(locationName, vailValleyData, vailVillageData);
+                console.log(`✅ ${locationName} data retrieved:`, locationData.length, 'locations');
+                
+                // Validate structure
+                const validationErrors = [];
+                locationData.forEach((location, index) => {
+                    if (!location.id) validationErrors.push(`Location ${index}: missing id`);
+                    if (!location.title) validationErrors.push(`Location ${index}: missing title`);
+                    if (!location.hints || !Array.isArray(location.hints)) validationErrors.push(`Location ${index}: missing or invalid hints`);
+                });
+                
+                if (validationErrors.length > 0) {
+                    throw new Error(`Validation failed: ${validationErrors.join(', ')}`);
+                }
+                
+                displayResult(locationName, true, locationData);
+                return { success: true, data: locationData };
+            } catch (error) {
+                console.error(`❌ ${locationName} test failed:`, error);
+                displayResult(locationName, false, null, error.message);
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function testVailValley() {
+            await testLocation('Vail Valley');
+        }
+
+        async function testVailVillage() {
+            await testLocation('Vail Village');
+        }
+
+        async function testTEST() {
+            await testLocation('TEST');
+        }
+
+        async function testAll() {
+            document.getElementById('results').innerHTML = '';
+            
+            const tests = ['Vail Valley', 'Vail Village', 'TEST'];
+            const results = [];
+            
+            for (const location of tests) {
+                const result = await testLocation(location);
+                results.push({ location, ...result });
+            }
+            
+            // Summary
+            const summary = document.createElement('div');
+            summary.className = 'test-section';
+            summary.innerHTML = `
+                <h3>📊 Test Summary</h3>
+                <p><strong>Total tests:</strong> ${results.length}</p>
+                <p><strong>Passed:</strong> ${results.filter(r => r.success).length}</p>
+                <p><strong>Failed:</strong> ${results.filter(r => !r.success).length}</p>
+                <pre>${JSON.stringify(results.map(r => ({
+                    location: r.location,
+                    success: r.success,
+                    locationCount: r.data?.length || 0,
+                    error: r.error || null
+                })), null, 2)}</pre>
+            `;
+            document.getElementById('results').appendChild(summary);
+        }
+
+        // Auto-run test on page load
+        console.log('🚀 Location Data Loading Test Ready');
+        console.log('Click buttons above to test location data loading');
+    </script>
+</body>
+</html>
