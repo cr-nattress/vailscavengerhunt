@@ -24,8 +24,8 @@ const ProgressGauge = ({ percent, completeCount, totalStops, stops, progress }) 
         {/* Background track */}
         <div className='overflow-hidden h-3 rounded-full shadow-inner' style={{ backgroundColor: 'var(--color-light-grey)' }}>
           <div 
-            className='h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden' style={{ background: 'linear-gradient(to right, var(--color-cabernet), var(--color-cabernet-hover))' }}
-            style={{width: `${percent}%`}}
+            className='h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden' 
+            style={{ background: 'linear-gradient(to right, var(--color-cabernet), var(--color-cabernet-hover))', width: `${percent}%` }}
           >
             {/* Animated shimmer effect */}
             <div className='absolute inset-0 animate-pulse' style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent)' }} />

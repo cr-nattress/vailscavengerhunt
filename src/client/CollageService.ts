@@ -10,7 +10,7 @@ export interface CollageResponse {
 }
 
 export class CollageService {
-  private static readonly API_BASE = 'http://localhost:3001/api';
+  private static readonly API_BASE = import.meta.env?.VITE_API_URL || 'http://localhost:3002';
   
   /**
    * Creates a collage from uploaded photos and their titles
@@ -57,7 +57,7 @@ export class CollageService {
     formData.append('titles', titlesJson);
     
     console.log('🌐 Making HTTP request...');
-    const url = `${this.API_BASE}/collage`;
+    const url = `${this.API_BASE}/api/collage`;
     console.log('  URL:', url);
     
     try {

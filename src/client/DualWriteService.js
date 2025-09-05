@@ -10,18 +10,23 @@ export class DualWriteService {
   static LIST_URL = "/.netlify/functions/kv-list"; // List endpoint
   
   /**
-   * Environment detection for local development
+   * Environment detection for local development with automatic port detection
    */
   static get API_BASE() {
     if (typeof window !== 'undefined') {
-      // Check for explicit API URL from environment or use default based on hostname
+      // Check for explicit API URL from environment first
       const apiUrl = import.meta.env?.VITE_API_URL;
       if (apiUrl) return apiUrl;
       
-      const isDevelopment = window.location.hostname === 'localhost';
-      return isDevelopment 
-        ? 'http://localhost:8889' // Use local Netlify Dev server
-        : '';
+      // In production, use relative URLs
+      if (window.location.hostname !== 'localhost') {
+        return '';
+      }
+      
+      // In development, use the current origin since Vite proxies to Netlify functions
+      const origin = window.location.origin;
+      console.log('🌐 DualWriteService detected origin:', origin);
+      return origin;
     }
     return '';
   }

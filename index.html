@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Vail Scavenger Hunt</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -96,6 +97,18 @@
         to {
           transform: translateX(0);
           opacity: 1;
+        }
+      }
+      
+      /* Progress ring pulsing animation */
+      @keyframes progressPulse {
+        0%, 100% {
+          stroke-opacity: 1;
+          stroke-width: 3px;
+        }
+        50% {
+          stroke-opacity: 0.6;
+          stroke-width: 4px;
         }
       }
     </style>

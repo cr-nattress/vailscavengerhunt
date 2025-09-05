@@ -183,8 +183,120 @@ export const createCollageHandler = async (req: Request, res: Response): Promise
   }
 };
 
+// Photo upload handler for individual photos
+export const photoUploadHandler = async (req: Request, res: Response): Promise<void> => {
+  console.log('📸 PhotoUploadHandler called');
+  console.log('  Method:', req.method);
+  console.log('  Headers:', req.headers);
+  console.log('  Body keys:', Object.keys(req.body || {}));
+  console.log('  Files:', req.file ? 'FILE PRESENT' : 'NO FILE');
+  
+  // Configure Cloudinary
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+
+  try {
+    const file = req.file;
+    const { locationTitle, sessionId } = req.body;
+    
+    console.log('📦 Parsed form data:');
+    console.log('  File:', file ? `${file.originalname} (${file.size} bytes)` : 'MISSING');
+    console.log('  Location Title:', locationTitle);
+    console.log('  Session ID:', sessionId);
+
+    // Validate inputs
+    if (!file) {
+      console.log('❌ No photo provided');
+      res.status(400).json({ error: 'No photo provided' });
+      return;
+    }
+
+    if (!locationTitle) {
+      console.log('❌ No location title provided');
+      res.status(400).json({ error: 'No location title provided' });
+      return;
+    }
+
+    if (!sessionId) {
+      console.log('❌ No session ID provided');
+      res.status(400).json({ error: 'No session ID provided' });
+      return;
+    }
+
+    // Generate location slug
+    const locationSlug = locationTitle
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim()
+      .replace(/^-|-$/g, '');
+
+    console.log('🏷️ Generated slug:', locationSlug);
+
+    // Upload to Cloudinary
+    const timestamp = Date.now();
+    const publicId = `${sessionId}/${locationSlug}_${timestamp}`;
+    
+    console.log('☁️ Uploading to Cloudinary with publicId:', publicId);
+    
+    const uploadResult = await new Promise<{publicId: string, secureUrl: string}>((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          folder: process.env.CLOUDINARY_UPLOAD_FOLDER || 'scavenger/entries',
+          tags: ['vail-scavenger', 'individual-photo'],
+          public_id: publicId,
+          context: { 
+            location_slug: locationSlug,
+            session_id: sessionId,
+            upload_type: 'individual'
+          },
+          resource_type: 'image',
+          format: 'jpg',
+          quality: 'auto:good',
+        },
+        (error, result) => {
+          if (error) {
+            console.error('☁️ Cloudinary upload error:', error);
+            reject(error);
+          } else {
+            console.log('✅ Cloudinary upload successful:', result?.public_id);
+            resolve({
+              publicId: result!.public_id,
+              secureUrl: result!.secure_url
+            });
+          }
+        }
+      ).end(file.buffer);
+    });
+
+    // Prepare response
+    const response = {
+      photoUrl: uploadResult.secureUrl,
+      publicId: uploadResult.publicId,
+      locationSlug,
+      title: locationTitle,
+      uploadedAt: new Date().toISOString()
+    };
+
+    console.log('📊 Upload successful, sending response:', response);
+    res.json(response);
+
+  } catch (error) {
+    console.error('💥 Photo upload error:', error);
+    res.status(500).json({ 
+      error: 'Failed to upload photo',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
+
 // Express router setup
 const router = express.Router();
 router.post('/collage', upload.array('photos[]'), createCollageHandler);
+router.post('/photo-upload', upload.single('photo'), photoUploadHandler);
 
 export default router;

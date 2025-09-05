@@ -1,177 +1,26 @@
-import React, {useMemo, useState, useEffect} from 'react'
+import React, {useState, useEffect} from 'react'
 import { CollageService } from './client/CollageService'
-import { NetlifyStateService } from './client/NetlifyStateService'
-import { HybridStorageService } from './client/HybridStorageService'
+import { PhotoUploadService } from './client/PhotoUploadService'
 import { DualWriteService } from './client/DualWriteService'
 import ProgressGauge from './components/ProgressGauge'
 import AlbumViewer from './components/AlbumViewer'
-import vailValleyData from './data/vail-valley.json'
-import vailVillageData from './data/vail-village.json'
-import bhhsData from './data/bhhs-locations.json'
+import Header from './features/app/Header'
+import SettingsPanel from './features/app/SettingsPanel'
+import StopsList from './features/app/StopsList'
+import { useProgress } from './hooks/useProgress'
+import { base64ToFile, compressImage } from './utils/image'
+import { buildStorybook } from './utils/canvas'
+import { generateGuid } from './utils/id'
+import { getRandomStops } from './utils/random'
 
 /**
  * Vail Love Hunt — React single-page app for a couples' scavenger/date experience in Vail.
  *
  * Key behaviors:
- * - Shows a list of romantic stops (`STOPS`) with clues and a selfie mission per stop.
- * - Tracks completion and notes in localStorage under `STORAGE_KEY`.
+ * - Shows a list of romantic stops with clues and a selfie mission per stop.
+ * - Tracks completion and notes in localStorage.
  * - Provides a share action, date tips overlay, and progress bar.
- *
- * Debug tips:
- * - If selfie guide images 404, verify public asset paths (see PHOTO_GUIDES note below).
- * - Use the Reset button to clear progress if localStorage state gets into a bad shape.
  */
-
-// Generic placeholder used before a selfie is uploaded for any stop.
-// NOTE: In Vite, assets in `public/` are served from root. If this fails, verify the path.
-const PLACEHOLDER = '/images/selfie-placeholder.svg'
-
-// All available scavenger-hunt locations.
-// Each entry includes:
-// - id: used as a stable key and in localStorage state
-// - title: display name
-// - hints: array of progressive clues
-// - funFact: romantic trivia about the location
-// - maps: convenience Google Maps link
-
-/**
- * Get location data based on selected location name
- */
-function getLocationData(locationName) {
-  switch(locationName) {
-    case 'BHHS':
-      return bhhsData
-    case 'Vail Village':
-      return vailVillageData
-    case 'Vail Valley':
-      return vailValleyData
-    case 'TEST':
-      // For TEST, return a subset of Vail Valley data
-      return vailValleyData.slice(0, 3)
-    default:
-      return bhhsData
-  }
-}
-
-/**
- * Randomly selects locations from the specified location data
- * Uses a seeded approach to ensure consistent selection per session
- */
-function getRandomStops(locationName = 'BHHS') {
-  const locationData = getLocationData(locationName)
-  
-  // Create a copy of all locations to avoid mutating the original array
-  const shuffled = [...locationData]
-  
-  // Fisher-Yates shuffle algorithm
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-  }
-  
-  // For BHHS, return all 9 locations; for others, return 5
-  const maxStops = locationName === 'BHHS' ? shuffled.length : 5
-  return shuffled.slice(0, Math.min(maxStops, shuffled.length))
-}
-
-// localStorage key used for persisting progress
-const STORAGE_KEY = 'vail-love-hunt-progress'
-
-/**
- * Helper function to convert base64 to File object
- * Pure function - doesn't depend on component state
- */
-const base64ToFile = (base64String, filename) => {
-  const arr = base64String.split(',')
-  const mime = arr[0].match(/:(.*?);/)[1]
-  const bstr = atob(arr[1])
-  let n = bstr.length
-  const u8arr = new Uint8Array(n)
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n)
-  }
-  return new File([u8arr], filename, { type: mime })
-}
-
-/**
- * Compress an image file to reduce size
- * Pure function - returns a promise
- */
-const compressImage = (file, maxWidth = 800, quality = 0.8) => {
-  return new Promise((resolve) => {
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    const img = new Image()
-    
-    img.onload = () => {
-      // Calculate new dimensions
-      const ratio = Math.min(maxWidth / img.width, maxWidth / img.height)
-      canvas.width = img.width * ratio
-      canvas.height = img.height * ratio
-      
-      // Draw and compress
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      const compressedDataUrl = canvas.toDataURL('image/jpeg', quality)
-      resolve(compressedDataUrl)
-    }
-    
-    img.src = URL.createObjectURL(file)
-  })
-}
-
-/**
- * useProgress
- * Manages per-stop completion and notes with localStorage persistence.
- * Returns { progress, setProgress, completeCount, percent }.
- */
-function useProgress(stops) {
-  const [progress, setProgress] = useState(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      return raw ? JSON.parse(raw) : {}
-    } catch { return {} }
-  })
-  useEffect(() => {
-    try {
-      // Persist whenever progress changes. If in private mode or blocked, this might throw.
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
-    } catch (error) {
-      // Handle quota exceeded or other localStorage errors
-      if (error.name === 'QuotaExceededError') {
-        console.warn('localStorage quota exceeded - clearing old data and trying again')
-        // Try to clear existing data and save again
-        localStorage.removeItem(STORAGE_KEY)
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
-        } catch {
-          console.error('Failed to save progress even after clearing storage')
-        }
-      }
-    }
-  }, [progress])
-  // Derived values for the progress UI
-  const completeCount = useMemo(() => stops.reduce((acc, s) => acc + ((progress[s.id]?.done) ? 1 : 0), 0), [progress, stops])
-  const percent = Math.round((completeCount / stops.length) * 100)
-  return {progress, setProgress, completeCount, percent}
-}
-
-// NOTE: A `StopItem` component was previously added for a future refactor but is removed here
-// to avoid changing runtime behavior. Consider extracting one later if needed.
-
-/**
- * App
- * Top-level component composing the header, stops list, progress, and tips overlay.
- */
-/**
- * Generate a UUID v4 GUID
- */
-const generateGuid = () => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
 
 export default function App() {
   const [locationName, setLocationName] = useState('BHHS')
@@ -179,6 +28,9 @@ export default function App() {
   const [stops, setStops] = useState(() => getRandomStops('BHHS'))
   const [isEditMode, setIsEditMode] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  
+  // Generate session ID once per app instance
+  const [sessionId] = useState(() => generateGuid())
   
   const {progress, setProgress, completeCount, percent} = useProgress(stops)
   const [showTips, setShowTips] = useState(false)
@@ -251,92 +103,109 @@ export default function App() {
     }
   }, [isMenuOpen])
 
-  // Build a shareable collage ("storybook") from images + titles
-  const buildStorybook = async (photos, titles) => {
-    const n = Math.min(photos.length, titles.length)
-    if (n === 0) return null
-
-    // Grid sizing: up to 3 across for this preview use-case
-    const cols = Math.min(3, n)
-    const rows = Math.ceil(n / cols)
-    const padding = 24
-    const captionH = 56
-    const tile = 560 // image square size per tile
-    const width = padding + cols * (tile + padding)
-    const height = padding + rows * (tile + captionH + padding)
-
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    canvas.width = width
-    canvas.height = height
-
-    // Background
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, width, height)
-
-    // Helper: load image
-    const load = (src) => new Promise((resolve, reject) => {
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.onload = () => resolve(img)
-      img.onerror = reject
-      img.src = src
-    })
-
-    // Helper: draw image with cover fit into a rounded rect
-    const drawCover = (image, x, y, size) => {
-      const iw = image.width, ih = image.height
-      const scale = Math.max(size / iw, size / ih)
-      const dw = iw * scale, dh = ih * scale
-      const dx = x + (size - dw) / 2
-      const dy = y + (size - dh) / 2
-
-      // Rounded clip
-      const r = 16
-      ctx.save()
-      ctx.beginPath()
-      ctx.moveTo(x + r, y)
-      ctx.arcTo(x + size, y, x + size, y + size, r)
-      ctx.arcTo(x + size, y + size, x, y + size, r)
-      ctx.arcTo(x, y + size, x, y, r)
-      ctx.arcTo(x, y, x + size, y, r)
-      ctx.closePath()
-      ctx.clip()
-      ctx.drawImage(image, dx, dy, dw, dh)
-      ctx.restore()
-
-      // Border
-      ctx.strokeStyle = '#e2e8f0'
-      ctx.lineWidth = 2
-      ctx.strokeRect(x + 1, y + 1, size - 2, size - 2)
+  // Handle photo upload for a stop
+  const handlePhotoUpload = async (stopId, file) => {
+    const stop = stops.find(s => s.id === stopId)
+    const state = progress[stopId] || { done: false, notes: '', photo: null, revealedHints: 1 }
+    
+    // Start loading state
+    setUploadingStops(prev => new Set([...prev, stopId]))
+    
+    try {
+      // Check if photo already exists for this location (idempotency)
+      const existingPhoto = await PhotoUploadService.getExistingPhoto(stopId, sessionId)
+      if (existingPhoto) {
+        console.log(`📷 Photo already exists for ${stop.title}, using existing photo`)
+        setProgress(p => ({
+          ...p,
+          [stopId]: { ...state, photo: existingPhoto.photoUrl, done: true, completedAt: new Date().toISOString() }
+        }))
+      } else {
+        // Upload new photo using PhotoUploadService
+        console.log(`📸 Uploading new photo for ${stop.title}`)
+        const uploadResponse = await PhotoUploadService.uploadPhotoWithResize(
+          file, 
+          stop.title, 
+          sessionId
+        )
+        
+        // Save photo record
+        await PhotoUploadService.savePhotoRecord(uploadResponse, stopId, sessionId)
+        
+        // Step 1: Immediate feedback with photo URL
+        setProgress(p => ({
+          ...p,
+          [stopId]: { ...state, photo: uploadResponse.photoUrl, done: true, completedAt: new Date().toISOString() }
+        }))
+        
+        console.log(`✅ Photo uploaded successfully for ${stop.title}: ${uploadResponse.photoUrl}`)
+      }
+      
+      // End loading state
+      setUploadingStops(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(stopId)
+        return newSet
+      })
+      
+      // Step 2: Quick celebration animation
+      setTimeout(() => {
+        setTransitioningStops(prev => new Set([...prev, stopId]))
+        
+        // Step 3: Complete transition quickly
+        setTimeout(() => {
+          setTransitioningStops(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(stopId)
+            return newSet
+          })
+        }, 600)
+      }, 150)
+      
+    } catch (error) {
+      console.error('❌ Photo upload failed:', error)
+      alert(`Failed to upload photo: ${error.message}`)
+      
+      // End loading state on error
+      setUploadingStops(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(stopId)
+        return newSet
+      })
+      
+      // Fallback to local compression method if upload fails
+      try {
+        const compressedPhoto = await compressImage(file)
+        setProgress(p => ({
+          ...p,
+          [stopId]: { ...state, photo: compressedPhoto, done: true, completedAt: new Date().toISOString() }
+        }))
+        console.log('📷 Fallback to local storage successful')
+      } catch (fallbackError) {
+        console.error('❌ Fallback also failed:', fallbackError)
+        // Final fallback to FileReader
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          const photoData = reader.result
+          setProgress(p => ({
+            ...p,
+            [stopId]: { ...state, photo: photoData, done: true, completedAt: new Date().toISOString() }
+          }))
+          
+          setTimeout(() => {
+            setTransitioningStops(prev => new Set([...prev, stopId]))
+            setTimeout(() => {
+              setTransitioningStops(prev => {
+                const newSet = new Set(prev)
+                newSet.delete(stopId)
+                return newSet
+              })
+            }, 600)
+          }, 150)
+        }
+        reader.readAsDataURL(file)
+      }
     }
-
-    // Load images sequentially to keep memory lower
-    const images = []
-    for (let i = 0; i < n; i++) images.push(await load(photos[i]))
-
-    // Draw tiles
-    ctx.fillStyle = '#0f172a' // slate-900 for text
-    ctx.font = '600 18px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'
-    ctx.textBaseline = 'top'
-
-    for (let i = 0; i < n; i++) {
-      const col = i % cols
-      const row = Math.floor(i / cols)
-      const x = padding + col * (tile + padding)
-      const y = padding + row * (tile + captionH + padding)
-
-      drawCover(images[i], x, y, tile)
-
-      // Caption line
-      const title = titles[i]
-      const label = `${i + 1}. ${title}`
-      ctx.fillStyle = '#0f172a'
-      ctx.font = '600 18px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'
-      ctx.fillText(label, x + 8, y + tile + 12)
-    }
-
-    return canvas.toDataURL('image/png')
   }
 
 
@@ -417,6 +286,33 @@ export default function App() {
     setExpandedStops({})
     setTransitioningStops(new Set())
   }
+  
+  // Toggle expanded state for a stop
+  const toggleExpanded = (stopId) => {
+    setExpandedStops(prev => ({
+      ...prev,
+      [stopId]: !prev[stopId]
+    }))
+  }
+  
+  // Save settings handler
+  const handleSaveSettings = async () => {
+    try {
+      // Save settings using DualWriteService
+      const settingsData = {
+        location: locationName,
+        team: teamName,
+        updatedAt: new Date().toISOString()
+      }
+      
+      const results = await DualWriteService.saveSettings(settingsData)
+      console.log('✅ Settings saved:', settingsData, results)
+    } catch (error) {
+      console.error('❌ Failed to save settings:', error)
+    }
+    
+    setIsEditMode(false)
+  }
 
   // Share progress via Web Share API if available; otherwise copy URL + summary to clipboard.
   const share = async () => {
@@ -435,125 +331,15 @@ export default function App() {
 
   return (
     <div className='min-h-screen text-slate-900' style={{backgroundColor: 'var(--color-cream)'}}>
-      <header className='sticky top-0 z-20 backdrop-blur-md border-b' style={{
-        backgroundColor: 'var(--color-cabernet)', 
-        borderBottomColor: 'var(--color-blush-pink)'
-      }}>
-        <div className='max-w-screen-sm mx-auto px-4 py-4 flex items-center justify-between'>
-          <div className='flex items-center'>
-            {/* Official Berkshire Hathaway HomeServices Logo */}
-            <svg width="280" height="40" viewBox="0 0 280 40" className='text-white'>
-              {/* House icon/symbol */}
-              <g transform="translate(0,10)">
-                <path d="M8 8 L16 1 L24 8 L24 16 L20 16 L20 10 L12 10 L12 16 L8 16 Z" fill="white"/>
-                <rect x="15" y="3" width="2" height="4" fill="white"/>
-              </g>
-              
-              {/* BERKSHIRE HATHAWAY text */}
-              <text x="38" y="16" fill="white" fontSize="11" fontWeight="bold" fontFamily="Arial, sans-serif">BERKSHIRE HATHAWAY</text>
-              
-              {/* HomeServices text */}
-              <text x="38" y="30" fill="white" fontSize="9" fontWeight="normal" fontFamily="Arial, sans-serif">HomeServices</text>
-              
-              {/* Decorative line */}
-              <line x1="38" y1="20" x2="220" y2="20" stroke="white" strokeWidth="0.8"/>
-            </svg>
-          </div>
-          
-          {/* Hamburger Menu Button */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className='relative p-2 rounded-lg transition-colors'
-            style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
-            aria-label='Menu'
-          >
-            <div className='w-6 h-5 flex flex-col justify-between relative'>
-              <span 
-                className={`absolute top-0 left-0 right-0 h-0.5 bg-white transform transition-transform ${isMenuOpen ? 'rotate-45 translate-y-2' : ''}`}
-                style={{ width: '100%' }}
-              />
-              <span 
-                className={`absolute top-1/2 left-0 right-0 h-0.5 bg-white transition-opacity ${isMenuOpen ? 'opacity-0' : ''}`}
-                style={{ width: '100%', transform: 'translateY(-50%)' }}
-              />
-              <span 
-                className={`absolute bottom-0 left-0 right-0 h-0.5 bg-white transform transition-transform ${isMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}
-                style={{ width: '100%' }}
-              />
-            </div>
-          </button>
-        </div>
-        
-        {/* Dropdown Menu */}
-        {isMenuOpen && (
-          <div 
-            className='absolute top-full right-0 left-0 shadow-lg border-t'
-            style={{
-              backgroundColor: 'var(--color-white)',
-              borderTopColor: 'var(--color-blush-pink)',
-              animation: 'slideDown 0.2s ease-out forwards',
-              transformOrigin: 'top'
-            }}
-          >
-            <div className='max-w-screen-sm mx-auto px-4 py-4'>
-              <nav className='space-y-2'>
-                <button 
-                  onClick={() => {
-                    setShowTips(!showTips)
-                    setIsMenuOpen(false)
-                  }}
-                  className='w-full text-left px-4 py-3 rounded-lg transition-all duration-150 transform hover:scale-[1.01] active:scale-[0.99] flex items-center gap-3 opacity-0'
-                  onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-light-pink)'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                  onMouseDown={(e) => e.target.style.backgroundColor = 'var(--color-blush-pink)'}
-                  onMouseUp={(e) => e.target.style.backgroundColor = 'var(--color-light-pink)'}
-                  style={{
-                    animation: 'fadeInSlide 0.3s ease-out 0.1s forwards'
-                  }}
-                >
-                  <svg className='w-5 h-5 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' />
-                  </svg>
-                  <span className='text-gray-700'>Rules</span>
-                </button>
-                
-                <button 
-                  onClick={() => {
-                    reset()
-                    setIsMenuOpen(false)
-                  }}
-                  className='w-full text-left px-4 py-3 rounded-lg transition-all duration-150 transform hover:scale-[1.01] active:scale-[0.99] flex items-center gap-3 opacity-0'
-                  onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-light-pink)'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                  onMouseDown={(e) => e.target.style.backgroundColor = 'var(--color-blush-pink)'}
-                  onMouseUp={(e) => e.target.style.backgroundColor = 'var(--color-light-pink)'}
-                  style={{
-                    animation: 'fadeInSlide 0.3s ease-out 0.2s forwards'
-                  }}
-                >
-                  <svg className='w-5 h-5 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' />
-                  </svg>
-                  <span className='text-gray-700'>Reset</span>
-                </button>
-                
-                <div className='pt-3 mt-3 border-t opacity-0' style={{
-                  borderTopColor: 'var(--color-light-grey)',
-                  animation: 'fadeInSlide 0.3s ease-out 0.3s forwards'
-                }}>
-                  <div className='px-4 py-2 text-sm text-gray-500'>
-                    Progress: {completeCount}/{stops.length} stops complete ({percent}%)
-                  </div>
-                </div>
-              </nav>
-            </div>
-          </div>
-        )}
-      </header>
+      <Header 
+        isMenuOpen={isMenuOpen}
+        onToggleMenu={() => setIsMenuOpen(!isMenuOpen)}
+        completeCount={completeCount}
+        totalStops={stops.length}
+        percent={percent}
+        onReset={reset}
+        onToggleTips={() => setShowTips(!showTips)}
+      />
 
       <main className='max-w-screen-sm mx-auto px-4 py-5'>
         <div className='border rounded-lg shadow-sm p-4 relative' style={{
@@ -588,92 +374,14 @@ export default function App() {
           </div>
           
           {isEditMode ? (
-            /* Edit Mode Card */
-            <div className='mt-4'>
-              <div className='space-y-4'>
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    Location
-                  </label>
-                  <select
-                    value={locationName}
-                    onChange={(e) => setLocationName(e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent opacity-50 cursor-not-allowed'
-                    disabled={true}
-                  >
-                    <option value="BHHS">BHHS</option>
-                    <option value="Vail Valley">Vail Valley</option>
-                    <option value="Vail Village">Vail Village</option>
-                    <option value="TEST">TEST</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
-                    Team
-                  </label>
-                  <input
-                    type='text'
-                    value={teamName}
-                    onChange={(e) => setTeamName(e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                    placeholder='Enter your team name'
-                  />
-                </div>
-                
-                <div className='flex gap-3'>
-                  <button
-                    onClick={async () => {
-                      try {
-                        // Save settings using DualWriteService
-                        const settingsData = {
-                          location: locationName,
-                          team: teamName,
-                          updatedAt: new Date().toISOString()
-                        };
-                        
-                        const results = await DualWriteService.saveSettings(settingsData);
-                        console.log('✅ Settings saved:', settingsData, results);
-                      } catch (error) {
-                        console.error('❌ Failed to save settings:', error);
-                      }
-                      
-                      setIsEditMode(false);
-                    }}
-                    className='flex-1 px-4 py-2 text-white font-medium rounded-md transition-all duration-150 transform hover:scale-[1.02] active:scale-[0.98]'
-                    style={{
-                      backgroundColor: 'var(--color-cabernet)'
-                    }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-cabernet-hover)'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--color-cabernet)'}
-                    onMouseDown={(e) => e.target.style.backgroundColor = 'var(--color-cabernet-active)'}
-                    onMouseUp={(e) => e.target.style.backgroundColor = 'var(--color-cabernet-hover)'}
-                  >
-                    Save Changes
-                  </button>
-                  <button
-                    onClick={() => setIsEditMode(false)}
-                    className='flex-1 px-4 py-2 font-medium rounded-md transition-all duration-150 transform hover:scale-[1.02] active:scale-[0.98]'
-                    style={{
-                      backgroundColor: 'var(--color-light-grey)',
-                      color: 'var(--color-dark-neutral)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = 'var(--color-warm-grey)'
-                      e.target.style.color = 'var(--color-white)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = 'var(--color-light-grey)'
-                      e.target.style.color = 'var(--color-dark-neutral)'
-                    }}
-                    onMouseDown={(e) => e.target.style.backgroundColor = 'var(--color-blush-pink)'}
-                    onMouseUp={(e) => e.target.style.backgroundColor = 'var(--color-warm-grey)'}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
+            <SettingsPanel
+              locationName={locationName}
+              teamName={teamName}
+              onChangeLocation={setLocationName}
+              onChangeTeam={setTeamName}
+              onSave={handleSaveSettings}
+              onCancel={() => setIsEditMode(false)}
+            />
           ) : (
             /* Normal Mode Card */
             <>
@@ -709,420 +417,18 @@ export default function App() {
           initialExpanded={true}
         />
 
-        {/* Render stops using a single generic placeholder until a photo is added */}
-        {(() => {
-          
-          const stopsWithNumbers = [...stops].map((stop, originalIndex) => ({
-            ...stop,
-            originalNumber: originalIndex + 1
-          }))
-          
-          // Find the first incomplete stop (excluding transitioning ones)
-          // Only show if there are no transitioning stops (wait for completion transition to finish)
-          const firstIncomplete = transitioningStops.size === 0 
-            ? stopsWithNumbers.find(stop => !(progress[stop.id]?.done))
-            : null
-          
-          // Get completed stops (excluding transitioning ones) and sort them by completion order
-          const completedStops = stopsWithNumbers
-            .filter(stop => progress[stop.id]?.done && !transitioningStops.has(stop.id))
-            .sort((a, b) => a.originalNumber - b.originalNumber)
-          
-          // Get transitioning stops (keep them in their current position)
-          const transitioningStopsArray = stopsWithNumbers
-            .filter(stop => transitioningStops.has(stop.id))
-          
-          // Get incomplete stops
-          const incompleteStops = stopsWithNumbers
-            .filter(stop => !progress[stop.id]?.done && !transitioningStops.has(stop.id))
-          
-          // Show transitioning and first incomplete stop
-          const activeStops = []
-          activeStops.push(...transitioningStopsArray)
-          if (firstIncomplete) {
-            activeStops.push(firstIncomplete)
-          }
-          
-          // Render active stops (current task)
-          const renderActiveStops = () => activeStops.map((s, i) => {
-            const state = progress[s.id] || { done: false, notes: '', photo: null, revealedHints: 1 }
-            const displayImage = state.photo || PLACEHOLDER
-          
-
-          const handlePhotoUpload = async (e) => {
-            const file = e.target.files[0]
-            if (file && file.type.startsWith('image/')) {
-              // Start loading state
-              setUploadingStops(prev => new Set([...prev, s.id]))
-              
-              try {
-                const compressedPhoto = await compressImage(file)
-                
-                // Step 1: Immediate feedback with photo
-                setProgress(p => ({
-                  ...p,
-                  [s.id]: { ...state, photo: compressedPhoto, done: true }
-                }))
-                
-                // End loading state
-                setUploadingStops(prev => {
-                  const newSet = new Set(prev)
-                  newSet.delete(s.id)
-                  return newSet
-                })
-                
-                // Step 2: Quick celebration animation
-                setTimeout(() => {
-                  setTransitioningStops(prev => new Set([...prev, s.id]))
-                  
-                  // Step 3: Complete transition quickly
-                  setTimeout(() => {
-                    setTransitioningStops(prev => {
-                      const newSet = new Set(prev)
-                      newSet.delete(s.id)
-                      return newSet
-                    })
-                  }, 600) // Reduced from 1500ms to 600ms
-                }, 150) // Reduced from 800ms to 150ms for quicker response
-                
-              } catch (error) {
-                console.error('Error processing image:', error)
-                // End loading state on error
-                setUploadingStops(prev => {
-                  const newSet = new Set(prev)
-                  newSet.delete(s.id)
-                  return newSet
-                })
-                // Fallback to original method if compression fails
-                const reader = new FileReader()
-                reader.onloadend = () => {
-                  const photoData = reader.result
-                  
-                  // Step 1: Immediate feedback with photo
-                  setProgress(p => ({
-                    ...p,
-                    [s.id]: { ...state, photo: photoData, done: true }
-                  }))
-                  
-                  // Step 2: Quick celebration animation
-                  setTimeout(() => {
-                    setTransitioningStops(prev => new Set([...prev, s.id]))
-                    
-                    // Step 3: Complete transition quickly
-                    setTimeout(() => {
-                      setTransitioningStops(prev => {
-                        const newSet = new Set(prev)
-                        newSet.delete(s.id)
-                        return newSet
-                      })
-                    }, 600) // Reduced from 1500ms to 600ms
-                  }, 150) // Reduced from 800ms to 150ms for quicker response
-                }
-                reader.readAsDataURL(file)
-              }
-            }
-          }
-
-          const revealNextHint = () => {
-            if (state.revealedHints < s.hints.length) {
-              setProgress(p => ({
-                ...p,
-                [s.id]: { ...state, revealedHints: state.revealedHints + 1 }
-              }))
-            }
-          }
-          
-          const isExpanded = expandedStops[s.id] || false
-          const toggleExpanded = () => {
-            if (state.done) {
-              setExpandedStops(prev => ({
-                ...prev,
-                [s.id]: !prev[s.id]
-              }))
-            }
-          }
-          
-          const isTransitioning = transitioningStops.has(s.id)
-          
-          return (
-            <div 
-              key={s.id} 
-              className={`mt-6 shadow-sm border rounded-lg p-4 transition-all duration-1000 ease-in-out ${
-                state.done ? 'cursor-pointer hover:shadow-md transition-shadow' : ''
-              }`}
-              onClick={state.done && !isTransitioning ? toggleExpanded : undefined}
-              style={{
-                backgroundColor: isTransitioning ? 'var(--color-light-pink)' : 'var(--color-white)',
-                borderColor: isTransitioning 
-                  ? 'var(--color-success)' 
-                  : state.done 
-                    ? 'var(--color-blush-pink)'
-                    : 'var(--color-light-grey)',
-                borderWidth: isTransitioning ? '2px' : '1px',
-                transform: isTransitioning ? 'scale(1.05) translateY(-4px)' : 'scale(1)',
-                transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                animation: `fadeInSlide 0.4s ease-out ${i * 0.15}s forwards`,
-                opacity: 0
-              }}
-            >
-              <div className='flex items-start justify-between gap-3'>
-                <div className='flex-1'>
-                  <div className='flex items-center justify-between'>
-                    <div className='flex items-center gap-2'>
-                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded transition-all duration-300 ${state.done ? 'text-white' : 'text-slate-900'}`} style={{ backgroundColor: state.done ? 'var(--color-success)' : 'var(--color-light-grey)' }}>
-                        {state.done ? (
-                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        ) : (
-                          s.originalNumber
-                        )}
-                      </span>
-                      <h3 className={`text-base font-semibold ${!state.photo ? 'blur-sm' : ''}`} style={{ color: 'var(--color-cabernet)' }}>{s.title}</h3>
-                    </div>
-                    {state.done && (
-                      <span style={{ color: 'var(--color-cabernet)' }}>
-                        {isExpanded ? '▼' : '▶'}
-                      </span>
-                    )}
-                    
-                    {/* Enhanced Hint button for mobile */}
-                    {(!state.done || isExpanded) && !state.photo && state.revealedHints < s.hints.length && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          revealNextHint()
-                        }}
-                        className='px-4 py-2 text-sm font-semibold rounded-full shadow-sm min-h-[44px] flex flex-col items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95'
-                        style={{
-                          background: 'linear-gradient(135deg, var(--color-light-pink), var(--color-blush-pink))',
-                          color: 'var(--color-cabernet)',
-                          minWidth: '80px'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.background = 'linear-gradient(135deg, var(--color-blush-pink), var(--color-cabernet-hover))'
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.background = 'linear-gradient(135deg, var(--color-light-pink), var(--color-blush-pink))'
-                        }}
-                      >
-                        <div className='flex items-center gap-1'>
-                          <span className='text-base'>💭</span>
-                          <span className='text-xs font-bold'>Hint</span>
-                        </div>
-                        <span className='text-xs opacity-75 leading-none'>
-                          {state.revealedHints}/{s.hints.length}
-                        </span>
-                      </button>
-                    )}
-                  </div>
-                  
-                  {/* Show detailed content for incomplete stops or expanded completed stops */}
-                  {(!state.done || isExpanded) && (
-                    <>
-                      {!state.photo && (
-                        <div className='mt-3 space-y-2'>
-                          {s.hints.slice(0, state.revealedHints).map((hint, hintIndex) => {
-                            const hintConfig = {
-                              0: { bg: 'var(--color-light-pink)', border: 'var(--color-cabernet)', text: 'var(--color-cabernet)', icon: '🎯' },
-                              1: { bg: '#f0f9ff', border: '#0ea5e9', text: '#0c4a6e', icon: '🔍' },
-                              2: { bg: '#faf5ff', border: '#a855f7', text: '#581c87', icon: '💡' }
-                            }[hintIndex] || { bg: '#f8fafc', border: '#64748b', text: '#334155', icon: (hintIndex + 1) }
-                            
-                            return (
-                              <div 
-                                key={hintIndex}
-                                className='border-l-3 p-3 rounded-r-lg transition-all duration-300'
-                                style={{
-                                  backgroundColor: hintConfig.bg,
-                                  borderColor: hintConfig.border,
-                                  animation: `slideInFromLeft 0.4s ease-out ${hintIndex * 0.1}s forwards`,
-                                  opacity: 0
-                                }}
-                              >
-                                <div className='flex items-center gap-2'>
-                                  <span 
-                                    className='flex-shrink-0 w-6 h-6 text-white text-xs font-bold rounded-full flex items-center justify-center'
-                                    style={{ backgroundColor: hintConfig.border }}
-                                  >
-                                    {hintConfig.icon}
-                                  </span>
-                                  <p className='text-sm leading-snug flex-1' style={{ color: hintConfig.text }}>
-                                    {hint}
-                                  </p>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Detailed content only for incomplete stops or expanded completed stops */}
-              {(!state.done || isExpanded) && (
-                <>
-                  <div className='mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3'>
-                    <div className='rounded-xl border p-3'>
-                      <div className={`text-xs uppercase tracking-wide ${state.photo ? '' : ''}`} style={{ color: state.photo ? 'var(--color-success)' : 'var(--color-medium-grey)' }}>
-                        {state.photo ? '✅ Photo Mission Complete' : 'Photo Mission'}
-                      </div>
-                      {/* If this image fails to load, confirm the path root (see PHOTO_GUIDES note). */}
-                      {displayImage && <img src={displayImage} alt='Selfie' className='mt-2 rounded-md object-cover w-full h-40' onError={(e)=>{e.currentTarget.style.display='none'}} />}
-                      <div className='mt-2 flex items-center gap-2 text-xs text-slate-500'>
-                        {state.photo ? '✨ Your photo' : '📷 Capture a creative selfie together at this location.'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {!state.photo && (
-                    <div className='mt-3'>
-                      <input 
-                        type='file' 
-                        accept='image/*' 
-                        onChange={handlePhotoUpload}
-                        className='hidden'
-                        id={`file-${s.id}`}
-                      />
-                      <label 
-                        htmlFor={`file-${s.id}`}
-                        className={`w-full px-4 py-3 text-white font-medium rounded-lg cursor-pointer flex items-center justify-center gap-2 transition-all duration-200 transform ${
-                          uploadingStops.has(s.id) 
-                            ? 'cursor-wait hover:scale-[1.02] active:scale-[0.98]' 
-                            : 'hover:scale-[1.02] active:scale-[0.98]'
-                        }`} style={{ backgroundColor: uploadingStops.has(s.id) ? 'var(--color-warm-grey)' : 'var(--color-cabernet)' }} onMouseEnter={(e) => { if (!uploadingStops.has(s.id)) e.target.style.backgroundColor = 'var(--color-cabernet-hover)' }} onMouseLeave={(e) => { if (!uploadingStops.has(s.id)) e.target.style.backgroundColor = 'var(--color-cabernet)' }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {uploadingStops.has(s.id) ? (
-                          <>
-                            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
-                            Processing...
-                          </>
-                        ) : (
-                          <>📸 Upload Photo</>
-                        )}
-                      </label>
-                    </div>
-                  )}
-
-                  {state.done && (
-                    <div className='mt-3 flex items-center gap-2 text-sm italic' style={{ color: 'var(--color-cabernet)' }}>
-                      <span>❤</span> {s.funFact}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )
-        })
-          
-          // Render completed stops in accordion
-          const renderCompletedStops = () => {
-            if (completedStops.length === 0) return null
-            
-            return (
-              <div className='mt-6 border rounded-lg shadow-sm' style={{
-                backgroundColor: 'var(--color-white)',
-                borderColor: 'var(--color-light-grey)'
-              }}>
-                {/* Accordion Header */}
-                <button
-                  className='w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-t-lg'
-                  onClick={() => setCompletedSectionExpanded(!completedSectionExpanded)}
-                  style={{
-                    backgroundColor: completedSectionExpanded ? 'var(--color-light-pink)' : 'transparent'
-                  }}
-                >
-                  <div className='flex items-center gap-2'>
-                    <span className='text-lg font-semibold' style={{ color: 'var(--color-cabernet)' }}>
-                      📋 Completed Locations ({completedStops.length})
-                    </span>
-                  </div>
-                  <span style={{ color: 'var(--color-cabernet)' }}>
-                    {completedSectionExpanded ? '▼' : '▶'}
-                  </span>
-                </button>
-                
-                {/* Accordion Content */}
-                {completedSectionExpanded && (
-                  <div className='border-t' style={{ borderColor: 'var(--color-light-grey)' }}>
-                    {completedStops.map((s, index) => {
-                      const state = progress[s.id] || { done: false, notes: '', photo: null, revealedHints: 1 }
-                      const isExpanded = expandedStops[s.id] || false
-                      
-                      return (
-                        <div 
-                          key={s.id}
-                          className='border-b last:border-b-0 transition-colors'
-                          style={{ borderColor: 'var(--color-light-grey)' }}
-                        >
-                          <button
-                            className='w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left'
-                            onClick={() => setExpandedStops(prev => ({
-                              ...prev,
-                              [s.id]: !prev[s.id]
-                            }))}
-                          >
-                            <div className='flex items-center gap-3'>
-                              <span className='text-sm' style={{ color: 'var(--color-cabernet)' }}>
-                                {isExpanded ? '▼' : '▶'}
-                              </span>
-                              <h3 className='text-base font-medium' style={{ color: 'var(--color-dark-neutral)' }}>
-                                {s.title}
-                              </h3>
-                              <span className='inline-flex items-center justify-center w-5 h-5 rounded-full' style={{ 
-                                backgroundColor: 'var(--color-success)',
-                                color: 'white'
-                              }}>
-                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
-                              </span>
-                            </div>
-                            <span className='text-xs' style={{ color: 'var(--color-medium-grey)' }}>
-                              Stop #{s.originalNumber}
-                            </span>
-                          </button>
-                          
-                          {/* Expanded content */}
-                          {isExpanded && (
-                            <div className='px-4 pb-3'>
-                              {state.photo && (
-                                <div className='mb-3'>
-                                  <img 
-                                    src={state.photo} 
-                                    alt={`Photo at ${s.title}`} 
-                                    className='rounded-lg object-cover w-full max-h-48'
-                                  />
-                                </div>
-                              )}
-                              <div className='text-sm italic' style={{ color: 'var(--color-cabernet)' }}>
-                                <span>❤️</span> {s.funFact}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )
-          }
-          
-          // Main return with both sections
-          return (
-            <>
-              {renderActiveStops()}
-              {renderCompletedStops()}
-            </>
-          )
-        })()}
+        <StopsList
+          stops={stops}
+          progress={progress}
+          transitioningStops={transitioningStops}
+          completedSectionExpanded={completedSectionExpanded}
+          onToggleCompletedSection={() => setCompletedSectionExpanded(!completedSectionExpanded)}
+          expandedStops={expandedStops}
+          onToggleExpanded={toggleExpanded}
+          uploadingStops={uploadingStops}
+          onPhotoUpload={handlePhotoUpload}
+          setProgress={setProgress}
+        />
 
 
         {showTips && (

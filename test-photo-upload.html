@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Photo Upload</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        input[type="file"] { margin: 10px 0; }
+        .result { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 3px; white-space: pre-wrap; }
+        .error { background: #f8d7da; color: #721c24; }
+        .success { background: #d4edda; color: #155724; }
+    </style>
+</head>
+<body>
+    <h1>Photo Upload Service Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Individual Photo Upload</h2>
+        <input type="file" id="photoInput" accept="image/*" />
+        <br>
+        <input type="text" id="locationTitle" placeholder="Location Title (e.g., 'BHHS Vail Office')" value="Test Location" style="width: 300px; padding: 5px;" />
+        <br>
+        <button onclick="testPhotoUpload()">Upload Photo</button>
+        <div id="uploadResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Session Photo Storage</h2>
+        <button onclick="testSessionPhotos()">View Session Photos</button>
+        <div id="sessionResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Netlify Function Direct</h2>
+        <button onclick="testNetlifyFunction()">Test Function Health</button>
+        <div id="functionResult" class="result"></div>
+    </div>
+
+    <script>
+        const sessionId = 'test-session-' + Date.now();
+        console.log('Session ID:', sessionId);
+
+        async function testPhotoUpload() {
+            const fileInput = document.getElementById('photoInput');
+            const locationTitle = document.getElementById('locationTitle').value;
+            const resultDiv = document.getElementById('uploadResult');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.innerHTML = 'Please select a photo first.';
+                resultDiv.className = 'result error';
+                return;
+            }
+            
+            if (!locationTitle.trim()) {
+                resultDiv.innerHTML = 'Please enter a location title.';
+                resultDiv.className = 'result error';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Uploading photo...';
+            resultDiv.className = 'result';
+            
+            try {
+                const formData = new FormData();
+                formData.append('photo', fileInput.files[0]);
+                formData.append('locationTitle', locationTitle);
+                formData.append('sessionId', sessionId);
+                
+                console.log('Uploading:', {
+                    file: fileInput.files[0].name,
+                    size: fileInput.files[0].size,
+                    type: fileInput.files[0].type,
+                    locationTitle,
+                    sessionId
+                });
+                
+                const response = await fetch('http://localhost:8889/.netlify/functions/photo-upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
+                const result = await response.text();
+                console.log('Response text:', result);
+                
+                if (response.ok) {
+                    const data = JSON.parse(result);
+                    resultDiv.innerHTML = `SUCCESS!
+Photo URL: ${data.photoUrl}
+Public ID: ${data.publicId}
+Location Slug: ${data.locationSlug}
+Upload Time: ${data.uploadedAt}`;
+                    resultDiv.className = 'result success';
+                    
+                    // Display the uploaded image
+                    const img = document.createElement('img');
+                    img.src = data.photoUrl;
+                    img.style.maxWidth = '300px';
+                    img.style.margin = '10px 0';
+                    resultDiv.appendChild(img);
+                } else {
+                    resultDiv.innerHTML = `ERROR: ${result}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                resultDiv.innerHTML = `ERROR: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+        
+        function testSessionPhotos() {
+            const resultDiv = document.getElementById('sessionResult');
+            
+            try {
+                const key = `session-photos:${sessionId}`;
+                const stored = localStorage.getItem(key);
+                
+                if (!stored) {
+                    resultDiv.innerHTML = `No photos found for session: ${sessionId}`;
+                    resultDiv.className = 'result';
+                } else {
+                    const photos = JSON.parse(stored);
+                    resultDiv.innerHTML = `Found ${photos.length} photos in session:
+${JSON.stringify(photos, null, 2)}`;
+                    resultDiv.className = 'result success';
+                }
+            } catch (error) {
+                console.error('Session photos error:', error);
+                resultDiv.innerHTML = `ERROR: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+        
+        async function testNetlifyFunction() {
+            const resultDiv = document.getElementById('functionResult');
+            resultDiv.innerHTML = 'Testing function...';
+            resultDiv.className = 'result';
+            
+            try {
+                // Test OPTIONS request (CORS preflight)
+                const optionsResponse = await fetch('http://localhost:8889/.netlify/functions/photo-upload', {
+                    method: 'OPTIONS'
+                });
+                
+                console.log('OPTIONS response:', optionsResponse.status, optionsResponse.statusText);
+                
+                // Test GET request (should return 405)
+                const getResponse = await fetch('http://localhost:8889/.netlify/functions/photo-upload', {
+                    method: 'GET'
+                });
+                
+                const getResult = await getResponse.text();
+                console.log('GET response:', getResponse.status, getResult);
+                
+                resultDiv.innerHTML = `Function Health Check:
+OPTIONS: ${optionsResponse.status} ${optionsResponse.statusText}
+GET: ${getResponse.status} - ${getResult}
+
+The function is responding correctly!`;
+                resultDiv.className = 'result success';
+                
+            } catch (error) {
+                console.error('Function test error:', error);
+                resultDiv.innerHTML = `ERROR: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+        
+        // Auto-test function health on load
+        window.onload = () => {
+            testNetlifyFunction();
+        };
+    </script>
+</body>
+</html>

@@ -2,17 +2,22 @@
  * NetlifyStateService - Client for interacting with Netlify Functions + Blobs state storage
  */
 export class NetlifyStateService {
-  // Automatically detects environment - uses Netlify Functions in production, localhost in development
+  // Automatically detects environment with auto port detection
   static get API_BASE() {
     if (typeof window !== 'undefined') {
-      // Check for explicit API URL from environment or use default based on hostname  
+      // Check for explicit API URL from environment first
       const apiUrl = import.meta.env?.VITE_API_URL;
       if (apiUrl) return apiUrl;
       
-      const isDevelopment = window.location.hostname === 'localhost';
-      return isDevelopment 
-        ? 'http://localhost:8889/.netlify/functions' // Use local Netlify Dev server
-        : '/.netlify/functions';
+      // In production, use relative URLs
+      if (window.location.hostname !== 'localhost') {
+        return '/.netlify/functions';
+      }
+      
+      // In development, auto-detect the current origin to avoid port hardcoding
+      const origin = window.location.origin;
+      console.log('🌐 NetlifyStateService detected origin:', origin);
+      return `${origin}/.netlify/functions`;
     }
     return '/.netlify/functions';
   }

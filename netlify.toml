@@ -70,5 +70,24 @@ name = "kv"
   to = "/.netlify/functions/kv-list"
   status = 200
 
+[[redirects]]
+  from = "/api/photo-upload"
+  to = "/.netlify/functions/photo-upload"
+  status = 200
+
+# Local development settings to proxy to Vite dev server
+[dev]
+  command = "npm run dev"       # start the Vite UI for Netlify Dev
+  port = 8888                    # Netlify Dev UI port
+  targetPort = 5173              # Vite dev server port
+  publish = "."                 # serve from project root in dev
+  autoLaunch = false
+
+# Map favicon.ico to the existing SVG during local dev and Netlify preview
+[[redirects]]
+  from = "/favicon.ico"
+  to = "/favicon.svg"
+  status = 200
+
 # Environment variables (set these in Netlify dashboard)
 # NETLIFY_BLOBS_STORE_NAME = "vail-hunt-state"
