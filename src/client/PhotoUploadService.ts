@@ -55,18 +55,27 @@ export class PhotoUploadService {
    * @param file The image file to upload
    * @param locationTitle The title of the location
    * @param sessionId The current session ID
+   * @param teamName The team name for tagging (optional)
+   * @param locationName The location name for tagging (optional, e.g., 'Vail Village', 'BHHS')
+   * @param eventName The event name for tagging (optional)
    * @returns Promise resolving to photo upload response
    */
   static async uploadPhoto(
     file: File, 
     locationTitle: string, 
-    sessionId: string
+    sessionId: string,
+    teamName?: string,
+    locationName?: string,
+    eventName?: string
   ): Promise<PhotoUploadResponse> {
     console.log('📸 PhotoUploadService.uploadPhoto() called');
     console.log('  API_BASE:', this.API_BASE);
     console.log('  File:', { name: file.name, size: file.size, type: file.type });
     console.log('  Location:', locationTitle);
     console.log('  Session:', sessionId);
+    console.log('  Team:', teamName);
+    console.log('  Location Name:', locationName);
+    console.log('  Event Name:', eventName);
     
     // Validate inputs
     if (!file) {
@@ -92,8 +101,11 @@ export class PhotoUploadService {
     formData.append('photo', file);
     formData.append('locationTitle', locationTitle);
     formData.append('sessionId', sessionId);
+    if (teamName) formData.append('teamName', teamName);
+    if (locationName) formData.append('locationName', locationName);
+    if (eventName) formData.append('eventName', eventName);
     
-    console.log('📦 FormData created');
+    console.log('📦 FormData created with tags');
     
     // Make request to photo upload endpoint
     const apiBase = this.API_BASE;
@@ -163,6 +175,9 @@ export class PhotoUploadService {
    * @param sessionId The current session ID
    * @param maxWidth Maximum width for resizing (default: 1600)
    * @param quality Image quality (default: 0.8)
+   * @param teamName The team name for tagging (optional)
+   * @param locationName The location name for tagging (optional, e.g., 'Vail Village', 'BHHS')
+   * @param eventName The event name for tagging (optional)
    * @returns Promise resolving to photo upload response
    */
   static async uploadPhotoWithResize(
@@ -170,14 +185,17 @@ export class PhotoUploadService {
     locationTitle: string,
     sessionId: string,
     maxWidth = 1600,
-    quality = 0.8
+    quality = 0.8,
+    teamName?: string,
+    locationName?: string,
+    eventName?: string
   ): Promise<PhotoUploadResponse> {
     console.log('🔄 Resizing image before upload...');
     
     const resizedFile = await this.resizeImage(file, maxWidth, quality);
     console.log(`📏 Resized: ${file.size} → ${resizedFile.size} bytes`);
     
-    return this.uploadPhoto(resizedFile, locationTitle, sessionId);
+    return this.uploadPhoto(resizedFile, locationTitle, sessionId, teamName, locationName, eventName);
   }
   
   /**

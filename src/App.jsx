@@ -10,6 +10,7 @@ import StopsList from './features/app/StopsList'
 import { UploadProvider } from './features/upload/UploadContext'
 import { useAppStore } from './store/appStore'
 import { getPathParams, isValidParamSet, normalizeParams } from './utils/url'
+import { slugify } from './utils/slug'
 import { useProgress } from './hooks/useProgress'
 import { base64ToFile, compressImage } from './utils/image'
 import { buildStorybook } from './utils/canvas'
@@ -421,6 +422,35 @@ export default function App() {
                 </svg>
               </button>
             )}
+            {/* Copy Link button (Phase 5) */}
+            <button
+              onClick={async () => {
+                try {
+                  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+                  const loc = slugify(locationName || '')
+                  const evt = slugify(eventName || '')
+                  const team = slugify(teamName || '')
+                  const path = `/${loc}/${evt}/${team}`
+                  const url = `${origin}${path}`
+                  await navigator.clipboard.writeText(url)
+                  alert('Link copied to clipboard ✨')
+                } catch (err) {
+                  console.warn('Failed to copy link', err)
+                }
+              }}
+              className='p-2 rounded-full transition-all duration-150 hover:scale-110 active:scale-95'
+              style={{
+                color: 'var(--color-warm-grey)',
+                backgroundColor: 'transparent'
+              }}
+              title='Copy path-based link for this assignment'
+              aria-label='Copy link'
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 010 5.656l-2 2a4 4 0 11-5.656-5.656l1-1" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.172 13.828a4 4 0 010-5.656l2-2a4 4 0 115.656 5.656l-1 1" />
+              </svg>
+            </button>
           </div>
           
           {isEditMode ? (
