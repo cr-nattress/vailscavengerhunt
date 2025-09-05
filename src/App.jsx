@@ -7,6 +7,9 @@ import AlbumViewer from './components/AlbumViewer'
 import Header from './features/app/Header'
 import SettingsPanel from './features/app/SettingsPanel'
 import StopsList from './features/app/StopsList'
+import { UploadProvider } from './features/upload/UploadContext'
+import { useAppStore } from './store/appStore'
+import { getPathParams, isValidParamSet, normalizeParams } from './utils/url'
 import { useProgress } from './hooks/useProgress'
 import { base64ToFile, compressImage } from './utils/image'
 import { buildStorybook } from './utils/canvas'
@@ -23,14 +26,12 @@ import { getRandomStops } from './utils/random'
  */
 
 export default function App() {
-  const [locationName, setLocationName] = useState('BHHS')
-  const [teamName, setTeamName] = useState('')
-  const [stops, setStops] = useState(() => getRandomStops('BHHS'))
+  // Use Zustand store for central state management
+  const { locationName, teamName, sessionId, eventName, setLocationName, setTeamName, setEventName, lockedByQuery, setLockedByQuery } = useAppStore()
+  
+  const [stops, setStops] = useState(() => getRandomStops(locationName || 'BHHS'))
   const [isEditMode, setIsEditMode] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  
-  // Generate session ID once per app instance
-  const [sessionId] = useState(() => generateGuid())
   
   const {progress, setProgress, completeCount, percent} = useProgress(stops)
   const [showTips, setShowTips] = useState(false)
@@ -45,6 +46,34 @@ export default function App() {
 
   // Initialize session and load saved settings on app startup
   useEffect(() => {
+    // Phase 2: initialize from path params
+    const applyFromPath = () => {
+      try {
+        const params = getPathParams(window.location.pathname)
+        if (isValidParamSet(params)) {
+          const { location, event, team } = normalizeParams(params)
+          setLocationName(location)
+          setEventName(event)
+          setTeamName(team)
+          setLockedByQuery(true)
+          // If edit mode was open, close it when lock engages
+          setIsEditMode(false)
+          console.log('[URL] Locked by path params:', { location, event, team })
+        } else {
+          setLockedByQuery(false)
+          console.log('[URL] No valid path params detected; app remains unlocked')
+        }
+      } catch (e) {
+        setLockedByQuery(false)
+        console.warn('[URL] Failed to parse path params; defaulting to unlocked mode:', e)
+      }
+    }
+
+    applyFromPath()
+
+    const onPopState = () => applyFromPath()
+    window.addEventListener('popstate', onPopState)
+
     const initializeApp = async () => {
       try {
         // Load saved settings using DualWriteService
@@ -57,6 +86,9 @@ export default function App() {
           }
           if (savedSettings.team) {
             setTeamName(savedSettings.team);
+          }
+          if (savedSettings.event) {
+            setEventName(savedSettings.event);
           }
         }
         
@@ -79,6 +111,10 @@ export default function App() {
     };
     
     initializeApp();
+
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+    }
   }, []) // Empty dependency array means this runs once on mount
 
   // Update stops when location changes
@@ -126,7 +162,12 @@ export default function App() {
         const uploadResponse = await PhotoUploadService.uploadPhotoWithResize(
           file, 
           stop.title, 
-          sessionId
+          sessionId,
+          1600, // maxWidth (default)
+          0.8,  // quality (default) 
+          teamName,
+          locationName,
+          eventName
         )
         
         // Save photo record
@@ -302,6 +343,7 @@ export default function App() {
       const settingsData = {
         location: locationName,
         team: teamName,
+        event: eventName,
         updatedAt: new Date().toISOString()
       }
       
@@ -330,7 +372,13 @@ export default function App() {
   }
 
   return (
-    <div className='min-h-screen text-slate-900' style={{backgroundColor: 'var(--color-cream)'}}>
+    <UploadProvider 
+      location={locationName}
+      team={teamName}
+      sessionId={sessionId}
+      eventName={eventName}
+    >
+      <div className='min-h-screen text-slate-900' style={{backgroundColor: 'var(--color-cream)'}}>
       <Header 
         isMenuOpen={isMenuOpen}
         onToggleMenu={() => setIsMenuOpen(!isMenuOpen)}
@@ -348,37 +396,41 @@ export default function App() {
         }}>
           <div className='flex items-center gap-2'>
             <h2 className='text-xl font-semibold'>{locationName}</h2>
-            <button 
-              onClick={() => setIsEditMode(!isEditMode)}
-              className='p-2 rounded-full transition-all duration-150 hover:scale-110 active:scale-95'
-              style={{
-                color: 'var(--color-warm-grey)',
-                backgroundColor: 'transparent'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.color = 'var(--color-cabernet)'
-                e.target.style.backgroundColor = 'var(--color-light-pink)'
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.color = 'var(--color-warm-grey)'
-                e.target.style.backgroundColor = 'transparent'
-              }}
-              title='Settings - Change location and team'
-              aria-label='Open settings'
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </button>
+            {!lockedByQuery && (
+              <button 
+                onClick={() => setIsEditMode(!isEditMode)}
+                className='p-2 rounded-full transition-all duration-150 hover:scale-110 active:scale-95'
+                style={{
+                  color: 'var(--color-warm-grey)',
+                  backgroundColor: 'transparent'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.color = 'var(--color-cabernet)'
+                  e.target.style.backgroundColor = 'var(--color-light-pink)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.color = 'var(--color-warm-grey)'
+                  e.target.style.backgroundColor = 'transparent'
+                }}
+                title='Settings - Change location and team'
+                aria-label='Open settings'
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+            )}
           </div>
           
           {isEditMode ? (
             <SettingsPanel
               locationName={locationName}
               teamName={teamName}
+              eventName={eventName}
               onChangeLocation={setLocationName}
               onChangeTeam={setTeamName}
+              onChangeEvent={setEventName}
               onSave={handleSaveSettings}
               onCancel={() => setIsEditMode(false)}
             />
@@ -481,6 +533,7 @@ export default function App() {
         )}
 
       </main>
-    </div>
+      </div>
+    </UploadProvider>
   )
 }
