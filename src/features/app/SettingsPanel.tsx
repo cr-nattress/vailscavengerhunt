@@ -3,8 +3,10 @@ import React from 'react'
 interface SettingsPanelProps {
   locationName: string
   teamName: string
+  eventName: string
   onChangeLocation: (value: string) => void
   onChangeTeam: (value: string) => void
+  onChangeEvent: (value: string) => void
   onSave: () => void
   onCancel: () => void
 }
@@ -12,8 +14,10 @@ interface SettingsPanelProps {
 export default function SettingsPanel({
   locationName,
   teamName,
+  eventName,
   onChangeLocation,
   onChangeTeam,
+  onChangeEvent,
   onSave,
   onCancel
 }: SettingsPanelProps) {
@@ -22,7 +26,7 @@ export default function SettingsPanel({
       <div className='space-y-4'>
         <div>
           <label className='block text-sm font-medium text-gray-700 mb-2'>
-            Location
+            Organization
           </label>
           <select
             value={locationName}
@@ -35,6 +39,19 @@ export default function SettingsPanel({
             <option value="Vail Village">Vail Village</option>
             <option value="TEST">TEST</option>
           </select>
+        </div>
+        
+        <div>
+          <label className='block text-sm font-medium text-gray-700 mb-2'>
+            Event
+          </label>
+          <input
+            type='text'
+            value={eventName}
+            onChange={(e) => onChangeEvent(e.target.value)}
+            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+            placeholder='Enter event name'
+          />
         </div>
         
         <div>

@@ -9,6 +9,13 @@ export interface CollageResponse {
   uploaded: CollageUpload[];
 }
 
+export interface UploadMetadata {
+  dateISO: string;
+  locationSlug: string;
+  teamSlug: string;
+  sessionId: string;
+}
+
 export class CollageService {
   private static readonly API_BASE = import.meta.env?.VITE_API_URL || 'http://localhost:3002';
   
@@ -16,13 +23,15 @@ export class CollageService {
    * Creates a collage from uploaded photos and their titles
    * @param files Array of image files to upload
    * @param titles Array of location titles (must match files.length)
+   * @param metadata Upload metadata for folder structure and tags (optional)
    * @returns Promise resolving to the collage URL
    */
-  static async createCollage(files: File[], titles: string[]): Promise<string> {
+  static async createCollage(files: File[], titles: string[], metadata?: UploadMetadata): Promise<string> {
     console.log('🚀 CollageService.createCollage() called');
     console.log('  API_BASE:', this.API_BASE);
     console.log('  Files count:', files.length);
     console.log('  Titles count:', titles.length);
+    console.log('  Metadata:', metadata);
     
     if (files.length === 0) {
       throw new Error('No files provided');
@@ -55,6 +64,12 @@ export class CollageService {
     const titlesJson = JSON.stringify(titles);
     console.log('📝 Adding titles as JSON:', titlesJson);
     formData.append('titles', titlesJson);
+    
+    // Add metadata if provided
+    if (metadata) {
+      console.log('📝 Adding metadata:', metadata);
+      formData.append('metadata', JSON.stringify(metadata));
+    }
     
     console.log('🌐 Making HTTP request...');
     const url = `${this.API_BASE}/api/collage`;

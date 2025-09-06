@@ -200,12 +200,15 @@ export const photoUploadHandler = async (req: Request, res: Response): Promise<v
 
   try {
     const file = req.file;
-    const { locationTitle, sessionId } = req.body;
+    const { locationTitle, sessionId, teamName, locationName, eventName } = req.body;
     
     console.log('📦 Parsed form data:');
     console.log('  File:', file ? `${file.originalname} (${file.size} bytes)` : 'MISSING');
     console.log('  Location Title:', locationTitle);
     console.log('  Session ID:', sessionId);
+    console.log('  Team Name:', teamName);
+    console.log('  Location Name:', locationName);
+    console.log('  Event Name:', eventName);
 
     // Validate inputs
     if (!file) {
@@ -241,18 +244,33 @@ export const photoUploadHandler = async (req: Request, res: Response): Promise<v
     const timestamp = Date.now();
     const publicId = `${sessionId}/${locationSlug}_${timestamp}`;
     
+    // Build dynamic tags
+    const tags = ['vail-scavenger', 'individual-photo'];
+    if (teamName) {
+      tags.push(`team:${teamName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`);
+    }
+    if (locationName) {
+      tags.push(`location:${locationName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`);
+    }
+    
     console.log('☁️ Uploading to Cloudinary with publicId:', publicId);
+    console.log('🏷️ Using tags:', tags);
     
     const uploadResult = await new Promise<{publicId: string, secureUrl: string}>((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         {
           folder: process.env.CLOUDINARY_UPLOAD_FOLDER || 'scavenger/entries',
-          tags: ['vail-scavenger', 'individual-photo'],
+          tags: tags,
           public_id: publicId,
           context: { 
-            location_slug: locationSlug,
+            team_name: teamName || '',
+            company_name: locationName || '',
             session_id: sessionId,
-            upload_type: 'individual'
+            upload_time: new Date().toISOString(),
+            scavenger_hunt_name: locationName || 'Vail Hunt',
+            location_slug: locationSlug,
+            upload_type: 'individual_photo',
+            event_name: eventName || ''
           },
           resource_type: 'image',
           format: 'jpg',

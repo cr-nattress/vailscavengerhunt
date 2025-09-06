@@ -24,7 +24,8 @@
     "multer": "^1.4.5-lts.1",
     "parse-multipart-data": "^1.5.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@netlify/functions": "^4.2.5",

@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { CollageService } from '../client/CollageService';
+import { useUploadMeta } from '../features/upload/UploadContext';
 
 interface CollageUploaderProps {
   /** Callback when collage is successfully created */
@@ -10,14 +11,32 @@ interface CollageUploaderProps {
   maxImages?: number;
   /** Custom CSS classes */
   className?: string;
+  /** Override metadata - if not provided, uses context */
+  locationSlug?: string;
+  teamSlug?: string;
+  sessionId?: string;
 }
 
 export const CollageUploader: React.FC<CollageUploaderProps> = ({
   onCollageCreated,
   defaultTitles = [],
   maxImages = 10,
-  className = ''
+  className = '',
+  locationSlug: propsLocationSlug,
+  teamSlug: propsTeamSlug,
+  sessionId: propsSessionId
 }) => {
+  // Get upload metadata from context (with fallback handling)
+  const contextMeta = useUploadMeta();
+  
+  // Props precedence: if props provided, use them; otherwise use context
+  const uploadMeta = {
+    locationSlug: propsLocationSlug || contextMeta.locationSlug,
+    teamSlug: propsTeamSlug || contextMeta.teamSlug,
+    sessionId: propsSessionId || contextMeta.sessionId,
+    dateISO: contextMeta.dateISO
+  };
+
   const [files, setFiles] = useState<File[]>([]);
   const [titles, setTitles] = useState<string[]>(defaultTitles);
   const [loading, setLoading] = useState(false);
@@ -77,8 +96,8 @@ export const CollageUploader: React.FC<CollageUploaderProps> = ({
       console.log('Resizing images...');
       const resizedFiles = await CollageService.resizeImages(files);
       
-      console.log('Creating collage...');
-      const url = await CollageService.createCollage(resizedFiles, titles);
+      console.log('Creating collage with metadata:', uploadMeta);
+      const url = await CollageService.createCollage(resizedFiles, titles, uploadMeta);
       
       setCollageUrl(url);
       onCollageCreated?.(url);

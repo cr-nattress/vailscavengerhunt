@@ -11,5 +11,15 @@
     "logging": {
       "level": "info",
       "file": "~/.claude-code/logs/claude-code.log"
+    },
+    "mcpServers": {
+      "notion": {
+        "command": "mcp-notion",
+        "args": [],
+        "env": {
+          "NOTION_TOKEN": "${NOTION_TOKEN}",
+          "NOTION_BASE_ID": "${NOTION_BASE_ID}"
+        }
+      }
     }
   }

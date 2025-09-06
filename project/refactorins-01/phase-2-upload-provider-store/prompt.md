@@ -1,3 +1,7 @@
+[Status: Completed]
+- Date: 2025-09-05
+- Summary: Implemented `UploadProvider` + `useUploadMeta` context, ensured `App` wires store values (location, team, event, session). Updated `CollageUploader` to read from context with props overriding for backward-compat. Verified uploads carry expected tags/metadata; no behavior regressions.
+
 # Phase 2 — UploadProvider and Central Store
 
 Goal: Provide location/team/session via context and manage them in a central store.

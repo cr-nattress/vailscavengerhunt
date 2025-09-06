@@ -14,6 +14,9 @@ interface PhotoUploadRequest {
   photo: Buffer;
   locationTitle: string;
   sessionId: string;
+  teamName?: string;
+  locationName?: string;
+  eventName?: string;
 }
 
 // Helper function to generate slug from location title
@@ -31,7 +34,10 @@ function generateSlug(title: string): string {
 async function uploadPhotoToCloudinary(
   fileBuffer: Buffer, 
   locationSlug: string, 
-  sessionId: string
+  sessionId: string,
+  teamName?: string,
+  locationName?: string,
+  eventName?: string
 ): Promise<{ publicId: string; secureUrl: string }> {
   
   // Configure Cloudinary
@@ -44,16 +50,30 @@ async function uploadPhotoToCloudinary(
   const timestamp = Date.now();
   const publicId = `${sessionId}/${locationSlug}_${timestamp}`;
   
+  // Build dynamic tags
+  const tags = ['vail-scavenger', 'individual-photo'];
+  if (teamName) {
+    tags.push(`team:${teamName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`);
+  }
+  if (locationName) {
+    tags.push(`location:${locationName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`);
+  }
+  
   return new Promise((resolve, reject) => {
     cloudinary.uploader.upload_stream(
       {
         folder: process.env.CLOUDINARY_UPLOAD_FOLDER || 'scavenger/entries',
-        tags: ['vail-scavenger', 'individual-photo'],
+        tags: tags,
         public_id: publicId,
         context: { 
-          location_slug: locationSlug,
+          team_name: teamName || '',
+          company_name: locationName || '',
           session_id: sessionId,
-          upload_type: 'individual'
+          upload_time: new Date().toISOString(),
+          scavenger_hunt_name: locationName || 'Vail Hunt',
+          location_slug: locationSlug,
+          upload_type: 'individual_photo',
+          event_name: eventName || ''
         },
         resource_type: 'image',
         format: 'jpg',
@@ -180,6 +200,9 @@ export const handler: Handler = async (event, context) => {
     let photoBuffer: Buffer | null = null;
     let locationTitle: string | null = null;
     let sessionId: string | null = null;
+    let teamName: string | null = null;
+    let locationName: string | null = null;
+    let eventName: string | null = null;
 
     for (const part of parts) {
       const name = part.name;
@@ -194,6 +217,15 @@ export const handler: Handler = async (event, context) => {
       } else if (name === 'sessionId' && part.data) {
         sessionId = part.data.toString('utf8');
         console.log(`🆔 Session ID: ${sessionId}`);
+      } else if (name === 'teamName' && part.data) {
+        teamName = part.data.toString('utf8');
+        console.log(`👥 Team name: ${teamName}`);
+      } else if (name === 'locationName' && part.data) {
+        locationName = part.data.toString('utf8');
+        console.log(`🏔️ Location name: ${locationName}`);
+      } else if (name === 'eventName' && part.data) {
+        eventName = part.data.toString('utf8');
+        console.log(`🎯 Event name: ${eventName}`);
       }
     }
 
@@ -236,7 +268,10 @@ export const handler: Handler = async (event, context) => {
     const uploadResult = await uploadPhotoToCloudinary(
       photoBuffer, 
       locationSlug, 
-      sessionId
+      sessionId,
+      teamName || undefined,
+      locationName || undefined,
+      eventName || undefined
     );
 
     console.log('✅ Upload successful:', uploadResult);

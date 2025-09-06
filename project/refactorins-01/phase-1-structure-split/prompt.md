@@ -1,3 +1,7 @@
+[Status: Completed]
+- Date: 2025-09-05
+- Summary: Split `src/App.jsx` into modular components, hooks, and utils without changing behavior. Created `src/features/app/` (Header, SettingsPanel, StopCard, StopsList, CompletedAccordion), `src/hooks/useProgress.ts`, and `src/utils/` (image, canvas, id, random, slug). Updated imports in `App.jsx`. Verified build and main flows.
+
 # Phase 1 — Structure and Split App.jsx
 
 Goal: Break down src/App.jsx into smaller components, hooks, and utils without changing runtime behavior.
