@@ -36,7 +36,7 @@ export function useProgress(stops: any[]) {
   
   // Derived values for the progress UI
   const completeCount = useMemo(() => stops.reduce((acc, s) => acc + ((progress[s.id]?.done) ? 1 : 0), 0), [progress, stops])
-  const percent = Math.round((completeCount / stops.length) * 100)
+  const percent = stops.length === 0 ? 0 : Math.round((completeCount / stops.length) * 100)
   
   return { progress, setProgress, completeCount, percent }
 }

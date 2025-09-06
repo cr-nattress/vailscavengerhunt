@@ -1,3 +1,7 @@
+[Status: Completed]
+- Date: 2025-09-06
+- Summary: Created centralized `apiClient` with auto environment detection, timeout/retry support, and multipart FormData handling. Implemented Zod schemas for type-safe validation. Updated all services (`CollageService`, `PhotoUploadService`, `DualWriteService`, `NetlifyStateService`) to use apiClient and TypeScript with schema validation. Removed all hard-coded API_BASE references. Build and dev server verified working.
+
 # Phase 3 — Services API Client and Validation
 
 Goal: Introduce a central apiClient and type-safe, validated services.

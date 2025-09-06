@@ -8,6 +8,7 @@ import Header from './features/app/Header'
 import SettingsPanel from './features/app/SettingsPanel'
 import StopsList from './features/app/StopsList'
 import { UploadProvider } from './features/upload/UploadContext'
+import { useToastActions } from './features/notifications/ToastProvider.tsx'
 import { useAppStore } from './store/appStore'
 import { getPathParams, isValidParamSet, normalizeParams } from './utils/url'
 import { slugify } from './utils/slug'
@@ -27,6 +28,9 @@ import { getRandomStops } from './utils/random'
  */
 
 export default function App() {
+  // Toast notifications
+  const { success, error: showError, warning, info } = useToastActions()
+  
   // Use Zustand store for central state management
   const { locationName, teamName, sessionId, eventName, setLocationName, setTeamName, setEventName, lockedByQuery, setLockedByQuery } = useAppStore()
   
@@ -206,7 +210,7 @@ export default function App() {
       
     } catch (error) {
       console.error('❌ Photo upload failed:', error)
-      alert(`Failed to upload photo: ${error.message}`)
+      showError(`Failed to upload photo: ${error.message}`)
       
       // End loading state on error
       setUploadingStops(prev => {
@@ -263,7 +267,7 @@ export default function App() {
       
       if (completedStops.length === 0) {
         console.warn('⚠️ No completed stops found')
-        alert('No completed stops with photos found!')
+        warning('No completed stops with photos found!')
         return
       }
 
@@ -298,7 +302,7 @@ export default function App() {
       console.error('  Error name:', error.name)
       console.error('  Error message:', error.message)
       console.error('  Error stack:', error.stack)
-      alert(`Failed to create your prize collage: ${error.message}`)
+      showError(`Failed to create your prize collage: ${error.message}`)
     } finally {
       console.log('🏁 Prize collage creation finished')
       setCollageLoading(false)
@@ -363,13 +367,17 @@ export default function App() {
     const url = typeof window !== 'undefined' ? window.location.href : ''
     try {
       // Prefer native share dialogs on mobile for better UX.
-      if (navigator.share) await navigator.share({ title: 'Vail Scavenger Hunt', text, url })
-      else {
-        // Fallback: copy text to clipboard and alert the user for confirmation.
+      if (navigator.share) {
+        await navigator.share({ title: 'Vail Scavenger Hunt', text, url })
+      } else {
+        // Fallback: copy text to clipboard and show toast notification.
         await navigator.clipboard.writeText(`${text} ${url}`)
-        alert('Link copied to clipboard ✨')
+        success('Link copied to clipboard ✨')
       }
-    } catch {}
+    } catch (err) {
+      console.warn('Failed to share or copy link', err)
+      showError('Failed to share or copy link')
+    }
   }
 
   return (
@@ -433,9 +441,10 @@ export default function App() {
                   const path = `/${loc}/${evt}/${team}`
                   const url = `${origin}${path}`
                   await navigator.clipboard.writeText(url)
-                  alert('Link copied to clipboard ✨')
+                  success('Link copied to clipboard ✨')
                 } catch (err) {
                   console.warn('Failed to copy link', err)
+                  showError('Failed to copy link to clipboard')
                 }
               }}
               className='p-2 rounded-full transition-all duration-150 hover:scale-110 active:scale-95'

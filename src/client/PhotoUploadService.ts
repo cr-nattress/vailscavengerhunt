@@ -1,54 +1,17 @@
-export interface PhotoUploadResponse {
-  photoUrl: string;
-  publicId: string;
-  locationSlug: string;
-  title: string;
-  uploadedAt: string;
-}
+import { apiClient } from '../services/apiClient'
+import { 
+  UploadResponseSchema,
+  PhotoRecordSchema,
+  validateSchema,
+  type UploadResponse,
+  type PhotoRecord
+} from '../types/schemas'
 
-export interface PhotoRecord {
-  photoUrl: string;
-  publicId: string;
-  locationSlug: string;
-  title: string;
-  uploadedAt: string;
-  locationId: string;
-}
+// Re-export types for backward compatibility
+export type PhotoUploadResponse = UploadResponse
+export type { PhotoRecord }
 
 export class PhotoUploadService {
-  private static get API_BASE(): string {
-    console.log('🔍 PhotoUploadService.API_BASE getter called');
-    
-    if (typeof window !== 'undefined') {
-      console.log('🌐 Window available, checking environment...');
-      console.log('  - window.location.hostname:', window.location.hostname);
-      console.log('  - window.location.origin:', window.location.origin);
-      console.log('  - window.location.port:', window.location.port);
-      
-      // Check for explicit API URL from environment first
-      const apiUrl = import.meta.env?.VITE_API_URL;
-      console.log('  - import.meta.env.VITE_API_URL:', apiUrl);
-      
-      if (apiUrl) {
-        console.log('✅ Using VITE_API_URL:', apiUrl);
-        return apiUrl;
-      }
-      
-      // In production, use relative URLs
-      if (window.location.hostname !== 'localhost') {
-        console.log('✅ Production mode detected, using relative URLs');
-        return '';
-      }
-      
-      // In development, use the current origin as fallback
-      const origin = window.location.origin;
-      console.log('✅ Development mode, using origin:', origin);
-      return origin;
-    }
-    
-    console.log('⚠️ Window not available, returning empty string');
-    return '';
-  }
   
   /**
    * Upload a single photo for a specific location
@@ -69,7 +32,6 @@ export class PhotoUploadService {
     eventName?: string
   ): Promise<PhotoUploadResponse> {
     console.log('📸 PhotoUploadService.uploadPhoto() called');
-    console.log('  API_BASE:', this.API_BASE);
     console.log('  File:', { name: file.name, size: file.size, type: file.type });
     console.log('  Location:', locationTitle);
     console.log('  Session:', sessionId);
@@ -105,62 +67,22 @@ export class PhotoUploadService {
     if (locationName) formData.append('locationName', locationName);
     if (eventName) formData.append('eventName', eventName);
     
-    console.log('📦 FormData created with tags');
-    
-    // Make request to photo upload endpoint
-    const apiBase = this.API_BASE;
-    console.log('🔧 API_BASE value:', apiBase);
-    console.log('🔧 API_BASE === empty string:', apiBase === '');
-    
-    // In development, use local Express API server on port 3001
-    // In production, use Netlify Functions
-    let url: string;
-    if (window.location.hostname === 'localhost') {
-      // Development: use Express API server
-      url = 'http://localhost:3001/api/photo-upload';
-      console.log('🔧 Development mode: using Express API server');
-    } else {
-      // Production: use Netlify Functions
-      url = '/.netlify/functions/photo-upload';
-      console.log('🔧 Production mode: using Netlify Functions');
-    }
-    
-    console.log('🌐 Constructed URL:', url);
-    console.log('🌐 Final request URL will be:', url);
+    console.log('📦 FormData created with metadata');
     
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-        },
-        body: formData,
+      console.log('🌐 Making API request via apiClient...');
+      
+      const rawResponse = await apiClient.requestFormData<unknown>('/photo-upload', formData, {
+        timeout: 60000, // 60 second timeout for file uploads
+        retryAttempts: 2
       });
       
-      console.log('📥 Response received:');
-      console.log('  Status:', response.status);
-      console.log('  Status Text:', response.statusText);
-      console.log('  OK:', response.ok);
+      // Validate response with schema
+      const response = validateSchema(UploadResponseSchema, rawResponse, 'photo upload');
       
-      if (!response.ok) {
-        console.log('❌ Response not OK, parsing error...');
-        let errorData;
-        try {
-          errorData = await response.json();
-          console.log('  Error data:', errorData);
-        } catch (parseError) {
-          console.log('  Failed to parse error response:', parseError);
-          errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
-        }
-        
-        throw new Error(errorData.error || `Upload failed: ${response.statusText}`);
-      }
+      console.log('📊 Upload successful:', response);
       
-      console.log('✅ Response OK, parsing JSON...');
-      const data: PhotoUploadResponse = await response.json();
-      console.log('📊 Upload successful:', data);
-      
-      return data;
+      return response;
       
     } catch (error) {
       console.error('💥 Upload error:', error);

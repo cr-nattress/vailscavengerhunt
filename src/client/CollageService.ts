@@ -1,14 +1,22 @@
+import { apiClient } from '../services/apiClient'
+import { 
+  CollageResponseSchema, 
+  CollageFromIdsResponseSchema,
+  UploadMetaSchema,
+  validateSchema,
+  type CollageResponse,
+  type CollageFromIdsResponse,
+  type UploadMeta
+} from '../types/schemas'
+
+// Legacy interface for backward compatibility
 export interface CollageUpload {
   publicId: string;
   secureUrl: string;
   title: string;
 }
 
-export interface CollageResponse {
-  collageUrl: string;
-  uploaded: CollageUpload[];
-}
-
+// Legacy interface for backward compatibility  
 export interface UploadMetadata {
   dateISO: string;
   locationSlug: string;
@@ -17,8 +25,6 @@ export interface UploadMetadata {
 }
 
 export class CollageService {
-  private static readonly API_BASE = import.meta.env?.VITE_API_URL || 'http://localhost:3002';
-  
   /**
    * Creates a collage from uploaded photos and their titles
    * @param files Array of image files to upload
@@ -28,7 +34,6 @@ export class CollageService {
    */
   static async createCollage(files: File[], titles: string[], metadata?: UploadMetadata): Promise<string> {
     console.log('🚀 CollageService.createCollage() called');
-    console.log('  API_BASE:', this.API_BASE);
     console.log('  Files count:', files.length);
     console.log('  Titles count:', titles.length);
     console.log('  Metadata:', metadata);
@@ -71,52 +76,25 @@ export class CollageService {
       formData.append('metadata', JSON.stringify(metadata));
     }
     
-    console.log('🌐 Making HTTP request...');
-    const url = `${this.API_BASE}/api/collage`;
-    console.log('  URL:', url);
-    
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        body: formData,
+      console.log('🌐 Making API request via apiClient...');
+      
+      const rawResponse = await apiClient.requestFormData<unknown>('/collage', formData, {
+        timeout: 60000, // 60 second timeout for file uploads
+        retryAttempts: 2
       });
       
-      console.log('📥 Response received:');
-      console.log('  Status:', response.status);
-      console.log('  Status Text:', response.statusText);
-      console.log('  OK:', response.ok);
+      // Validate response with schema
+      const response = validateSchema(CollageResponseSchema, rawResponse, 'collage creation');
       
-      if (!response.ok) {
-        console.log('❌ Response not OK, attempting to parse error...');
-        let errorData;
-        try {
-          errorData = await response.json();
-          console.log('  Error data:', errorData);
-        } catch (parseError) {
-          console.log('  Failed to parse error response as JSON:', parseError);
-          errorData = {};
-        }
-        
-        const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
-        console.error('❌ Server error:', errorMessage);
-        throw new Error(errorMessage);
-      }
+      console.log('📊 Response validated:', response);
+      console.log('🎨 Collage URL:', response.collageUrl);
       
-      console.log('✅ Response OK, parsing JSON...');
-      const data: CollageResponse = await response.json();
-      console.log('📊 Response data:', data);
-      console.log('🎨 Collage URL:', data.collageUrl);
-      
-      return data.collageUrl;
+      return response.collageUrl;
       
     } catch (error) {
-      console.error('💥 Fetch error occurred:', error);
-      if (error instanceof Error) {
-        console.error('  Error name:', error.name);
-        console.error('  Error message:', error.message);
-        throw error;
-      }
-      throw new Error('Failed to create collage: Network error');
+      console.error('💥 Collage creation error:', error);
+      throw error;
     }
   }
   
@@ -127,6 +105,8 @@ export class CollageService {
    * @returns Promise resolving to full collage response
    */
   static async createCollageWithDetails(files: File[], titles: string[]): Promise<CollageResponse> {
+    console.log('🚀 CollageService.createCollageWithDetails() called');
+    
     if (files.length === 0) {
       throw new Error('No files provided');
     }
@@ -135,28 +115,62 @@ export class CollageService {
       throw new Error('Number of titles must match number of files');
     }
     
+    // Validate file types
+    const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
+    if (invalidFiles.length > 0) {
+      throw new Error('All files must be images');
+    }
+    
     const formData = new FormData();
     files.forEach(file => formData.append('photos[]', file));
     formData.append('titles', JSON.stringify(titles));
     
     try {
-      const response = await fetch(`${this.API_BASE}/collage`, {
-        method: 'POST',
-        body: formData,
+      const rawResponse = await apiClient.requestFormData<unknown>('/collage', formData, {
+        timeout: 60000,
+        retryAttempts: 2
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      return await response.json();
+      // Validate and return full response
+      return validateSchema(CollageResponseSchema, rawResponse, 'collage creation with details');
       
     } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Failed to create collage: Network error');
+      console.error('💥 Collage creation with details error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Creates a collage from existing Cloudinary public IDs
+   * @param publicIds Array of Cloudinary public IDs
+   * @param metadata Optional upload metadata
+   * @returns Promise resolving to collage from IDs response
+   */
+  static async createCollageFromIds(publicIds: string[], metadata?: UploadMeta): Promise<CollageFromIdsResponse> {
+    console.log('🚀 CollageService.createCollageFromIds() called');
+    console.log('  Public IDs count:', publicIds.length);
+    console.log('  Metadata:', metadata);
+    
+    if (publicIds.length === 0) {
+      throw new Error('No public IDs provided');
+    }
+    
+    const requestData = {
+      publicIds,
+      metadata: metadata ? validateSchema(UploadMetaSchema, metadata, 'upload metadata') : undefined
+    };
+    
+    try {
+      const rawResponse = await apiClient.post<unknown>('/collage-from-ids', requestData, {
+        timeout: 30000,
+        retryAttempts: 2
+      });
+      
+      return validateSchema(CollageFromIdsResponseSchema, rawResponse, 'collage from IDs');
+      
+    } catch (error) {
+      console.error('💥 Collage from IDs creation error:', error);
+      throw error;
     }
   }
   

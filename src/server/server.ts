@@ -14,6 +14,7 @@ dotenv.config({ path: envPath });
 import express from 'express';
 import cors from 'cors';
 import collageRouter from './collageRoute';
+import kvRouter from './kvRoute';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -29,6 +30,7 @@ app.use(express.static(publicPath));
 
 // API routes
 app.use('/api', collageRouter);
+app.use('/api', kvRouter);
 
 // Health check
 app.get('/health', (req, res) => {
