@@ -160,11 +160,6 @@ const HistoryView: React.FC = () => {
                         ${expandedPhotos.has(entry.stopId) ? 'max-h-none' : 'max-h-48'}
                       `}
                     />
-                    {!expandedPhotos.has(entry.stopId) && (
-                      <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded-md text-xs">
-                        Tap to expand
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
