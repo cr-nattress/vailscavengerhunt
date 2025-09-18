@@ -18,8 +18,8 @@ export interface ValidationResult {
 export function validateSettings(settings: any): ValidationResult {
   const errors: ValidationError[] = []
 
-  // Required fields for settings
-  const requiredFields = ['locationName', 'teamName', 'sessionId', 'eventName']
+  // Required fields for settings (eventName is optional)
+  const requiredFields = ['locationName', 'teamName', 'sessionId']
 
   for (const field of requiredFields) {
     if (!settings || !settings[field]) {
@@ -53,7 +53,7 @@ export function validateSettings(settings: any): ValidationResult {
       })
     }
 
-    if (settings.eventName && typeof settings.eventName !== 'string') {
+    if (settings.eventName !== undefined && typeof settings.eventName !== 'string') {
       errors.push({
         field: 'eventName',
         message: 'eventName must be a string'
