@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react'
 import { CollageService } from './client/CollageService'
 import { PhotoUploadService } from './client/PhotoUploadService'
-import { DualWriteService } from './client/DualWriteService'
+import { ServerStorageService } from './services/ServerStorageService'
 import ProgressGauge from './components/ProgressGauge'
 import AlbumViewer from './components/AlbumViewer'
 import Header from './features/app/Header'
@@ -13,7 +13,7 @@ import { useAppStore } from './store/appStore'
 import { getPathParams, isValidParamSet, normalizeParams } from './utils/url'
 import { slugify } from './utils/slug'
 import { useProgress } from './hooks/useProgress'
-import { base64ToFile, compressImage } from './utils/image'
+import { base64ToFile } from './utils/image'
 import { buildStorybook } from './utils/canvas'
 import { generateGuid } from './utils/id'
 import { getRandomStops } from './utils/random'
@@ -23,7 +23,7 @@ import { getRandomStops } from './utils/random'
  *
  * Key behaviors:
  * - Shows a list of romantic stops with clues and a selfie mission per stop.
- * - Tracks completion and notes in localStorage.
+ * - Tracks completion and notes on server (team-shared data).
  * - Provides a share action, date tips overlay, and progress bar.
  */
 
@@ -129,9 +129,9 @@ export default function App() {
 
         console.log('📊 Session initialized for tracking:', sessionId)
 
-        // Still use DualWriteService for session tracking (will be migrated later)
-        const results = await DualWriteService.createSession(sessionId, sessionData)
-        console.log('✅ Session tracking started:', results)
+        // Use ServerStorageService for session tracking
+        const result = await ServerStorageService.createSession(sessionId, sessionData)
+        console.log('✅ Session tracking started:', result)
       } catch (error) {
         console.error('❌ Failed to initialize app:', error)
       }
@@ -232,47 +232,17 @@ export default function App() {
       
     } catch (error) {
       console.error('❌ Photo upload failed:', error)
-      showError(`Failed to upload photo: ${error.message}`)
-      
+      showError(`Failed to upload photo: ${error.message}. Please check your internet connection and try again.`)
+
       // End loading state on error
       setUploadingStops(prev => {
         const newSet = new Set(prev)
         newSet.delete(stopId)
         return newSet
       })
-      
-      // Fallback to local compression method if upload fails
-      try {
-        const compressedPhoto = await compressImage(file)
-        setProgress(p => ({
-          ...p,
-          [stopId]: { ...state, photo: compressedPhoto, done: true, completedAt: new Date().toISOString() }
-        }))
-        console.log('📷 Fallback to local storage successful')
-      } catch (fallbackError) {
-        console.error('❌ Fallback also failed:', fallbackError)
-        // Final fallback to FileReader
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          const photoData = reader.result
-          setProgress(p => ({
-            ...p,
-            [stopId]: { ...state, photo: photoData, done: true, completedAt: new Date().toISOString() }
-          }))
-          
-          setTimeout(() => {
-            setTransitioningStops(prev => new Set([...prev, stopId]))
-            setTimeout(() => {
-              setTransitioningStops(prev => {
-                const newSet = new Set(prev)
-                newSet.delete(stopId)
-                return newSet
-              })
-            }, 600)
-          }, 150)
-        }
-        reader.readAsDataURL(file)
-      }
+
+      // No localStorage fallback - require Cloudinary upload to succeed
+      // This ensures all photos are properly stored on the server
     }
   }
 

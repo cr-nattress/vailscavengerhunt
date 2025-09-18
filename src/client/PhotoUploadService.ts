@@ -1,5 +1,6 @@
 import { apiClient } from '../services/apiClient'
-import { 
+import { ServerStorageService } from '../services/ServerStorageService'
+import {
   UploadResponseSchema,
   PhotoRecordSchema,
   validateSchema,
@@ -181,43 +182,50 @@ export class PhotoUploadService {
   }
   
   /**
-   * Get all photos for a session
+   * Get all photos for a session from server storage
    * @param sessionId The session ID
    * @returns Promise resolving to array of photo records
    */
   static async getSessionPhotos(sessionId: string): Promise<PhotoRecord[]> {
     try {
-      const key = `session-photos:${sessionId}`;
-      const stored = localStorage.getItem(key);
-      
+      const key = `photos/${sessionId}`;
+      const stored = await ServerStorageService.get(key);
+
       if (!stored) {
         return [];
       }
-      
-      return JSON.parse(stored);
-      
+
+      return stored;
+
     } catch (error) {
-      console.error('Failed to get session photos:', error);
+      console.error('Failed to get session photos from server:', error);
       return [];
     }
   }
   
   /**
-   * Save photos for a session
+   * Save photos for a session to server storage
    * @param sessionId The session ID
    * @param photos Array of photo records
    */
   private static async saveSessionPhotos(
-    sessionId: string, 
+    sessionId: string,
     photos: PhotoRecord[]
   ): Promise<void> {
     try {
-      const key = `session-photos:${sessionId}`;
-      localStorage.setItem(key, JSON.stringify(photos));
-      
+      const key = `photos/${sessionId}`;
+      const result = await ServerStorageService.set(key, photos, sessionId);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save photos to server');
+      }
+
+      console.log(`✅ Photos saved to server for session ${sessionId}`);
+
     } catch (error) {
-      console.error('Failed to save session photos:', error);
-      throw error;
+      console.error('Failed to save session photos to server:', error);
+      // Don't throw - allow the app to continue even if server save fails
+      // Photos are already uploaded to Cloudinary
     }
   }
   
@@ -271,17 +279,22 @@ export class PhotoUploadService {
   }
   
   /**
-   * Clear all photos for a session
+   * Clear all photos for a session from server storage
    * @param sessionId The session ID
    */
   static async clearSessionPhotos(sessionId: string): Promise<void> {
     try {
-      const key = `session-photos:${sessionId}`;
-      localStorage.removeItem(key);
-      console.log(`🗑️ Cleared photos for session ${sessionId}`);
-      
+      const key = `photos/${sessionId}`;
+      const result = await ServerStorageService.delete(key);
+
+      if (result.success) {
+        console.log(`🗑️ Cleared photos from server for session ${sessionId}`);
+      } else {
+        console.warn(`Failed to clear photos from server: ${result.error}`);
+      }
+
     } catch (error) {
-      console.error('Failed to clear session photos:', error);
+      console.error('Failed to clear session photos from server:', error);
     }
   }
 }
