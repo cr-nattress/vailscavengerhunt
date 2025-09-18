@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { validateProgress, validateStopUpdate, validateOrgId, validateTeamId, validateHuntId, validateSessionId } from '../utils/validation'
 
 const router = Router()
 
@@ -26,11 +27,30 @@ router.post('/progress/:orgId/:teamId/:huntId', async (req, res) => {
   const key = `${orgId}/${teamId}/${huntId}/progress`
   const metadataKey = `${orgId}/${teamId}/${huntId}/metadata`
 
+  // Validate path parameters
+  if (!validateOrgId(orgId) || !validateTeamId(teamId) || !validateHuntId(huntId)) {
+    return res.status(400).json({ error: 'Invalid path parameters' })
+  }
+
   try {
     const { progress, sessionId, timestamp } = req.body
 
     if (!progress) {
       return res.status(400).json({ error: 'Progress data required' })
+    }
+
+    // Validate session ID
+    if (sessionId && !validateSessionId(sessionId)) {
+      return res.status(400).json({ error: 'Invalid session ID format' })
+    }
+
+    // Validate progress data
+    const validation = validateProgress(progress)
+    if (!validation.isValid) {
+      return res.status(400).json({
+        error: 'Invalid progress data',
+        details: validation.errors
+      })
     }
 
     // Merge with existing progress (team-shared)
@@ -79,11 +99,30 @@ router.patch('/progress/:orgId/:teamId/:huntId/stop/:stopId', async (req, res) =
   const key = `${orgId}/${teamId}/${huntId}/progress`
   const metadataKey = `${orgId}/${teamId}/${huntId}/metadata`
 
+  // Validate path parameters
+  if (!validateOrgId(orgId) || !validateTeamId(teamId) || !validateHuntId(huntId)) {
+    return res.status(400).json({ error: 'Invalid path parameters' })
+  }
+
   try {
     const { update, sessionId, timestamp } = req.body
 
     if (!update) {
       return res.status(400).json({ error: 'Update data required' })
+    }
+
+    // Validate session ID
+    if (sessionId && !validateSessionId(sessionId)) {
+      return res.status(400).json({ error: 'Invalid session ID format' })
+    }
+
+    // Validate stop update data
+    const validation = validateStopUpdate(update)
+    if (!validation.isValid) {
+      return res.status(400).json({
+        error: 'Invalid update data',
+        details: validation.errors
+      })
     }
 
     // Get existing progress (shared by team)

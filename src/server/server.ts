@@ -18,6 +18,7 @@ import kvRouter from './kvRoute';
 import photoRouter from './photoRoute';
 import settingsRouter from './settingsRoute';
 import progressRouter from './progressRoute';
+import leaderboardRouter from './leaderboardRoute';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -37,6 +38,7 @@ app.use('/api', kvRouter);
 app.use('/api', photoRouter);
 app.use('/api', settingsRouter);
 app.use('/api', progressRouter);
+app.use('/api', leaderboardRouter);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { getStore } from '@netlify/blobs'
+import { validateSettings, validateOrgId, validateTeamId, validateHuntId, validateSessionId } from '../utils/validation'
 
 const router = Router()
 
@@ -32,11 +33,30 @@ router.post('/settings/:orgId/:teamId/:huntId', async (req, res) => {
   const key = `${orgId}/${teamId}/${huntId}/settings`
   const metadataKey = `${orgId}/${teamId}/${huntId}/metadata`
 
+  // Validate path parameters
+  if (!validateOrgId(orgId) || !validateTeamId(teamId) || !validateHuntId(huntId)) {
+    return res.status(400).json({ error: 'Invalid path parameters' })
+  }
+
   try {
     const { settings, sessionId, timestamp } = req.body
 
     if (!settings) {
       return res.status(400).json({ error: 'Settings data required' })
+    }
+
+    // Validate session ID
+    if (sessionId && !validateSessionId(sessionId)) {
+      return res.status(400).json({ error: 'Invalid session ID format' })
+    }
+
+    // Validate settings data
+    const validation = validateSettings(settings)
+    if (!validation.isValid) {
+      return res.status(400).json({
+        error: 'Invalid settings data',
+        details: validation.errors
+      })
     }
 
     // Store settings (shared by all team members)
