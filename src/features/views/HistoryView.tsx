@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ServerStorageService } from '../../services/ServerStorageService'
+import { progressService } from '../../services/ProgressService'
 import { useAppStore } from '../../store/appStore'
 import { useToastActions } from '../notifications/ToastProvider'
 import { getRandomStops } from '../../utils/random'
@@ -27,7 +27,7 @@ const HistoryView: React.FC = () => {
       const hunt = huntId || 'winter-2024'
 
       try {
-        return await ServerStorageService.getProgress(orgId, teamId, hunt)
+        return await progressService.getProgress(orgId, teamId, hunt)
       } catch (err) {
         console.error('Failed to fetch history:', err)
         return {}

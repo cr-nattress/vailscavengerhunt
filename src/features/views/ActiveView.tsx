@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { CollageService } from '../../client/CollageService'
 import { PhotoUploadService } from '../../client/PhotoUploadService'
-import { ServerStorageService } from '../../services/ServerStorageService'
+import { progressService } from '../../services/ProgressService'
 import ProgressGauge from '../../components/ProgressGauge'
 import AlbumViewer from '../../components/AlbumViewer'
 import StopsList from '../app/StopsList'
@@ -50,7 +50,7 @@ const ActiveView: React.FC = () => {
         const teamId = teamName || 'default'
         const hunt = huntId || 'winter-2024'
 
-        const savedProgress = await ServerStorageService.getProgress(orgId, teamId, hunt)
+        const savedProgress = await progressService.getProgress(orgId, teamId, hunt)
         if (savedProgress && Object.keys(savedProgress).length > 0) {
           setProgress(savedProgress)
           success('✅ Loaded saved progress from server')
@@ -75,7 +75,7 @@ const ActiveView: React.FC = () => {
         const teamId = teamName || 'default'
         const hunt = huntId || 'winter-2024'
 
-        await ServerStorageService.updateProgress(orgId, teamId, hunt, progress)
+        await progressService.saveProgress(orgId, teamId, hunt, progress, sessionId)
         console.log('✅ Progress saved to server')
       } catch (err) {
         console.error('Failed to save progress to server:', err)
