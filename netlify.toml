@@ -10,7 +10,57 @@
   # Node.js version
   NODE_VERSION = "18"
 
-# Redirect API calls to functions
+# API Redirects for Netlify Functions
+
+# KV Storage endpoints
+[[redirects]]
+  from = "/api/kv/upsert"
+  to = "/.netlify/functions/kv-upsert"
+  status = 200
+
+[[redirects]]
+  from = "/api/kv/get"
+  to = "/.netlify/functions/kv-get"
+  status = 200
+
+[[redirects]]
+  from = "/api/kv/list"
+  to = "/.netlify/functions/kv-list"
+  status = 200
+
+# Photo upload endpoint
+[[redirects]]
+  from = "/api/photo-upload"
+  to = "/.netlify/functions/photo-upload"
+  status = 200
+
+# Settings endpoints
+[[redirects]]
+  from = "/api/settings/*"
+  to = "/.netlify/functions/settings-get/:splat"
+  status = 200
+  conditions = {method = ["GET"]}
+
+[[redirects]]
+  from = "/api/settings/*"
+  to = "/.netlify/functions/settings-set/:splat"
+  status = 200
+  conditions = {method = ["POST"]}
+
+# Progress endpoints
+[[redirects]]
+  from = "/api/progress/*"
+  to = "/.netlify/functions/progress-get/:splat"
+  status = 200
+  conditions = {method = ["GET"]}
+
+[[redirects]]
+  from = "/api/progress/*"
+  to = "/.netlify/functions/progress-set/:splat"
+  status = 200
+  conditions = {method = ["POST"]}
+
+# Legacy state endpoints (can be removed if not used)
 [[redirects]]
   from = "/api/state-get/*"
   to = "/.netlify/functions/state-get/:splat"
@@ -57,54 +107,7 @@ name = "kv"
 [[blobs]]
 name = "hunt-data"
 
-# Netlify Functions redirects for the new KV endpoints
-[[redirects]]
-  from = "/api/kv/upsert"
-  to = "/.netlify/functions/kv-upsert"
-  status = 200
-
-[[redirects]]
-  from = "/api/kv/get"
-  to = "/.netlify/functions/kv-get"
-  status = 200
-
-[[redirects]]
-  from = "/api/kv/list"
-  to = "/.netlify/functions/kv-list"
-  status = 200
-
-[[redirects]]
-  from = "/api/photo-upload"
-  to = "/.netlify/functions/photo-upload"
-  status = 200
-
-# Settings endpoints - GET requests
-[[redirects]]
-  from = "/api/settings/*"
-  to = "/.netlify/functions/settings-get/:splat"
-  status = 200
-  conditions = {method = ["GET"]}
-
-# Settings endpoints - POST requests for saving
-[[redirects]]
-  from = "/api/settings/*"
-  to = "/.netlify/functions/settings-set/:splat"
-  status = 200
-  conditions = {method = ["POST"]}
-
-# Progress endpoints - GET requests
-[[redirects]]
-  from = "/api/progress/*"
-  to = "/.netlify/functions/progress-get/:splat"
-  status = 200
-  conditions = {method = ["GET"]}
-
-# Progress endpoints - POST requests for saving
-[[redirects]]
-  from = "/api/progress/*"
-  to = "/.netlify/functions/progress-set/:splat"
-  status = 200
-  conditions = {method = ["POST"]}
+# Local development settings
 
 # Local development settings to proxy to Vite dev server
 [dev]
@@ -114,7 +117,7 @@ name = "hunt-data"
   publish = "."                 # serve from project root in dev
   autoLaunch = false
 
-# Map favicon.ico to the existing SVG during local dev and Netlify preview
+# Favicon redirect
 [[redirects]]
   from = "/favicon.ico"
   to = "/favicon.svg"
