@@ -130,7 +130,7 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
   };
 
   const iconMap = {
-    success: '✅',
+    success: '',
     error: '❌',
     warning: '⚠️',
     info: 'ℹ️'
@@ -147,9 +147,11 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
       aria-live="polite"
     >
       <div className="flex items-start gap-3">
-        <span className="text-lg flex-shrink-0" aria-hidden="true">
-          {iconMap[toast.variant]}
-        </span>
+        {iconMap[toast.variant] && (
+          <span className="text-lg flex-shrink-0" aria-hidden="true">
+            {iconMap[toast.variant]}
+          </span>
+        )}
         
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium break-words">

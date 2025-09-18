@@ -100,14 +100,6 @@ const RankingsView: React.FC = () => {
 
   return (
     <div className="max-w-screen-sm mx-auto px-4 py-4">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Rankings</h2>
-        <p className="text-sm text-gray-600 mt-1">
-          {sortedLeaderboard.length > 0
-            ? `${sortedLeaderboard.length} teams competing`
-            : 'No teams have started yet'}
-        </p>
-      </div>
 
       {sortedLeaderboard.length === 0 ? (
         <div className="text-center py-12">

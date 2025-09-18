@@ -115,12 +115,6 @@ const UpdatesView: React.FC = () => {
 
   return (
     <div className="max-w-screen-sm mx-auto px-4 py-4">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Updates</h2>
-        <p className="text-sm text-gray-600 mt-1">
-          Recent activity from all teams
-        </p>
-      </div>
 
       {/* Filter tabs */}
       <div className="flex gap-2 mb-4">
