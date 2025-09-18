@@ -1,24 +1,19 @@
-import vailValleyData from '../data/vail-valley.json'
-import vailVillageData from '../data/vail-village.json'
-import bhhsData from '../data/bhhs-locations.json'
+import { configService } from '../services/ConfigService'
 
 /**
  * Get location data based on selected location name
  */
 function getLocationData(locationName: string): any[] {
-  switch(locationName) {
-    case 'BHHS':
-      return bhhsData
-    case 'Vail Village':
-      return vailVillageData
-    case 'Vail Valley':
-      return vailValleyData
-    case 'TEST':
-      // For TEST, return a subset of Vail Valley data
-      return vailValleyData.slice(0, 3)
-    default:
-      return bhhsData
+  // Use ConfigService's legacy compatibility method
+  const locations = configService.getLegacyLocationData(locationName)
+
+  // For TEST mode, return a subset
+  if (locationName === 'TEST') {
+    const vailValleyLocations = configService.getLegacyLocationData('Vail Valley')
+    return vailValleyLocations.slice(0, 3)
   }
+
+  return locations || []
 }
 
 /**
