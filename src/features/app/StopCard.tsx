@@ -118,7 +118,28 @@ export default function StopCard({
             <>
               {!state.photo && (
                 <div className='mt-3 space-y-2'>
-                  {stop.hints.slice(0, state.revealedHints).map((hint: string, hintIndex: number) => {
+                  {/* Display the main clue if it exists */}
+                  {stop.clue && (
+                    <div
+                      className='border-l-3 p-3 rounded-r-lg transition-all duration-300'
+                      style={{
+                        backgroundColor: 'var(--color-light-pink)',
+                        borderColor: 'var(--color-cabernet)',
+                        animation: `slideInFromLeft 0.4s ease-out forwards`,
+                        opacity: 0
+                      }}
+                    >
+                      <div className='flex items-center gap-2'>
+                        <span>🎯</span>
+                        <p className='text-sm' style={{ color: 'var(--color-cabernet)' }}>
+                          <strong>Clue:</strong> {stop.clue}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Display revealed hints */}
+                  {stop.hints && stop.hints.slice(0, state.revealedHints).map((hint: string, hintIndex: number) => {
                     const hintConfig = {
                       0: { bg: 'var(--color-light-pink)', border: 'var(--color-cabernet)', text: 'var(--color-cabernet)', icon: '🎯' },
                       1: { bg: '#f0f9ff', border: '#0ea5e9', text: '#0c4a6e', icon: '🔍' },

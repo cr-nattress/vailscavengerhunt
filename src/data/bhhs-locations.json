@@ -1,110 +1,99 @@
 [
   {
-    "id": "bhhs-vail-office",
-    "title": "BHHS Vail Valley Office",
-    "hints": [
-      "Find the office where mountain dreams become reality.",
-      "Look for the Berkshire Hathaway HomeServices sign in Vail Village.",
-      "The professional team that helps families find their perfect Vail retreat."
-    ],
-    "funFact": "This office has helped countless families find their dream homes in the Rocky Mountains!",
-    "originalNumber": 1,
-    "maps": "https://www.google.com/maps/search/?api=1&query=Berkshire+Hathaway+HomeServices+Vail"
-  },
-  {
     "id": "covered-bridge",
     "title": "Covered Bridge",
+    "clue": "The wooden crossing every skier knows",
     "hints": [
-      "Begin where timber frames something precious flowing beneath.",
-      "Lovers pause under wooden shelter as water rushes below.",
-      "The iconic covered bridge spans Gore Creek in Vail Village."
+      "The most iconic photo spot in Vail."
     ],
     "funFact": "Vail's most popular proposal spot, decorated with thousands of twinkling lights in winter!",
-    "originalNumber": 2,
+    "originalNumber": 1,
     "maps": "https://www.google.com/maps/search/?api=1&query=Covered+Bridge+Vail"
   },
   {
-    "id": "luxury-mountain-home",
-    "title": "Premium Mountain Property",
+    "id": "chair-lift",
+    "title": "Chair Lift",
+    "clue": "Where empty chairs hang high, waiting for riders",
+    "hints": [],
+    "funFact": "Vail has over 30 lifts serving 5,289 acres of skiable terrain!",
+    "originalNumber": 2,
+    "maps": "https://www.google.com/maps/search/?api=1&query=Vail+Chair+Lift"
+  },
+  {
+    "id": "gore-range",
+    "title": "The Gore Range",
+    "clue": "Find the Gore Range",
     "hints": [
-      "Find a home that showcases the best of Vail luxury living.",
-      "Look for architectural excellence with mountain views.",
-      "Spot a property that embodies BHHS quality and style."
+      "Look east",
+      "You can see it from Jill's favorite store"
     ],
-    "funFact": "BHHS specializes in connecting buyers with exceptional mountain properties!",
+    "funFact": "The Gore Range extends for approximately 60 miles through the heart of Colorado!",
     "originalNumber": 3,
-    "maps": "https://www.google.com/maps/search/?api=1&query=Luxury+Homes+Vail+Village"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Gore+Range+Vail"
   },
   {
-    "id": "clock-tower",
-    "title": "Clock Tower",
-    "hints": [
-      "Find the timekeeper at the heart of Vail Village.",
-      "A tower that marks time for both visitors and locals.",
-      "The central meeting point where BHHS clients often gather."
-    ],
-    "funFact": "The Clock Tower is where many BHHS property tours begin - it's the perfect meeting spot!",
+    "id": "public-art",
+    "title": "Public Art / Sculpture",
+    "clue": "Discover a piece of art",
+    "hints": [],
+    "funFact": "Vail has an extensive public art collection with over 40 permanent installations!",
     "originalNumber": 4,
-    "maps": "https://www.google.com/maps/search/?api=1&query=Clock+Tower+Vail"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Public+Art+Vail+Village"
   },
   {
-    "id": "gore-creek-views",
-    "title": "Gore Creek Waterfront",
-    "hints": [
-      "Discover where water adds value to every nearby property.",
-      "Find the creek that makes Vail Village properties so desirable.",
-      "Locate the natural feature that BHHS listings always highlight."
-    ],
-    "funFact": "Creek-front properties are among the most sought-after in Vail!",
+    "id": "waters-edge",
+    "title": "Water's Edge",
+    "clue": "In the heart of the village, discover where water brings life and movement.",
+    "hints": [],
+    "funFact": "Gore Creek runs through the heart of Vail Village, providing a natural soundtrack to mountain life!",
     "originalNumber": 5,
     "maps": "https://www.google.com/maps/search/?api=1&query=Gore+Creek+Vail"
   },
   {
-    "id": "family-friendly-area",
-    "title": "Family Recreation Zone",
-    "hints": [
-      "Find where Vail families create lasting memories.",
-      "Locate amenities that make properties perfect for families.",
-      "The kind of neighborhood feature that increases home values."
-    ],
-    "funFact": "Family-friendly amenities are what make BHHS properties truly valuable for growing families!",
+    "id": "skier",
+    "title": "Skier",
+    "clue": "Find a skier carrying their skis or mid-run.",
+    "hints": [],
+    "funFact": "Vail was founded in 1962 and has been a premier ski destination ever since!",
     "originalNumber": 6,
-    "maps": "https://www.google.com/maps/search/?api=1&query=Vail+Village+Family+Activities"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Vail+Ski+Slopes"
   },
   {
-    "id": "mountain-access-point",
-    "title": "Mountain Adventure Gateway",
-    "hints": [
-      "Find where outdoor adventures begin steps from home.",
-      "Locate the access point that adds premium value to nearby properties.",
-      "The trailhead that makes Vail living extraordinary."
-    ],
-    "funFact": "Direct mountain access is the #1 feature BHHS clients request!",
+    "id": "clock-tower",
+    "title": "Clock Tower",
+    "clue": "A tower rises above the shops, keeping time at the center of it all.",
+    "hints": [],
+    "funFact": "The Clock Tower is one of Vail Village's most recognizable landmarks and meeting spots!",
     "originalNumber": 7,
-    "maps": "https://www.google.com/maps/search/?api=1&query=Vail+Mountain+Trails"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Clock+Tower+Vail"
   },
   {
-    "id": "community-gathering",
-    "title": "Community Heart",
+    "id": "bhhs-vail-office",
+    "title": "Berkshire Hathaway Office",
+    "clue": "Where mountain life meets real estate — but only in Vail Village, not Lionshead.",
     "hints": [
-      "Discover where neighbors become lifelong friends.",
-      "Find the social center that strengthens property values.",
-      "The gathering place that makes a neighborhood feel like home."
+      "The Berkshire Hathaway Vail Office"
     ],
-    "funFact": "Strong communities create the most desirable neighborhoods - that's the BHHS advantage!",
+    "funFact": "This office has helped countless families find their dream homes in the Rocky Mountains!",
     "originalNumber": 8,
-    "maps": "https://www.google.com/maps/search/?api=1&query=Vail+Village+Community+Center"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Berkshire+Hathaway+HomeServices+Vail"
   },
   {
-    "id": "ski-slope-access",
-    "title": "Slope-Side Living",
-    "hints": [
-      "Find where you can ski from your front door to world-class slopes.",
-      "Locate the ultimate ski-in, ski-out property feature.",
-      "The access point that defines true Vail luxury living."
-    ],
-    "funFact": "Ski-in, ski-out properties are the crown jewel of BHHS's Vail portfolio!",
+    "id": "on-the-bus",
+    "title": "On the Bus",
+    "clue": "Climb aboard Vail's free ride",
+    "hints": [],
+    "funFact": "Vail's free bus system makes it easy to explore the entire valley without a car!",
     "originalNumber": 9,
-    "maps": "https://www.google.com/maps/search/?api=1&query=Vail+Ski+Slopes+Access"
+    "maps": "https://www.google.com/maps/search/?api=1&query=Vail+Bus+Stop"
+  },
+  {
+    "id": "four-legged-friends",
+    "title": "Four-Legged Friends",
+    "clue": "Vail is full of four-legged friends — find one and learn its name.",
+    "hints": [],
+    "funFact": "Vail is a dog-friendly town with many shops and restaurants welcoming furry companions!",
+    "originalNumber": 10,
+    "maps": "https://www.google.com/maps/search/?api=1&query=Vail+Village+Dog+Park"
   }
 ]
