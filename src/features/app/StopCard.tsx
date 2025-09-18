@@ -40,7 +40,7 @@ export default function StopCard({
 
   return (
     <div 
-      className={`mt-6 shadow-sm border rounded-lg p-4 transition-all duration-1000 ease-in-out ${
+      className={`mt-3 shadow-sm border rounded-lg p-4 transition-all duration-1000 ease-in-out ${
         state.done ? 'cursor-pointer hover:shadow-md transition-shadow' : ''
       }`}
       onClick={state.done && !isTransitioning ? () => onToggleExpanded(stop.id) : undefined}

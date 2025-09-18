@@ -199,7 +199,7 @@ const ActiveView: React.FC = () => {
           borderColor: 'var(--color-light-grey)'
         }}>
           {/* Team and Hunt Name */}
-          <div className='flex items-center justify-between text-sm mb-2'>
+          <div className='flex items-center justify-between text-sm'>
             {teamName && (
               <div className='flex-shrink-0'>
                 <span className='text-blue-600 font-medium uppercase'>{teamName}</span>
