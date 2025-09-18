@@ -274,18 +274,18 @@ const ActiveView: React.FC = () => {
                   </button>
                 </div>
                 <div className='mt-3 space-y-3 text-sm'>
-                  <p className='font-medium'>Take a group photo in front of each location to prove you completed the clue.</p>
+                  <p className='font-medium'>📸 Take a group photo in front of each location to prove you completed the clue.</p>
 
                   <div className='space-y-2'>
-                    <p className='font-medium'>Two winners will be crowned:</p>
-                    <ul className='list-disc pl-5 space-y-1'>
-                      <li>The team that finishes first.</li>
-                      <li>The team with the most creative photos.</li>
+                    <p className='font-medium'>👑 Two winners will be crowned:</p>
+                    <ul className='pl-5 space-y-1'>
+                      <li>🏁 The team that finishes first</li>
+                      <li>🎨 The team with the most creative photos</li>
                     </ul>
                   </div>
 
-                  <p>Pay attention to your surroundings — details you notice along the way might help you.</p>
-                  <p>Work together, be creative, and enjoy exploring Vail Village!</p>
+                  <p>👀 Pay attention to your surroundings — details you notice along the way might help you.</p>
+                  <p>🤝 Work together, ✨ be creative, and 🏔️ enjoy exploring Vail Village!</p>
                 </div>
               </div>
             </div>
