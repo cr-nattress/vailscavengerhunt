@@ -75,6 +75,20 @@ name = "kv"
   to = "/.netlify/functions/photo-upload"
   status = 200
 
+# Settings endpoints - GET requests
+[[redirects]]
+  from = "/api/settings/*"
+  to = "/.netlify/functions/settings-get/:splat"
+  status = 200
+  conditions = {method = ["GET"]}
+
+# Settings endpoints - POST requests for saving
+[[redirects]]
+  from = "/api/settings/*"
+  to = "/.netlify/functions/settings-set/:splat"
+  status = 200
+  conditions = {method = ["POST"]}
+
 # Progress endpoints - GET requests
 [[redirects]]
   from = "/api/progress/*"

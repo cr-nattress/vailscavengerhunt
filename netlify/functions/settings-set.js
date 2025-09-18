@@ -5,18 +5,36 @@ export default async (req, context) => {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: { 'Content-Type': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
     })
   }
 
   // Extract orgId, teamId, huntId from URL
   const url = new URL(req.url)
-  const pathParts = url.pathname.replace('/api/settings/', '').split('/')
+
+  // Get the path after the function prefix
+  let pathToProcess = url.pathname
+
+  // Remove the function prefix if present
+  if (pathToProcess.includes('/.netlify/functions/settings-set/')) {
+    pathToProcess = pathToProcess.split('/.netlify/functions/settings-set/')[1]
+  } else if (pathToProcess.includes('/api/settings/')) {
+    pathToProcess = pathToProcess.split('/api/settings/')[1]
+  }
+
+  const pathParts = pathToProcess ? pathToProcess.split('/').filter(Boolean) : []
 
   if (pathParts.length < 3) {
+    console.error('Missing parameters. Path parts:', pathParts, 'URL:', url.pathname)
     return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
     })
   }
 
@@ -31,7 +49,10 @@ export default async (req, context) => {
     if (!settings) {
       return new Response(JSON.stringify({ error: 'Settings data required' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
       })
     }
 
@@ -70,13 +91,19 @@ export default async (req, context) => {
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
     })
   } catch (error) {
     console.error('Error saving settings:', error)
     return new Response(JSON.stringify({ error: 'Failed to save settings' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
     })
   }
 }
