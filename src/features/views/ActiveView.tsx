@@ -51,7 +51,15 @@ const ActiveView: React.FC = () => {
 
         const savedProgress = await progressService.getProgress(orgId, teamId, hunt)
         if (savedProgress && Object.keys(savedProgress).length > 0) {
-          setProgress(savedProgress)
+          // Reset revealedHints to 0 on page refresh to hide hints
+          const progressWithResetHints = {}
+          for (const [stopId, stopProgress] of Object.entries(savedProgress)) {
+            progressWithResetHints[stopId] = {
+              ...stopProgress,
+              revealedHints: 0
+            }
+          }
+          setProgress(progressWithResetHints)
           success('✅ Loaded saved progress from server')
         }
       } catch (err) {

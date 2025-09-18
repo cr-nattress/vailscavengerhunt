@@ -26,7 +26,7 @@ export default function StopCard({
   revealNextHint,
   index
 }: StopCardProps) {
-  const state = progress[stop.id] || { done: false, notes: '', photo: null, revealedHints: 1 }
+  const state = progress[stop.id] || { done: false, notes: '', photo: null, revealedHints: 0 }
   const displayImage = state.photo || PLACEHOLDER
   const isTransitioning = transitioningStops.has(stop.id)
   const isUploading = uploadingStops.has(stop.id)
