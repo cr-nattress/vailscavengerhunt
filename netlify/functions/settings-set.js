@@ -1,19 +1,20 @@
-import { getStore } from '@netlify/blobs'
+const { getStore } = require('@netlify/blobs')
 
-export default async (req, context) => {
+exports.handler = async (event, context) => {
   // Only allow POST requests
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
-      }
-    })
+      },
+      body: JSON.stringify({ error: 'Method not allowed' })
+    }
   }
 
   // Extract orgId, teamId, huntId from URL
-  const url = new URL(req.url)
+  const url = new URL(event.rawUrl || `https://example.com${event.path}`)
 
   // Get the path after the function prefix
   let pathToProcess = url.pathname
@@ -29,13 +30,14 @@ export default async (req, context) => {
 
   if (pathParts.length < 3) {
     console.error('Missing parameters. Path parts:', pathParts, 'URL:', url.pathname)
-    return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
-      status: 400,
+    return {
+      statusCode: 400,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
-      }
-    })
+      },
+      body: JSON.stringify({ error: 'Missing required parameters' })
+    }
   }
 
   const [orgId, teamId, huntId] = pathParts
@@ -43,17 +45,18 @@ export default async (req, context) => {
   const metadataKey = `${orgId}/${teamId}/${huntId}/metadata`
 
   try {
-    const body = await req.json()
+    const body = JSON.parse(event.body || '{}')
     const { settings, sessionId, timestamp } = body
 
     if (!settings) {
-      return new Response(JSON.stringify({ error: 'Settings data required' }), {
-        status: 400,
+      return {
+        statusCode: 400,
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
-        }
-      })
+        },
+        body: JSON.stringify({ error: 'Settings data required' })
+      }
     }
 
     const store = getStore({ name: 'hunt-data' })
@@ -89,26 +92,24 @@ export default async (req, context) => {
 
     await store.setJSON(metadataKey, metadata)
 
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
+    return {
+      statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
-      }
-    })
+      },
+      body: JSON.stringify({ success: true })
+    }
   } catch (error) {
     console.error('Error saving settings:', error)
-    return new Response(JSON.stringify({ error: 'Failed to save settings' }), {
-      status: 500,
+    return {
+      statusCode: 500,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
-      }
-    })
+      },
+      body: JSON.stringify({ error: 'Failed to save settings' })
+    }
   }
 }
 
-export const config = {
-  path: '/api/settings/:orgId/:teamId/:huntId',
-  method: 'POST'
-}

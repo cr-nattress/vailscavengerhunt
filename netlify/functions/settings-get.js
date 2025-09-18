@@ -1,8 +1,8 @@
-import { getStore } from '@netlify/blobs'
+const { getStore } = require('@netlify/blobs')
 
-export default async (req, context) => {
+exports.handler = async (event, context) => {
   // Extract orgId, teamId, huntId from URL
-  const url = new URL(req.url)
+  const url = new URL(event.rawUrl || `https://example.com${event.path}`)
 
   // Get the path after the function prefix
   let pathToProcess = url.pathname
@@ -18,13 +18,14 @@ export default async (req, context) => {
 
   if (pathParts.length < 3) {
     console.error('Missing parameters. Path parts:', pathParts, 'URL:', url.pathname)
-    return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
-      status: 400,
+    return {
+      statusCode: 400,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
-      }
-    })
+      },
+      body: JSON.stringify({ error: 'Missing required parameters' })
+    }
   }
 
   const [orgId, teamId, huntId] = pathParts
@@ -36,34 +37,33 @@ export default async (req, context) => {
     const settings = await store.get(key, { type: 'json' })
 
     if (!settings) {
-      return new Response(JSON.stringify({ error: 'Settings not found' }), {
-        status: 404,
+      return {
+        statusCode: 404,
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
-        }
-      })
+        },
+        body: JSON.stringify({ error: 'Settings not found' })
+      }
     }
 
-    return new Response(JSON.stringify(settings), {
-      status: 200,
+    return {
+      statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
-      }
-    })
+      },
+      body: JSON.stringify(settings)
+    }
   } catch (error) {
     console.error('Error fetching settings:', error)
-    return new Response(JSON.stringify({ error: 'Failed to fetch settings' }), {
-      status: 500,
+    return {
+      statusCode: 500,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
-      }
-    })
+      },
+      body: JSON.stringify({ error: 'Failed to fetch settings' })
+    }
   }
-}
-
-export const config = {
-  path: '/api/settings/:orgId/:teamId/:huntId'
 }
