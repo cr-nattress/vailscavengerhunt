@@ -106,6 +106,24 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // Check for required Cloudinary environment variables
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    console.error('❌ Missing Cloudinary configuration:', {
+      hasCloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
+      hasApiKey: !!process.env.CLOUDINARY_API_KEY,
+      hasApiSecret: !!process.env.CLOUDINARY_API_SECRET
+    });
+
+    return {
+      statusCode: 500,
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        error: 'Server configuration error',
+        details: 'Cloudinary credentials not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables in Netlify.'
+      })
+    };
+  }
+
   try {
     const contentType = event.headers['content-type'] || event.headers['Content-Type'];
 
@@ -230,6 +248,29 @@ exports.handler = async (event, context) => {
 
   } catch (error) {
     console.error('❌ Photo upload handler error:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      cloudinaryConfig: {
+        hasCloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
+        hasApiKey: !!process.env.CLOUDINARY_API_KEY,
+        hasApiSecret: !!process.env.CLOUDINARY_API_SECRET,
+        cloudName: process.env.CLOUDINARY_CLOUD_NAME || 'NOT_SET'
+      }
+    });
+
+    // Check if it's a Cloudinary API key error
+    if (error.message && error.message.includes('api_key')) {
+      return {
+        statusCode: 500,
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          error: 'Cloudinary configuration error',
+          details: 'Cloudinary API credentials are missing or invalid. Please configure environment variables in Netlify.'
+        })
+      };
+    }
 
     return {
       statusCode: 500,
