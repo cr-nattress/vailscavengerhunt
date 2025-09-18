@@ -185,22 +185,19 @@ const ActiveView: React.FC = () => {
       eventName={eventName}
     >
       <div className='max-w-screen-sm mx-auto px-4 py-3'>
-        {/* Organization/Team/Hunt Card */}
+        {/* Team/Hunt Card */}
         <div className='border rounded-lg shadow-sm px-4 py-3 relative mb-3' style={{
           backgroundColor: 'var(--color-white)',
           borderColor: 'var(--color-light-grey)'
         }}>
-          <div className='flex items-center justify-between text-sm whitespace-nowrap overflow-x-auto'>
-            <div className='flex-shrink-0 pr-4'>
-              <span className='font-semibold text-base uppercase'>{locationName}</span>
-            </div>
+          <div className='flex items-center justify-between text-sm'>
             {teamName && (
-              <div className='flex-shrink-0 px-4 text-center'>
+              <div className='flex-shrink-0'>
                 <span className='text-blue-600 font-medium uppercase'>{teamName}</span>
               </div>
             )}
             {huntId && (
-              <div className='flex-shrink-0 pl-4 ml-auto'>
+              <div className='flex-shrink-0'>
                 <span className='text-gray-700 uppercase'>{huntId}</span>
               </div>
             )}
