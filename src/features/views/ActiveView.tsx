@@ -47,7 +47,7 @@ const ActiveView: React.FC = () => {
       try {
         const orgId = organizationId || 'bhhs'
         const teamId = teamName || 'default'
-        const hunt = huntId || 'winter-2024'
+        const hunt = huntId || 'fall-2025'
 
         const savedProgress = await progressService.getProgress(orgId, teamId, hunt)
         if (savedProgress && Object.keys(savedProgress).length > 0) {
@@ -80,7 +80,7 @@ const ActiveView: React.FC = () => {
       try {
         const orgId = organizationId || 'bhhs'
         const teamId = teamName || 'default'
-        const hunt = huntId || 'winter-2024'
+        const hunt = huntId || 'fall-2025'
 
         await progressService.saveProgress(orgId, teamId, hunt, progress, sessionId)
         console.log('✅ Progress saved to server')

@@ -26,7 +26,7 @@ const HistoryView: React.FC = () => {
     queryFn: async () => {
       const orgId = organizationId || 'bhhs'
       const teamId = teamName || 'default'
-      const hunt = huntId || 'winter-2024'
+      const hunt = huntId || 'fall-2025'
 
       try {
         return await progressService.getProgress(orgId, teamId, hunt)

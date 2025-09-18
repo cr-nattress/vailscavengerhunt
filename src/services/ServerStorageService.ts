@@ -27,7 +27,7 @@ export class ServerStorageService {
     // Default context
     let orgId = 'bhhs'
     let teamId = 'default-team'
-    let huntId = 'winter-2024'
+    let huntId = 'fall-2025'
 
     // Extract from URL if available: /{org}/{event}/{team}
     if (pathParts.length >= 3) {

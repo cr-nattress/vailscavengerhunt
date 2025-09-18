@@ -18,9 +18,9 @@ This document describes the hierarchical data structure for storing scavenger hu
 
 ### Team Hunt Data (Shared by all team members)
 ```
-Key: bhhs/team-alpha/winter-2024/settings
-Key: bhhs/team-alpha/winter-2024/progress
-Key: bhhs/team-alpha/winter-2024/metadata
+Key: bhhs/team-alpha/fall-2025/settings
+Key: bhhs/team-alpha/fall-2025/progress
+Key: bhhs/team-alpha/fall-2025/metadata
 ```
 
 ### Metadata Structure
@@ -38,7 +38,7 @@ Key: bhhs/team-alpha/winter-2024/metadata
 
 ### Team-Level Aggregation
 ```
-Key: bhhs/team-alpha/winter-2024/_team_summary
+Key: bhhs/team-alpha/fall-2025/_team_summary
 {
   totalSessions: 25,
   avgCompletionRate: 78,
@@ -215,13 +215,13 @@ async function getOrgStats(orgId) {
 1. **User Joins Hunt**
    ```
    POST /api/join
-   Body: { orgId: "bhhs", teamId: "eagles", huntId: "winter-2024" }
+   Body: { orgId: "bhhs", teamId: "eagles", huntId: "fall-2025" }
    Returns: { sessionId: "eagles-1704456789-abc123" }
    ```
 
 2. **Save Team Progress** (any team member)
    ```
-   POST /api/progress/bhhs/eagles/winter-2024
+   POST /api/progress/bhhs/eagles/fall-2025
    Body: {
      progress: { stop1: { done: true, photo: "url" } },
      sessionId: "eagles-1704456789-abc123"  // For audit only
@@ -230,13 +230,13 @@ async function getOrgStats(orgId) {
 
 3. **View Team Progress** (all members see same data)
    ```
-   GET /api/progress/bhhs/eagles/winter-2024
+   GET /api/progress/bhhs/eagles/fall-2025
    Returns: { stop1: { done: true, photo: "url", lastModifiedBy: "session-123" } }
    ```
 
 4. **View Hunt Leaderboard**
    ```
-   GET /api/org/bhhs/hunt/winter-2024/leaderboard
+   GET /api/org/bhhs/hunt/fall-2025/leaderboard
    Returns: [{ teamName: "eagles", completion: 85% }, ...]
    ```
 

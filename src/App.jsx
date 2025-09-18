@@ -77,7 +77,7 @@ export default function App() {
         const pathParts = window.location.pathname.split('/').filter(Boolean)
         let orgId = 'bhhs' // default org
         let teamId = 'default-team'
-        let huntId = 'winter-2024'
+        let huntId = 'fall-2025'
 
         // If we have path params, use them
         if (pathParts.length >= 3) {

@@ -20,7 +20,7 @@ const RankingsView: React.FC = () => {
     queryKey: ['leaderboard', organizationId, huntId],
     queryFn: async () => {
       const orgId = organizationId || 'bhhs'
-      const hunt = huntId || 'winter-2024'
+      const hunt = huntId || 'fall-2025'
 
       try {
         const response = await fetch(`/api/leaderboard/${orgId}/${hunt}`)
