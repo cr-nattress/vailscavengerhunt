@@ -87,18 +87,27 @@ export default function App() {
         }
 
         // Check for query parameters to override path params
+        // All three parameters must be present for query params to be used
         const urlParams = new URLSearchParams(window.location.search)
-        if (urlParams.has('org')) {
+        const hasOrgParam = urlParams.has('org')
+        const hasTeamParam = urlParams.has('team')
+        const hasHuntParam = urlParams.has('hunt')
+
+        if (hasOrgParam && hasTeamParam && hasHuntParam) {
+          // All parameters present - use query params
           orgId = urlParams.get('org')
-          console.log('📎 Using org from query param:', orgId)
-        }
-        if (urlParams.has('team')) {
           teamId = urlParams.get('team')
-          console.log('📎 Using team from query param:', teamId)
-        }
-        if (urlParams.has('hunt')) {
           huntId = urlParams.get('hunt')
-          console.log('📎 Using hunt from query param:', huntId)
+          console.log('📎 Using query params for configuration:', { orgId, teamId, huntId })
+        } else if (hasOrgParam || hasTeamParam || hasHuntParam) {
+          // Partial parameters - warn and ignore
+          console.warn('⚠️ Partial query parameters detected. All three (org, team, hunt) are required.')
+          console.warn('  Received:', {
+            org: hasOrgParam ? urlParams.get('org') : 'missing',
+            team: hasTeamParam ? urlParams.get('team') : 'missing',
+            hunt: hasHuntParam ? urlParams.get('hunt') : 'missing'
+          })
+          console.warn('  Using defaults/path params instead.')
         }
 
         // Set org and hunt in store
