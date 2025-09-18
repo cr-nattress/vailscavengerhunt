@@ -72,21 +72,58 @@ export class PhotoUploadService {
     
     try {
       console.log('🌐 Making API request via apiClient...');
-      
+      console.log('📋 Request details:');
+      console.log('  - Endpoint: /photo-upload');
+      console.log('  - Method: POST (multipart/form-data)');
+      console.log('  - Timeout: 60000ms');
+      console.log('  - Retry attempts: 2');
+
+      // Log FormData contents for debugging
+      console.log('📦 FormData contents:');
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`  - ${key}: File(${value.name}, ${value.size} bytes, ${value.type})`);
+        } else {
+          console.log(`  - ${key}: ${value}`);
+        }
+      }
+
       const rawResponse = await apiClient.requestFormData<unknown>('/photo-upload', formData, {
         timeout: 60000, // 60 second timeout for file uploads
         retryAttempts: 2
       });
-      
+
+      console.log('🔍 Raw response received:', rawResponse);
+
       // Validate response with schema
       const response = validateSchema(UploadResponseSchema, rawResponse, 'photo upload');
-      
+
       console.log('📊 Upload successful:', response);
-      
+
       return response;
-      
+
     } catch (error) {
-      console.error('💥 Upload error:', error);
+      console.error('💥 Upload error - Full details:', {
+        error,
+        errorType: error?.constructor?.name,
+        message: error?.message,
+        status: (error as any)?.status,
+        statusText: (error as any)?.statusText,
+        response: (error as any)?.response,
+        stack: error?.stack
+      });
+
+      // Log specific error information based on error type
+      if ((error as any)?.status) {
+        console.error(`❌ HTTP Error ${(error as any).status}: ${(error as any).statusText}`);
+      }
+      if (error?.message?.includes('timeout')) {
+        console.error('⏰ Request timed out - photo might be too large or network is slow');
+      }
+      if (error?.message?.includes('network')) {
+        console.error('🌐 Network error - check internet connection');
+      }
+
       throw error;
     }
   }

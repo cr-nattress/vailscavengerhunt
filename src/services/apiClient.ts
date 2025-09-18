@@ -83,10 +83,18 @@ class ApiClient {
    * Create a structured API error
    */
   private createApiError(response: Response, body?: any): ApiError {
-    const error = new Error(
-      body?.error || body?.message || `HTTP ${response.status}: ${response.statusText}`
-    ) as ApiError
-    
+    // Log detailed error information
+    console.error('🔴 API Error Details:', {
+      url: response.url,
+      status: response.status,
+      statusText: response.statusText,
+      responseBody: body,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+
+    const errorMessage = body?.error || body?.message || `HTTP ${response.status}: ${response.statusText}`;
+    const error = new Error(errorMessage) as ApiError
+
     error.name = 'ApiError'
     error.status = response.status
     error.statusText = response.statusText
@@ -157,6 +165,8 @@ class ApiClient {
         }
 
         if (!response.ok) {
+          console.error(`⚠️ Non-OK response: ${response.status} ${response.statusText}`);
+          console.error('🔍 Response body:', responseBody);
           throw this.createApiError(response, responseBody)
         }
 
@@ -164,7 +174,14 @@ class ApiClient {
 
       } catch (error) {
         lastError = error as Error
-        
+
+        console.error(`🔄 Request attempt ${attempt + 1} failed:`, {
+          error,
+          errorType: error?.constructor?.name,
+          message: error?.message,
+          url
+        });
+
         if (error instanceof Error && error.name === 'AbortError') {
           console.error(`⏰ Request timeout after ${timeout}ms`)
           throw new Error(`Request timeout after ${timeout}ms`)
