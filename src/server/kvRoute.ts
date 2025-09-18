@@ -186,9 +186,14 @@ export const kvDeleteHandler = async (req: Request, res: Response): Promise<void
 
 // Express router setup
 const router = express.Router();
+// Support both old hyphenated and new slash-based routes for compatibility
 router.get('/kv-get/:key', kvGetHandler);
+router.get('/kv/get/:key', kvGetHandler);
 router.post('/kv-upsert', kvUpsertHandler);
+router.post('/kv/upsert', kvUpsertHandler);
 router.get('/kv-list', kvListHandler);
+router.get('/kv/list', kvListHandler);
 router.delete('/kv-delete/:key', kvDeleteHandler);
+router.delete('/kv/delete/:key', kvDeleteHandler);
 
 export default router;
