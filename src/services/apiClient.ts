@@ -45,16 +45,16 @@ class ApiClient {
       return apiUrl
     }
 
-    // If running on port 8888 (Netlify dev), use Netlify Functions
+    // If running on port 8888 (Netlify dev), use /api for redirects
     if (window.location.port === '8888') {
-      console.log('🌐 Detected Netlify dev (port 8888), using Functions')
-      return '/.netlify/functions'
+      console.log('🌐 Detected Netlify dev (port 8888), using /api')
+      return '/api'
     }
 
-    // In production, use relative URLs for Netlify Functions
+    // In production, use /api URLs (Netlify will redirect to functions)
     if (window.location.hostname !== 'localhost') {
-      console.log('🌐 Production mode, using relative URLs')
-      return '/.netlify/functions'
+      console.log('🌐 Production mode, using /api URLs')
+      return '/api'
     }
 
     // In development, use local Express server

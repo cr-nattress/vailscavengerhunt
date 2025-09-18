@@ -58,7 +58,7 @@ export class DualWriteService {
       // Validate payload before sending
       const validatedPayload = validateSchema(KVUpsertSchema, payload, 'KV upsert payload');
 
-      const result = await apiClient.post<unknown>('/kv-upsert', validatedPayload);
+      const result = await apiClient.post<unknown>('/kv/upsert', validatedPayload);
       
       results.server = true;
       console.log(`✅ DualWrite server: ${key}`, result);

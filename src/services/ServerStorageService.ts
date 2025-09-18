@@ -60,7 +60,7 @@ export class ServerStorageService {
         timestamp: new Date().toISOString()
       }
 
-      await apiClient.post('/kv-upsert', payload)
+      await apiClient.post('/kv/upsert', payload)
 
       console.log(`✅ ServerStorage saved: ${contextKey}`)
       return { success: true }
