@@ -77,9 +77,9 @@ export default function StopsList({
   }
 
   const revealNextHint = (stopId: string) => {
-    const state = progress[stopId] || { done: false, notes: '', photo: null, revealedHints: 1 }
+    const state = progress[stopId] || { done: false, notes: '', photo: null, revealedHints: 0 }
     const stop = stops.find(s => s.id === stopId)
-    if (stop && state.revealedHints < stop.hints.length) {
+    if (stop && stop.hints && state.revealedHints < stop.hints.length) {
       setProgress((p: any) => ({
         ...p,
         [stopId]: { ...state, revealedHints: state.revealedHints + 1 }
