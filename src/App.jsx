@@ -1,7 +1,6 @@
 import React, {useState, useEffect} from 'react'
 import { ServerStorageService } from './services/ServerStorageService'
 import Header from './features/app/Header'
-import SettingsPanel from './features/app/SettingsPanel'
 import { BottomNavigation } from './features/navigation/BottomNavigation'
 import { TabContainer } from './features/navigation/TabContainer'
 import { useToastActions } from './features/notifications/ToastProvider.tsx'
@@ -9,7 +8,7 @@ import { useAppStore } from './store/appStore'
 import { getPathParams, isValidParamSet, normalizeParams } from './utils/url'
 
 /**
- * Vail Love Hunt — React single-page app for a couples' scavenger/date experience in Vail.
+ * Vail Scavenger Hunt — React single-page app for a couples' scavenger/date experience in Vail.
  *
  * Key behaviors:
  * - Shows a list of romantic stops with clues and a selfie mission per stop.
@@ -38,11 +37,9 @@ export default function App() {
     setHuntId,
     lockedByQuery,
     setLockedByQuery,
-    initializeSettings,
-    saveSettingsToServer
+    initializeSettings
   } = useAppStore()
 
-  const [isEditMode, setIsEditMode] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [showTips, setShowTips] = useState(false)
 
@@ -58,8 +55,6 @@ export default function App() {
           setEventName(event)
           setTeamName(team)
           setLockedByQuery(true)
-          // If edit mode was open, close it when lock engages
-          setIsEditMode(false)
           console.log('[URL] Locked by path params:', { location, event, team })
         } else {
           setLockedByQuery(false)
@@ -138,14 +133,6 @@ export default function App() {
     }
   }, [isMenuOpen])
 
-  // Save settings handler
-  const handleSaveSettings = async () => {
-    // Before saving to server, save to store
-    await saveSettingsToServer()
-    setIsEditMode(false)
-    success('Settings saved!')
-  }
-
   // Reset handler
   const reset = () => {
     if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
@@ -167,43 +154,6 @@ export default function App() {
       />
 
       <main className='max-w-screen-sm mx-auto'>
-        {/* Organization/Team/Hunt Card */}
-        <div className='px-4 py-3'>
-          <div className='border rounded-lg shadow-sm px-4 py-3 relative' style={{
-            backgroundColor: 'var(--color-white)',
-            borderColor: 'var(--color-light-grey)'
-          }}>
-            <div className='flex items-center justify-between text-sm whitespace-nowrap overflow-x-auto'>
-              <div className='flex-shrink-0 pr-4'>
-                <span className='font-semibold text-base uppercase'>{locationName}</span>
-              </div>
-              {teamName && (
-                <div className='flex-shrink-0 px-4 text-center'>
-                  <span className='text-blue-600 font-medium uppercase'>{teamName}</span>
-                </div>
-              )}
-              {huntId && (
-                <div className='flex-shrink-0 pl-4 ml-auto'>
-                  <span className='text-gray-700 uppercase'>{huntId}</span>
-                </div>
-              )}
-            </div>
-
-            {isEditMode && (
-              <SettingsPanel
-                locationName={locationName}
-                teamName={teamName}
-                eventName={eventName}
-                onChangeLocation={setLocationName}
-                onChangeTeam={setTeamName}
-                onChangeEvent={setEventName}
-                onSave={handleSaveSettings}
-                onCancel={() => setIsEditMode(false)}
-              />
-            )}
-          </div>
-        </div>
-
         {/* Tab Container - Main Content */}
         <TabContainer />
 

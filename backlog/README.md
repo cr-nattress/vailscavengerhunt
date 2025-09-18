@@ -124,4 +124,4 @@ Phases should be implemented in order as each builds on the previous. Phase 1 (A
 
 ---
 *Last Updated: [Current Date]*
-*Created for: Vail Love Hunt Application*
+*Created for: Vail Scavenger Hunt Application*

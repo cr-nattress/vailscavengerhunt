@@ -30,7 +30,7 @@ const UpdatesView: React.FC = () => {
           id: '1',
           type: 'announcement',
           teamName: 'System',
-          message: 'Welcome to the Vail Love Hunt! Complete all stops to win prizes.',
+          message: 'Welcome to the Vail Scavenger Hunt! Complete all stops to win prizes.',
           timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
         },
         {
