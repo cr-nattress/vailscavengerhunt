@@ -75,6 +75,20 @@ name = "kv"
   to = "/.netlify/functions/photo-upload"
   status = 200
 
+# Progress endpoints - GET requests
+[[redirects]]
+  from = "/api/progress/*"
+  to = "/.netlify/functions/progress-get/:splat"
+  status = 200
+  conditions = {method = ["GET"]}
+
+# Progress endpoints - POST requests for saving
+[[redirects]]
+  from = "/api/progress/*"
+  to = "/.netlify/functions/progress-set/:splat"
+  status = 200
+  conditions = {method = ["POST"]}
+
 # Local development settings to proxy to Vite dev server
 [dev]
   command = "npm run dev"       # start the Vite UI for Netlify Dev
