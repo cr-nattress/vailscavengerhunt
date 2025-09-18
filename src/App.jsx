@@ -1,22 +1,13 @@
 import React, {useState, useEffect} from 'react'
-import { CollageService } from './client/CollageService'
-import { PhotoUploadService } from './client/PhotoUploadService'
 import { ServerStorageService } from './services/ServerStorageService'
-import ProgressGauge from './components/ProgressGauge'
-import AlbumViewer from './components/AlbumViewer'
 import Header from './features/app/Header'
 import SettingsPanel from './features/app/SettingsPanel'
-import StopsList from './features/app/StopsList'
-import { UploadProvider } from './features/upload/UploadContext'
+import { BottomNavigation } from './features/navigation/BottomNavigation'
+import { TabContainer } from './features/navigation/TabContainer'
 import { useToastActions } from './features/notifications/ToastProvider.tsx'
 import { useAppStore } from './store/appStore'
 import { getPathParams, isValidParamSet, normalizeParams } from './utils/url'
-import { slugify } from './utils/slug'
-import { useProgress } from './hooks/useProgress'
-import { base64ToFile } from './utils/image'
-import { buildStorybook } from './utils/canvas'
 import { generateGuid } from './utils/id'
-import { getRandomStops } from './utils/random'
 
 /**
  * Vail Love Hunt — React single-page app for a couples' scavenger/date experience in Vail.
@@ -25,12 +16,13 @@ import { getRandomStops } from './utils/random'
  * - Shows a list of romantic stops with clues and a selfie mission per stop.
  * - Tracks completion and notes on server (team-shared data).
  * - Provides a share action, date tips overlay, and progress bar.
+ * - Bottom navigation for switching between views
  */
 
 export default function App() {
   // Toast notifications
   const { success, error: showError, warning, info } = useToastActions()
-  
+
   // Use Zustand store for central state management
   const {
     locationName,
@@ -50,21 +42,10 @@ export default function App() {
     initializeSettings,
     saveSettingsToServer
   } = useAppStore()
-  
-  const [stops, setStops] = useState(() => getRandomStops(locationName || 'BHHS'))
+
   const [isEditMode, setIsEditMode] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  
-  const {progress, setProgress, completeCount, percent} = useProgress(stops)
   const [showTips, setShowTips] = useState(false)
-  const [storybookUrl, setStorybookUrl] = useState(null)
-  const [collageLoading, setCollageLoading] = useState(false)
-  const [collageUrl, setCollageUrl] = useState(null)
-  const [fullSizeImageUrl, setFullSizeImageUrl] = useState(null)
-  const [expandedStops, setExpandedStops] = useState({})
-  const [transitioningStops, setTransitioningStops] = useState(new Set())
-  const [uploadingStops, setUploadingStops] = useState(new Set())
-  const [completedSectionExpanded, setCompletedSectionExpanded] = useState(false)
 
   // Initialize session and load saved settings on app startup
   useEffect(() => {
@@ -144,14 +125,6 @@ export default function App() {
     }
   }, []) // Empty dependency array means this runs once on mount
 
-  // Update stops when location changes
-  useEffect(() => {
-    console.log(`🗺️ Location changed to: ${locationName}, updating stops...`);
-    const newStops = getRandomStops(locationName);
-    setStops(newStops);
-    console.log(`✅ Updated stops for ${locationName}:`, newStops.map(s => s.title));
-  }, [locationName])
-
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -159,331 +132,108 @@ export default function App() {
         setIsMenuOpen(false)
       }
     }
-    
+
     if (isMenuOpen) {
       document.addEventListener('click', handleClickOutside)
       return () => document.removeEventListener('click', handleClickOutside)
     }
   }, [isMenuOpen])
 
-  // Handle photo upload for a stop
-  const handlePhotoUpload = async (stopId, file) => {
-    const stop = stops.find(s => s.id === stopId)
-    const state = progress[stopId] || { done: false, notes: '', photo: null, revealedHints: 1 }
-    
-    // Start loading state
-    setUploadingStops(prev => new Set([...prev, stopId]))
-    
-    try {
-      // Check if photo already exists for this location (idempotency)
-      const existingPhoto = await PhotoUploadService.getExistingPhoto(stopId, sessionId)
-      if (existingPhoto) {
-        console.log(`📷 Photo already exists for ${stop.title}, using existing photo`)
-        setProgress(p => ({
-          ...p,
-          [stopId]: { ...state, photo: existingPhoto.photoUrl, done: true, completedAt: new Date().toISOString() }
-        }))
-      } else {
-        // Upload new photo using PhotoUploadService
-        console.log(`📸 Uploading new photo for ${stop.title}`)
-        const uploadResponse = await PhotoUploadService.uploadPhotoWithResize(
-          file, 
-          stop.title, 
-          sessionId,
-          1600, // maxWidth (default)
-          0.8,  // quality (default) 
-          teamName,
-          locationName,
-          eventName
-        )
-        
-        // Save photo record
-        await PhotoUploadService.savePhotoRecord(uploadResponse, stopId, sessionId)
-        
-        // Step 1: Immediate feedback with photo URL
-        setProgress(p => ({
-          ...p,
-          [stopId]: { ...state, photo: uploadResponse.photoUrl, done: true, completedAt: new Date().toISOString() }
-        }))
-        
-        console.log(`✅ Photo uploaded successfully for ${stop.title}: ${uploadResponse.photoUrl}`)
-      }
-      
-      // End loading state
-      setUploadingStops(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(stopId)
-        return newSet
-      })
-      
-      // Step 2: Quick celebration animation
-      setTimeout(() => {
-        setTransitioningStops(prev => new Set([...prev, stopId]))
-        
-        // Step 3: Complete transition quickly
-        setTimeout(() => {
-          setTransitioningStops(prev => {
-            const newSet = new Set(prev)
-            newSet.delete(stopId)
-            return newSet
-          })
-        }, 600)
-      }, 150)
-      
-    } catch (error) {
-      console.error('❌ Photo upload failed:', error)
-      showError(`Failed to upload photo: ${error.message}. Please check your internet connection and try again.`)
-
-      // End loading state on error
-      setUploadingStops(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(stopId)
-        return newSet
-      })
-
-      // No localStorage fallback - require Cloudinary upload to succeed
-      // This ensures all photos are properly stored on the server
-    }
-  }
-
-
-  // Create real collage from completed stops using Cloudinary
-  const createPrizeCollage = async () => {
-    console.log('🎯 Starting prize collage creation...')
-    setCollageLoading(true)
-    
-    try {
-      // Get all completed stops with photos
-      const completedStops = stops.filter(stop => progress[stop.id]?.photo)
-      console.log('📸 Found', completedStops.length, 'completed stops with photos:', completedStops.map(s => s.title))
-      
-      if (completedStops.length === 0) {
-        console.warn('⚠️ No completed stops found')
-        warning('No completed stops with photos found!')
-        return
-      }
-
-      // Convert base64 images to File objects
-      console.log('🔄 Converting base64 images to File objects...')
-      const files = completedStops.map((stop, index) => {
-        const base64 = progress[stop.id].photo
-        console.log(`  Converting ${stop.title}: base64 length = ${base64.length} characters`)
-        const file = base64ToFile(base64, `vail-${stop.id}.jpg`)
-        console.log(`  Created file: ${file.name}, size: ${file.size} bytes, type: ${file.type}`)
-        return file
-      })
-
-      // Get titles
-      const titles = completedStops.map(stop => stop.title)
-      console.log('📝 Titles:', titles)
-
-      console.log('☁️ Sending request to CollageService...')
-      console.log('  Files:', files.map(f => ({ name: f.name, size: f.size, type: f.type })))
-      console.log('  Titles:', titles)
-      
-      // Create collage using Cloudinary service
-      const url = await CollageService.createCollage(files, titles)
-      
-      console.log('✅ Collage created successfully!')
-      console.log('  URL:', url)
-      setCollageUrl(url)
-      setFullSizeImageUrl(url)
-      
-    } catch (error) {
-      console.error('❌ Failed to create prize collage:', error)
-      console.error('  Error name:', error.name)
-      console.error('  Error message:', error.message)
-      console.error('  Error stack:', error.stack)
-      showError(`Failed to create your prize collage: ${error.message}`)
-    } finally {
-      console.log('🏁 Prize collage creation finished')
-      setCollageLoading(false)
-    }
-  }
-
-  // Preview using 3 sample images from public/images and random titles
-  const previewStorybook = async () => {
-    const samplePhotos = [
-      '/images/selfie-guide-1.png',
-      '/images/selfie-guide-2.png',
-      '/images/selfie-guide-3.png',
-    ]
-    // Random titles from current location data
-    const shuffled = [...stops].sort(() => Math.random() - 0.5)
-    const titles = shuffled.slice(0, 3).map(s => s.title)
-    const url = await buildStorybook(samplePhotos, titles)
-    setStorybookUrl(url)
-  }
-
-  // Reset all progress and notes (clears local state AND re-saves to localStorage via effect)
-  const reset = () => {
-    setProgress({})
-    setCollageUrl(null)
-    setStorybookUrl(null)
-    setFullSizeImageUrl(null)
-    setExpandedStops({})
-    setTransitioningStops(new Set())
-  }
-  
-  // Toggle expanded state for a stop
-  const toggleExpanded = (stopId) => {
-    setExpandedStops(prev => ({
-      ...prev,
-      [stopId]: !prev[stopId]
-    }))
-  }
-  
   // Save settings handler
   const handleSaveSettings = async () => {
-    try {
-      // Save settings to server via store
-      await saveSettingsToServer()
-      console.log('✅ Settings saved to server')
-      success('Settings saved successfully')
-    } catch (error) {
-      console.error('❌ Failed to save settings:', error)
-      showError('Failed to save settings')
-    }
-
+    // Before saving to server, save to store
+    await saveSettingsToServer()
     setIsEditMode(false)
+    success('Settings saved!')
   }
 
-  // Share progress via Web Share API if available; otherwise copy URL + summary to clipboard.
-  const share = async () => {
-    const text = `Vail Scavenger Hunt — ${completeCount}/${stops.length} stops complete!`
-    const url = typeof window !== 'undefined' ? window.location.href : ''
-    try {
-      // Prefer native share dialogs on mobile for better UX.
-      if (navigator.share) {
-        await navigator.share({ title: 'Vail Scavenger Hunt', text, url })
-      } else {
-        // Fallback: copy text to clipboard and show toast notification.
-        await navigator.clipboard.writeText(`${text} ${url}`)
-        success('Link copied to clipboard ✨')
-      }
-    } catch (err) {
-      console.warn('Failed to share or copy link', err)
-      showError('Failed to share or copy link')
+  // Reset handler
+  const reset = () => {
+    if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
+      // Clear progress will be handled in ActiveView
+      window.location.reload()
     }
   }
 
   return (
-    <UploadProvider 
-      location={locationName}
-      team={teamName}
-      sessionId={sessionId}
-      eventName={eventName}
-    >
-      <div className='min-h-screen text-slate-900' style={{backgroundColor: 'var(--color-cream)'}}>
-      <Header 
+    <div className='min-h-screen text-slate-900' style={{backgroundColor: 'var(--color-cream)'}}>
+      <Header
         isMenuOpen={isMenuOpen}
         onToggleMenu={() => setIsMenuOpen(!isMenuOpen)}
-        completeCount={completeCount}
-        totalStops={stops.length}
-        percent={percent}
+        completeCount={0} // Will be managed in ActiveView
+        totalStops={0} // Will be managed in ActiveView
+        percent={0} // Will be managed in ActiveView
         onReset={reset}
         onToggleTips={() => setShowTips(!showTips)}
       />
 
-      <main className='max-w-screen-sm mx-auto px-4 py-3'>
-        <div className='border rounded-lg shadow-sm px-4 py-3 relative' style={{
-          backgroundColor: 'var(--color-white)',
-          borderColor: 'var(--color-light-grey)'
-        }}>
-          <div className='flex items-center justify-between text-sm'>
-            <div className='flex-1'>
-              <span className='font-semibold text-base'>{locationName}</span>
+      <main className='max-w-screen-sm mx-auto'>
+        {/* Organization/Team/Hunt Card */}
+        <div className='px-4 py-3'>
+          <div className='border rounded-lg shadow-sm px-4 py-3 relative' style={{
+            backgroundColor: 'var(--color-white)',
+            borderColor: 'var(--color-light-grey)'
+          }}>
+            <div className='flex items-center justify-between text-sm whitespace-nowrap overflow-x-auto'>
+              <div className='flex-shrink-0 pr-4'>
+                <span className='font-semibold text-base uppercase'>{locationName}</span>
+              </div>
+              {teamName && (
+                <div className='flex-shrink-0 px-4 text-center'>
+                  <span className='text-blue-600 font-medium uppercase'>{teamName}</span>
+                </div>
+              )}
+              {huntId && (
+                <div className='flex-shrink-0 pl-4 ml-auto'>
+                  <span className='text-gray-700 uppercase'>{huntId}</span>
+                </div>
+              )}
             </div>
-            {teamName && (
-              <div className='flex-1 text-center'>
-                <span className='text-blue-600 font-medium'>{teamName}</span>
-              </div>
-            )}
-            {huntId && (
-              <div className='flex-1 text-right'>
-                <span className='text-gray-700'>{huntId}</span>
-              </div>
+
+            {isEditMode && (
+              <SettingsPanel
+                locationName={locationName}
+                teamName={teamName}
+                eventName={eventName}
+                onChangeLocation={setLocationName}
+                onChangeTeam={setTeamName}
+                onChangeEvent={setEventName}
+                onSave={handleSaveSettings}
+                onCancel={() => setIsEditMode(false)}
+              />
             )}
           </div>
-          
-          {isEditMode ? (
-            <SettingsPanel
-              locationName={locationName}
-              teamName={teamName}
-              eventName={eventName}
-              onChangeLocation={setLocationName}
-              onChangeTeam={setTeamName}
-              onChangeEvent={setEventName}
-              onSave={handleSaveSettings}
-              onCancel={() => setIsEditMode(false)}
-            />
-          ) : (
-            /* Normal Mode Card */
-            <>
-              {percent === 100 ? (
-                <div className='mt-1'>
-                  <p className='text-lg font-semibold' style={{color: 'var(--color-cabernet)'}}>🎉 Congratulations! You completed the scavenger hunt.</p>
-                </div>
-              ) : (
-                <>
-                  {/* Enhanced Progress Gauge */}
-                  <div className='mt-1'>
-                    <ProgressGauge
-                      percent={percent}
-                      completeCount={completeCount}
-                      totalStops={stops.length}
-                      stops={stops}
-                      progress={progress}
-                    />
-                  </div>
-                </>
-              )}
-            </>
-          )}
         </div>
 
-        {/* Album Viewer Component */}
-        <AlbumViewer 
-          collageUrl={collageUrl}
-          imageUrl={fullSizeImageUrl}
-          initialExpanded={true}
-        />
+        {/* Tab Container - Main Content */}
+        <TabContainer />
 
-        <StopsList
-          stops={stops}
-          progress={progress}
-          transitioningStops={transitioningStops}
-          completedSectionExpanded={completedSectionExpanded}
-          onToggleCompletedSection={() => setCompletedSectionExpanded(!completedSectionExpanded)}
-          expandedStops={expandedStops}
-          onToggleExpanded={toggleExpanded}
-          uploadingStops={uploadingStops}
-          onPhotoUpload={handlePhotoUpload}
-          setProgress={setProgress}
-        />
-
-
+        {/* Tips Modal */}
         {showTips && (
           <div className='fixed inset-0 z-30'>
-            <div 
-              className='absolute inset-0 bg-black/40 backdrop-blur-sm' 
+            <div
+              className='absolute inset-0 bg-black/40 backdrop-blur-sm'
               onClick={()=>setShowTips(false)}
               style={{
                 animation: 'fadeIn 0.2s ease-out forwards'
               }}
             />
-            <div 
+            <div
               className='absolute inset-x-0 bottom-0 rounded-t-3xl p-5 shadow-2xl'
               style={{
                 backgroundColor: 'var(--color-white)',
-                animation: 'slideUpModal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
+                animation: 'slideUpModal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+                marginBottom: '64px' // Account for bottom navigation
               }}
             >
               <div className='mx-auto max-w-screen-sm'>
                 <div className='flex items-center justify-between'>
                   <h3 className='text-lg font-semibold flex items-center gap-2' style={{ color: 'var(--color-cabernet)' }}>📖 Rules</h3>
-                  <button 
-                    className='p-2 rounded-lg transition-all duration-150 transform hover:scale-110 active:scale-95' style={{ backgroundColor: 'transparent' }} onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-light-pink)'} onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'} 
+                  <button
+                    className='p-2 rounded-lg transition-all duration-150 transform hover:scale-110 active:scale-95'
+                    style={{ backgroundColor: 'transparent' }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-light-pink)'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                     onClick={()=>setShowTips(false)}
                     aria-label='Close'
                   >
@@ -494,7 +244,7 @@ export default function App() {
                 </div>
                 <div className='mt-3 space-y-3 text-sm' style={{ color: 'var(--color-dark-neutral)' }}>
                   <p className='font-medium'>Take a group photo in front of each location to prove you completed the clue.</p>
-                  
+
                   <div className='space-y-2'>
                     <p className='font-medium'>Two winners will be crowned:</p>
                     <ul className='list-disc pl-5 space-y-1'>
@@ -502,18 +252,19 @@ export default function App() {
                       <li>The team with the most creative photos.</li>
                     </ul>
                   </div>
-                  
+
                   <p>Pay attention to your surroundings — details you notice along the way might help you.</p>
-                  
+
                   <p>Work together, be creative, and enjoy exploring Vail Village!</p>
                 </div>
               </div>
             </div>
           </div>
         )}
-
       </main>
-      </div>
-    </UploadProvider>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation />
+    </div>
   )
 }
