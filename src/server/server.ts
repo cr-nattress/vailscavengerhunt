@@ -15,6 +15,7 @@ import express from 'express';
 import cors from 'cors';
 import collageRouter from './collageRoute';
 import kvRouter from './kvRoute';
+import photoRouter from './photoRoute';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -31,6 +32,7 @@ app.use(express.static(publicPath));
 // API routes
 app.use('/api', collageRouter);
 app.use('/api', kvRouter);
+app.use('/api', photoRouter);
 
 // Health check
 app.get('/health', (req, res) => {
