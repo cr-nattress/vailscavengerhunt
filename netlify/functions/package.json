@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@netlify/blobs": "^10.0.10",
+    "@netlify/blobs": "^7.4.0",
     "@netlify/functions": "^4.2.5",
     "cloudinary": "^2.7.0",
     "parse-multipart-data": "^1.5.0"
