@@ -35,7 +35,6 @@ const ActiveView: React.FC = () => {
   const [expandedStops, setExpandedStops] = useState({})
   const [transitioningStops, setTransitioningStops] = useState(new Set())
   const [uploadingStops, setUploadingStops] = useState(new Set())
-  const [completedSectionExpanded, setCompletedSectionExpanded] = useState(false)
 
   // Update stops when location changes
   useEffect(() => {
@@ -220,8 +219,6 @@ const ActiveView: React.FC = () => {
           stops={stops}
           progress={progress}
           transitioningStops={transitioningStops}
-          completedSectionExpanded={completedSectionExpanded}
-          onToggleCompletedSection={() => setCompletedSectionExpanded(!completedSectionExpanded)}
           expandedStops={expandedStops}
           onToggleExpanded={toggleExpanded}
           uploadingStops={uploadingStops}

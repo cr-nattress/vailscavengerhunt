@@ -1,13 +1,10 @@
 import React from 'react'
 import StopCard from './StopCard'
-import CompletedAccordion from './CompletedAccordion'
 
 interface StopsListProps {
   stops: any[]
   progress: any
   transitioningStops: Set<string>
-  completedSectionExpanded: boolean
-  onToggleCompletedSection: () => void
   expandedStops: Record<string, boolean>
   onToggleExpanded: (stopId: string) => void
   uploadingStops: Set<string>
@@ -19,8 +16,6 @@ export default function StopsList({
   stops,
   progress,
   transitioningStops,
-  completedSectionExpanded,
-  onToggleCompletedSection,
   expandedStops,
   onToggleExpanded,
   uploadingStops,
@@ -109,16 +104,8 @@ export default function StopsList({
           index={i}
         />
       ))}
-      
-      {/* Render completed stops in accordion */}
-      <CompletedAccordion
-        completedStops={completedStops}
-        expandedStops={expandedStops}
-        progress={progress}
-        onToggleExpanded={onToggleExpanded}
-        completedSectionExpanded={completedSectionExpanded}
-        onToggleCompletedSection={onToggleCompletedSection}
-      />
+
+      {/* Completed stops are now shown in the History tab */}
     </>
   )
 }

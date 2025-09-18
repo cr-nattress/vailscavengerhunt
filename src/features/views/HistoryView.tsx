@@ -4,6 +4,7 @@ import { progressService } from '../../services/ProgressService'
 import { useAppStore } from '../../store/appStore'
 import { useToastActions } from '../notifications/ToastProvider'
 import { getRandomStops } from '../../utils/random'
+import { useNavigationStore } from '../navigation/navigationStore'
 
 interface HistoryEntry {
   stopId: string
@@ -16,10 +17,11 @@ interface HistoryEntry {
 const HistoryView: React.FC = () => {
   const { info } = useToastActions()
   const { organizationId, teamName, huntId, locationName } = useAppStore()
+  const { activeTab } = useNavigationStore()
   const [expandedPhotos, setExpandedPhotos] = useState<Set<string>>(new Set())
 
-  // Fetch progress data from server
-  const { data: progress, isLoading, error } = useQuery({
+  // Fetch progress data from server with auto-refresh
+  const { data: progress, isLoading, error, refetch } = useQuery({
     queryKey: ['history', organizationId, teamName, huntId],
     queryFn: async () => {
       const orgId = organizationId || 'bhhs'
@@ -34,7 +36,17 @@ const HistoryView: React.FC = () => {
       }
     },
     enabled: !!teamName && !!organizationId && !!huntId,
+    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchOnWindowFocus: true, // Refresh when window regains focus
+    refetchOnMount: 'always', // Always fetch fresh data on mount
   })
+
+  // Refetch when tab becomes active
+  useEffect(() => {
+    if (activeTab === 'history') {
+      refetch()
+    }
+  }, [activeTab, refetch])
 
   // Get stops information
   const stops = getRandomStops(locationName || 'BHHS')
