@@ -86,6 +86,21 @@ export default function App() {
           huntId = pathParts[1]
         }
 
+        // Check for query parameters to override path params
+        const urlParams = new URLSearchParams(window.location.search)
+        if (urlParams.has('org')) {
+          orgId = urlParams.get('org')
+          console.log('📎 Using org from query param:', orgId)
+        }
+        if (urlParams.has('team')) {
+          teamId = urlParams.get('team')
+          console.log('📎 Using team from query param:', teamId)
+        }
+        if (urlParams.has('hunt')) {
+          huntId = urlParams.get('hunt')
+          console.log('📎 Using hunt from query param:', huntId)
+        }
+
         // Set org and hunt in store
         setOrganizationId(orgId)
         setHuntId(huntId)
