@@ -32,7 +32,24 @@ export default function App() {
   const { success, error: showError, warning, info } = useToastActions()
   
   // Use Zustand store for central state management
-  const { locationName, teamName, sessionId, eventName, setLocationName, setTeamName, setEventName, lockedByQuery, setLockedByQuery } = useAppStore()
+  const {
+    locationName,
+    teamName,
+    sessionId,
+    eventName,
+    organizationId,
+    huntId,
+    isLoading: settingsLoading,
+    setLocationName,
+    setTeamName,
+    setEventName,
+    setOrganizationId,
+    setHuntId,
+    lockedByQuery,
+    setLockedByQuery,
+    initializeSettings,
+    saveSettingsToServer
+  } = useAppStore()
   
   const [stops, setStops] = useState(() => getRandomStops(locationName || 'BHHS'))
   const [isEditMode, setIsEditMode] = useState(false)
@@ -81,41 +98,46 @@ export default function App() {
 
     const initializeApp = async () => {
       try {
-        // Load saved settings using DualWriteService
-        const savedSettings = await DualWriteService.get('app-settings');
-        if (savedSettings) {
-          console.log('📱 Loaded saved settings:', savedSettings);
-          
-          if (savedSettings.location) {
-            setLocationName(savedSettings.location);
-          }
-          if (savedSettings.team) {
-            setTeamName(savedSettings.team);
-          }
-          if (savedSettings.event) {
-            setEventName(savedSettings.event);
-          }
+        // Extract org/team/hunt from URL or use defaults
+        const pathParts = window.location.pathname.split('/').filter(Boolean)
+        let orgId = 'bhhs' // default org
+        let teamId = 'default-team'
+        let huntId = 'winter-2024'
+
+        // If we have path params, use them
+        if (pathParts.length >= 3) {
+          orgId = pathParts[0]
+          teamId = pathParts[2] // Assuming /{org}/{event}/{team} format
+          huntId = pathParts[1]
         }
-        
-        // Initialize session with current location name using DualWriteService
-        const sessionId = generateGuid();
+
+        // Set org and hunt in store
+        setOrganizationId(orgId)
+        setHuntId(huntId)
+
+        // Initialize settings from server
+        console.log('🚀 Initializing settings from server:', { orgId, teamId, huntId })
+        await initializeSettings(orgId, teamId, huntId)
+
+        // Initialize session tracking (audit only)
         const sessionData = {
           id: sessionId,
           location: locationName,
           startTime: new Date().toISOString(),
           userAgent: navigator.userAgent
-        };
-        
-        console.log('🚀 Initializing session:', sessionId);
-        
-        const results = await DualWriteService.createSession(sessionId, sessionData);
-        console.log('✅ Session initialized:', results);
+        }
+
+        console.log('📊 Session initialized for tracking:', sessionId)
+
+        // Still use DualWriteService for session tracking (will be migrated later)
+        const results = await DualWriteService.createSession(sessionId, sessionData)
+        console.log('✅ Session tracking started:', results)
       } catch (error) {
-        console.error('❌ Failed to initialize app:', error);
+        console.error('❌ Failed to initialize app:', error)
       }
-    };
-    
-    initializeApp();
+    }
+
+    initializeApp()
 
     return () => {
       window.removeEventListener('popstate', onPopState)
@@ -344,20 +366,15 @@ export default function App() {
   // Save settings handler
   const handleSaveSettings = async () => {
     try {
-      // Save settings using DualWriteService
-      const settingsData = {
-        location: locationName,
-        team: teamName,
-        event: eventName,
-        updatedAt: new Date().toISOString()
-      }
-      
-      const results = await DualWriteService.saveSettings(settingsData)
-      console.log('✅ Settings saved:', settingsData, results)
+      // Save settings to server via store
+      await saveSettingsToServer()
+      console.log('✅ Settings saved to server')
+      success('Settings saved successfully')
     } catch (error) {
       console.error('❌ Failed to save settings:', error)
+      showError('Failed to save settings')
     }
-    
+
     setIsEditMode(false)
   }
 
