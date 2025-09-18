@@ -185,12 +185,13 @@ const ActiveView: React.FC = () => {
       eventName={eventName}
     >
       <div className='max-w-screen-sm mx-auto px-4 py-3'>
-        {/* Team/Hunt Card */}
-        <div className='border rounded-lg shadow-sm px-4 py-3 relative mb-3' style={{
+        {/* Progress Card with Team/Hunt Info */}
+        <div className='border rounded-lg shadow-sm px-4 py-3 relative' style={{
           backgroundColor: 'var(--color-white)',
           borderColor: 'var(--color-light-grey)'
         }}>
-          <div className='flex items-center justify-between text-sm'>
+          {/* Team and Hunt Name */}
+          <div className='flex items-center justify-between text-sm mb-2'>
             {teamName && (
               <div className='flex-shrink-0'>
                 <span className='text-blue-600 font-medium uppercase'>{teamName}</span>
@@ -202,13 +203,8 @@ const ActiveView: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
 
-        {/* Progress Card */}
-        <div className='border rounded-lg shadow-sm px-4 py-3 relative' style={{
-          backgroundColor: 'var(--color-white)',
-          borderColor: 'var(--color-light-grey)'
-        }}>
+          {/* Progress Section */}
           {percent === 100 ? (
             <div className='mt-1'>
               <p className='text-lg font-semibold' style={{color: 'var(--color-cabernet)'}}>
