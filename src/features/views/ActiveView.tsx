@@ -125,12 +125,19 @@ const ActiveView: React.FC = () => {
         file = fileOrDataUrl
       }
 
-      const photoUrl = await PhotoUploadService.uploadPhoto(file, {
-        location: locationName,
-        team: teamName,
+      // Get stop title for the upload
+      const stopTitle = stops.find(s => s.id === stopId)?.title || stopId
+
+      const response = await PhotoUploadService.uploadPhoto(
+        file,
+        stopTitle,  // locationTitle
         sessionId,
-        stopId
-      })
+        teamName,
+        locationName,
+        eventName
+      )
+
+      const photoUrl = response.photoUrl
 
       setProgress({
         ...progress,
