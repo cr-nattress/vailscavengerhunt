@@ -33,26 +33,6 @@ const UpdatesView: React.FC = () => {
           message: 'Welcome to the Vail Scavenger Hunt! Complete all stops to win prizes.',
           timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
         },
-        {
-          id: '2',
-          type: 'team_progress',
-          teamName: 'Team Alpha',
-          message: 'Team Alpha completed "Bridge to Vail" stop',
-          timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-          metadata: {
-            stopName: 'Bridge to Vail',
-          },
-        },
-        {
-          id: '3',
-          type: 'completion',
-          teamName: 'Team Beta',
-          message: 'Team Beta finished the hunt! 🎉',
-          timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          metadata: {
-            completionTime: '1h 45m',
-          },
-        },
       ]
 
       return mockUpdates
