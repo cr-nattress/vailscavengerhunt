@@ -7,7 +7,6 @@ import { TabContainer } from './features/navigation/TabContainer'
 import { useToastActions } from './features/notifications/ToastProvider.tsx'
 import { useAppStore } from './store/appStore'
 import { getPathParams, isValidParamSet, normalizeParams } from './utils/url'
-import { generateGuid } from './utils/id'
 
 /**
  * Vail Love Hunt — React single-page app for a couples' scavenger/date experience in Vail.
