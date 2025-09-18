@@ -54,6 +54,9 @@
 [[blobs]]
 name = "kv"
 
+[[blobs]]
+name = "hunt-data"
+
 # Netlify Functions redirects for the new KV endpoints
 [[redirects]]
   from = "/api/kv/upsert"
