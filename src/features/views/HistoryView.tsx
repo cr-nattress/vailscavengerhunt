@@ -25,7 +25,7 @@ const HistoryView: React.FC = () => {
     queryKey: ['history', organizationId, teamName, huntId],
     queryFn: async () => {
       const orgId = organizationId || 'bhhs'
-      const teamId = teamName || 'default'
+      const teamId = teamName || 'berrypicker'
       const hunt = huntId || 'fall-2025'
 
       try {

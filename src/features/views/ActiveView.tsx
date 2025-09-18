@@ -46,7 +46,7 @@ const ActiveView: React.FC = () => {
     const loadProgressFromServer = async () => {
       try {
         const orgId = organizationId || 'bhhs'
-        const teamId = teamName || 'default'
+        const teamId = teamName || 'berrypicker'
         const hunt = huntId || 'fall-2025'
 
         const savedProgress = await progressService.getProgress(orgId, teamId, hunt)
@@ -79,7 +79,7 @@ const ActiveView: React.FC = () => {
     const saveProgressToServer = async () => {
       try {
         const orgId = organizationId || 'bhhs'
-        const teamId = teamName || 'default'
+        const teamId = teamName || 'berrypicker'
         const hunt = huntId || 'fall-2025'
 
         await progressService.saveProgress(orgId, teamId, hunt, progress, sessionId)

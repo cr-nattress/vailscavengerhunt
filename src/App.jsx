@@ -76,7 +76,7 @@ export default function App() {
         // Extract org/team/hunt from URL or use defaults
         const pathParts = window.location.pathname.split('/').filter(Boolean)
         let orgId = 'bhhs' // default org
-        let teamId = 'default-team'
+        let teamId = 'berrypicker'
         let huntId = 'fall-2025'
 
         // If we have path params, use them
