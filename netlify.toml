@@ -19,6 +19,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/health"
+  status = 200
+
+[[redirects]]
   from = "/api/kv/get"
   to = "/.netlify/functions/kv-get"
   status = 200

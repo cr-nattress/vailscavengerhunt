@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { CollageService } from '../../client/CollageService'
-import { PhotoUploadService } from '../../client/PhotoUploadService'
 import { progressService } from '../../services/ProgressService'
 import ProgressGauge from '../../components/ProgressGauge'
 import AlbumViewer from '../../components/AlbumViewer'
@@ -8,10 +6,11 @@ import StopsList from '../app/StopsList'
 import { UploadProvider } from '../upload/UploadContext'
 import { useToastActions } from '../notifications/ToastProvider'
 import { useAppStore } from '../../store/appStore'
+import { useUIStore } from '../../store/uiStore'
 import { getRandomStops } from '../../utils/random'
 import { useProgress } from '../../hooks/useProgress'
-import { base64ToFile } from '../../utils/image'
-import { buildStorybook } from '../../utils/canvas'
+import { usePhotoUpload } from '../../hooks/usePhotoUpload'
+import { useCollage } from '../../hooks/useCollage'
 
 const ActiveView: React.FC = () => {
   const { success, error: showError, warning, info } = useToastActions()
@@ -27,14 +26,50 @@ const ActiveView: React.FC = () => {
 
   const [stops, setStops] = useState(() => getRandomStops(locationName || 'BHHS'))
   const { progress, setProgress, completeCount, percent } = useProgress(stops)
-  const [showTips, setShowTips] = useState(false)
-  const [storybookUrl, setStorybookUrl] = useState(null)
-  const [collageLoading, setCollageLoading] = useState(false)
-  const [collageUrl, setCollageUrl] = useState(null)
   const [fullSizeImageUrl, setFullSizeImageUrl] = useState(null)
-  const [expandedStops, setExpandedStops] = useState({})
-  const [transitioningStops, setTransitioningStops] = useState(new Set())
-  const [uploadingStops, setUploadingStops] = useState(new Set())
+
+  // Use UI store for UI state management
+  const {
+    expandedStops,
+    transitioningStops,
+    showTips,
+    toggleStopExpanded,
+    setTransitioning,
+    setShowTips
+  } = useUIStore()
+
+  // Use collage hook for automatic collage creation
+  const { collageUrl } = useCollage({ stops, progress, teamName })
+  // Photo upload hook replaces uploadingStops state and handlePhotoUpload function
+  const { uploadPhoto, uploadingStops } = usePhotoUpload({
+    sessionId,
+    teamName,
+    locationName,
+    eventName,
+    onSuccess: (stopId, photoUrl) => {
+      // Update progress with photo URL
+      setProgress({
+        ...progress,
+        [stopId]: {
+          ...progress[stopId],
+          photo: photoUrl,
+          done: true,
+          timestamp: new Date().toISOString()
+        }
+      })
+
+      // Trigger transition animation
+      setTransitioning(stopId, true)
+      setTimeout(() => {
+        setTransitioning(stopId, false)
+      }, 600)
+
+      success(`📸 Photo uploaded for ${stops.find(s => s.id === stopId)?.title || 'stop'}`)
+    },
+    onError: (stopId, error) => {
+      console.error(`Failed to upload photo for stop ${stopId}:`, error)
+    }
+  })
 
   // Update stops when location changes
   useEffect(() => {
@@ -93,97 +128,21 @@ const ActiveView: React.FC = () => {
     return () => clearTimeout(debounceTimer)
   }, [progress, teamName, organizationId, huntId])
 
-  // Create collage when all stops are complete
-  useEffect(() => {
-    const allDone = stops.every(stop => progress[stop.id]?.done)
-    if (!allDone || collageUrl) return
 
-    const createCollage = async () => {
-      try {
-        setCollageLoading(true)
-        const photoUrls = stops
-          .map(stop => progress[stop.id]?.photo)
-          .filter(Boolean)
-
-        if (photoUrls.length === stops.length) {
-          const collageImageUrl = await CollageService.createCollage(photoUrls, teamName)
-          setCollageUrl(collageImageUrl)
-          success('🎉 Created your photo collage!')
-        }
-      } catch (err) {
-        console.error('Failed to create collage:', err)
-        showError('Failed to create collage')
-      } finally {
-        setCollageLoading(false)
-      }
-    }
-
-    createCollage()
-  }, [progress, stops, collageUrl])
-
+  // Simplified photo upload handler using the hook
   const handlePhotoUpload = async (stopId, fileOrDataUrl) => {
-    setUploadingStops(prev => new Set(prev).add(stopId))
-
-    try {
-      let file
-      if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('data:')) {
-        file = base64ToFile(fileOrDataUrl, `stop_${stopId}_${Date.now()}.jpg`)
-      } else {
-        file = fileOrDataUrl
-      }
-
-      // Get stop title for the upload
-      const stopTitle = stops.find(s => s.id === stopId)?.title || stopId
-
-      const response = await PhotoUploadService.uploadPhoto(
-        file,
-        stopTitle,  // locationTitle
-        sessionId,
-        teamName,
-        locationName,
-        eventName
-      )
-
-      const photoUrl = response.photoUrl
-
-      setProgress({
-        ...progress,
-        [stopId]: {
-          ...progress[stopId],
-          photo: photoUrl,
-          done: true,
-          timestamp: new Date().toISOString()
-        }
-      })
-
-      setTransitioningStops(prev => new Set(prev).add(stopId))
-      setTimeout(() => {
-        setTransitioningStops(prev => {
-          const next = new Set(prev)
-          next.delete(stopId)
-          return next
-        })
-      }, 600)
-
-      success(`📸 Photo uploaded for ${stops.find(s => s.id === stopId)?.title || 'stop'}`)
-    } catch (err) {
-      console.error(`Failed to upload photo for stop ${stopId}:`, err)
-      showError('Failed to upload photo. Please try again.')
-    } finally {
-      setUploadingStops(prev => {
-        const next = new Set(prev)
-        next.delete(stopId)
-        return next
-      })
-    }
+    const stopTitle = stops.find(s => s.id === stopId)?.title || stopId
+    await uploadPhoto(stopId, fileOrDataUrl, stopTitle)
   }
 
-  const toggleExpanded = (stopId) => {
-    setExpandedStops(prev => ({
-      ...prev,
-      [stopId]: !prev[stopId]
-    }))
-  }
+  // Convert Set to object for compatibility with StopsList
+  const expandedStopsObject = React.useMemo(() => {
+    const obj: Record<string, boolean> = {}
+    expandedStops.forEach(stopId => {
+      obj[stopId] = true
+    })
+    return obj
+  }, [expandedStops])
 
   return (
     <UploadProvider
@@ -243,8 +202,8 @@ const ActiveView: React.FC = () => {
           stops={stops}
           progress={progress}
           transitioningStops={transitioningStops}
-          expandedStops={expandedStops}
-          onToggleExpanded={toggleExpanded}
+          expandedStops={expandedStopsObject}
+          onToggleExpanded={toggleStopExpanded}
           uploadingStops={uploadingStops}
           onPhotoUpload={handlePhotoUpload}
           setProgress={setProgress}

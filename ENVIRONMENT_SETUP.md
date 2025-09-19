@@ -53,10 +53,22 @@ These variables are required for photo upload functionality:
 For local development, create a `.env` file in the project root:
 
 ```env
+# Required for server-side uploads
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 CLOUDINARY_UPLOAD_FOLDER=scavenger/entries
+
+# Optional: For unsigned uploads (direct from browser)
+VITE_CLOUDINARY_CLOUD_NAME=your_cloud_name
+VITE_CLOUDINARY_UNSIGNED_PRESET=your_unsigned_preset_name
+VITE_CLOUDINARY_UPLOAD_FOLDER=scavenger/entries
+VITE_ENABLE_UNSIGNED_UPLOADS=false
+
+# Optional: Upload settings
+VITE_DISABLE_CLIENT_RESIZE=false
+VITE_MAX_UPLOAD_BYTES=10485760
+VITE_ALLOW_LARGE_UPLOADS=false
 ```
 
 **Important**: Never commit the `.env` file to git!
@@ -79,9 +91,34 @@ After setting environment variables:
 3. Wait for deployment to complete
 4. Test photo upload functionality
 
+## Unsigned Uploads (Optional)
+
+For direct browser-to-Cloudinary uploads (bypassing server):
+
+1. **Create an Upload Preset in Cloudinary:**
+   - Go to Settings > Upload > Upload Presets
+   - Click "Add upload preset"
+   - Set "Signing Mode" to **Unsigned**
+   - Configure restrictions:
+     - Allowed formats: jpg, png, gif, webp
+     - Max file size: 10-15 MB
+     - Folder: scavenger/entries
+   - Note the preset name
+
+2. **Configure in Netlify:**
+   - Add `VITE_CLOUDINARY_CLOUD_NAME` (same as cloud name)
+   - Add `VITE_CLOUDINARY_UNSIGNED_PRESET` (your preset name)
+   - Set `VITE_ENABLE_UNSIGNED_UPLOADS` to `true` to enable
+
+3. **Benefits:**
+   - Reduces server load
+   - Avoids function timeouts for large images
+   - Direct CDN upload
+
 ## Security Notes
 
 - Never expose your API Secret in client-side code
 - Use Netlify Functions (serverless) to handle API calls
 - Keep your `.env` file in `.gitignore`
 - Rotate API keys periodically for security
+- For unsigned uploads, use strict upload presets with size/format limits

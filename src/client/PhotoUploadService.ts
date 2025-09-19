@@ -13,7 +13,136 @@ export type PhotoUploadResponse = UploadResponse
 export type { PhotoRecord }
 
 export class PhotoUploadService {
-  
+
+  /**
+   * Upload a photo directly to Cloudinary using unsigned upload
+   * @param file The image file to upload
+   * @param locationTitle The title of the location
+   * @param sessionId The current session ID
+   * @param teamName The team name for tagging (optional)
+   * @param locationName The location name for tagging (optional)
+   * @param eventName The event name for tagging (optional)
+   * @returns Promise resolving to photo upload response
+   */
+  static async uploadPhotoUnsigned(
+    file: File,
+    locationTitle: string,
+    sessionId: string,
+    teamName?: string,
+    locationName?: string,
+    eventName?: string
+  ): Promise<PhotoUploadResponse> {
+    console.log('📸 PhotoUploadService.uploadPhotoUnsigned() called');
+
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UNSIGNED_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      throw new Error('Cloudinary unsigned upload not configured. Missing VITE_CLOUDINARY_CLOUD_NAME or VITE_CLOUDINARY_UNSIGNED_PRESET');
+    }
+
+    // Validate inputs
+    if (!file) {
+      throw new Error('No file provided');
+    }
+
+    if (!file.type.startsWith('image/')) {
+      throw new Error('File must be an image');
+    }
+
+    if (!locationTitle) {
+      throw new Error('Location title is required');
+    }
+
+    if (!sessionId) {
+      throw new Error('Session ID is required');
+    }
+
+    console.log('✅ Input validation passed for unsigned upload');
+
+    // Generate location slug
+    const locationSlug = locationTitle
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim()
+      .replace(/^-|-$/g, '');
+
+    // Create FormData
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset);
+
+    // Add context metadata
+    const context = {
+      sessionId,
+      timestamp: new Date().toISOString(),
+      location: locationSlug,
+      ...(teamName && { team: teamName }),
+      ...(locationName && { locationName }),
+      ...(eventName && { event: eventName })
+    };
+
+    // Convert context to string format Cloudinary expects
+    const contextString = Object.entries(context)
+      .map(([key, value]) => `${key}=${value}`)
+      .join('|');
+
+    formData.append('context', contextString);
+
+    // Add tags
+    const tags = ['scavenger-hunt', locationSlug, sessionId];
+    if (teamName) tags.push(teamName);
+    formData.append('tags', tags.join(','));
+
+    // Add public_id
+    const timestamp = Date.now();
+    const publicId = `${locationSlug}_${sessionId}_${timestamp}`;
+    formData.append('public_id', publicId);
+
+    // Add folder
+    const folder = import.meta.env.VITE_CLOUDINARY_UPLOAD_FOLDER || 'scavenger/entries';
+    formData.append('folder', folder);
+
+    console.log('📦 FormData created for unsigned upload');
+    console.log('🌐 Uploading directly to Cloudinary...');
+
+    try {
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        {
+          method: 'POST',
+          body: formData
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Cloudinary upload failed: ${error}`);
+      }
+
+      const data = await response.json();
+
+      console.log('📊 Unsigned upload successful:', data);
+
+      // Format response to match our schema
+      const uploadResponse: UploadResponse = {
+        photoUrl: data.secure_url,
+        publicId: data.public_id,
+        locationSlug,
+        title: locationTitle,
+        uploadedAt: new Date().toISOString()
+      };
+
+      return uploadResponse;
+
+    } catch (error) {
+      console.error('💥 Unsigned upload error:', error);
+      throw error;
+    }
+  }
+
   /**
    * Upload a single photo for a specific location
    * @param file The image file to upload
@@ -128,6 +257,36 @@ export class PhotoUploadService {
     }
   }
   
+  /**
+   * Upload a photo directly to Cloudinary with automatic resizing
+   * @param file The image file to upload
+   * @param locationTitle The title of the location
+   * @param sessionId The current session ID
+   * @param maxWidth Maximum width for resizing (default: 1600)
+   * @param quality Image quality (default: 0.8)
+   * @param teamName The team name for tagging (optional)
+   * @param locationName The location name for tagging (optional)
+   * @param eventName The event name for tagging (optional)
+   * @returns Promise resolving to photo upload response
+   */
+  static async uploadPhotoUnsignedWithResize(
+    file: File,
+    locationTitle: string,
+    sessionId: string,
+    maxWidth = 1600,
+    quality = 0.8,
+    teamName?: string,
+    locationName?: string,
+    eventName?: string
+  ): Promise<PhotoUploadResponse> {
+    console.log('🔄 Resizing image before unsigned upload...');
+
+    const resizedFile = await this.resizeImage(file, maxWidth, quality);
+    console.log(`📏 Resized: ${file.size} → ${resizedFile.size} bytes`);
+
+    return this.uploadPhotoUnsigned(resizedFile, locationTitle, sessionId, teamName, locationName, eventName);
+  }
+
   /**
    * Upload a photo with automatic resizing for better performance
    * @param file The image file to upload

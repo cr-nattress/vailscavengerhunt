@@ -3,6 +3,7 @@ import { ServerStorageService } from './services/ServerStorageService'
 import Header from './features/app/Header'
 import { BottomNavigation } from './features/navigation/BottomNavigation'
 import { TabContainer } from './features/navigation/TabContainer'
+import { useNavigationStore } from './features/navigation/navigationStore'
 import { useToastActions } from './features/notifications/ToastProvider.tsx'
 import { useAppStore } from './store/appStore'
 import { getPathParams, isValidParamSet, normalizeParams } from './utils/url'
@@ -20,6 +21,9 @@ import { getPathParams, isValidParamSet, normalizeParams } from './utils/url'
 export default function App() {
   // Toast notifications
   const { success, error: showError, warning, info } = useToastActions()
+
+  // Navigation state
+  const { activeTab } = useNavigationStore()
 
   // Use Zustand store for central state management
   const {
@@ -236,8 +240,8 @@ export default function App() {
         )}
       </main>
 
-      {/* Bottom Navigation */}
-      <BottomNavigation />
+      {/* Bottom Navigation - Hide on health/diagnostics pages */}
+      {activeTab !== 'health' && activeTab !== 'diagnostics' && <BottomNavigation />}
     </div>
   )
 }

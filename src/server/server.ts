@@ -1,4 +1,4 @@
-// Load environment variables FIRST
+// Load environment variables FIRST (restart)
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';

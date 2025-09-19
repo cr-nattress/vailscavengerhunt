@@ -124,28 +124,65 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // Extract request ID for logging correlation
+  const requestId = event.headers['x-request-id'] ||
+                    event.headers['x-nf-request-id'] ||
+                    `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
   try {
     const contentType = event.headers['content-type'] || event.headers['Content-Type'];
 
     if (!contentType || !contentType.includes('multipart/form-data')) {
+      console.error(`[${requestId}] Invalid Content-Type:`, contentType);
       return {
         statusCode: 400,
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Content-Type must be multipart/form-data' })
+        body: JSON.stringify({
+          error: 'Content-Type must be multipart/form-data',
+          requestId
+        })
       };
     }
 
     // Parse multipart form data
     const boundary = contentType.split('boundary=')[1];
     if (!boundary) {
+      console.error(`[${requestId}] Multipart boundary not found in:`, contentType);
       return {
         statusCode: 400,
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Multipart boundary not found' })
+        body: JSON.stringify({
+          error: 'Multipart boundary not found',
+          requestId
+        })
       };
     }
 
-    const parts = multipart.parse(Buffer.from(event.body, 'base64'), boundary);
+    // Handle base64 encoding properly
+    let bodyBuffer;
+    if (event.isBase64Encoded !== false) {
+      // Default to base64 decoding unless explicitly false
+      bodyBuffer = Buffer.from(event.body, 'base64');
+    } else {
+      bodyBuffer = Buffer.from(event.body);
+    }
+
+    // Check body size before parsing (15MB limit)
+    const MAX_BODY_SIZE = 15 * 1024 * 1024; // 15MB
+    if (bodyBuffer.length > MAX_BODY_SIZE) {
+      console.error(`[${requestId}] Request body too large: ${bodyBuffer.length} bytes`);
+      return {
+        statusCode: 413,
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          error: 'Request too large',
+          details: 'Please upload a smaller image (max 15MB). Try using the camera app settings to reduce photo quality.',
+          requestId
+        })
+      };
+    }
+
+    const parts = multipart.parse(bodyBuffer, boundary);
 
     if (!parts || parts.length === 0) {
       return {
@@ -193,34 +230,88 @@ exports.handler = async (event, context) => {
 
     // Validate required fields
     if (!photoBuffer) {
+      console.error(`[${requestId}] No photo data found in multipart`);
       return {
         statusCode: 400,
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'No photo data provided' })
+        body: JSON.stringify({
+          error: 'No photo data provided',
+          requestId
+        })
+      };
+    }
+
+    // Validate file size (10MB limit for individual file)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (photoBuffer.length > MAX_FILE_SIZE) {
+      console.error(`[${requestId}] Photo too large: ${photoBuffer.length} bytes`);
+      return {
+        statusCode: 413,
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          error: 'Photo too large',
+          details: `Photo must be under 10MB. Current size: ${(photoBuffer.length / 1024 / 1024).toFixed(2)}MB`,
+          requestId
+        })
+      };
+    }
+
+    // Basic validation that it's an image (check first bytes)
+    const isJpeg = photoBuffer[0] === 0xFF && photoBuffer[1] === 0xD8;
+    const isPng = photoBuffer[0] === 0x89 && photoBuffer[1] === 0x50;
+    const isGif = photoBuffer[0] === 0x47 && photoBuffer[1] === 0x49;
+    const isWebp = photoBuffer[8] === 0x57 && photoBuffer[9] === 0x45;
+
+    if (!isJpeg && !isPng && !isGif && !isWebp) {
+      console.error(`[${requestId}] Invalid image format detected`);
+      return {
+        statusCode: 400,
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          error: 'Invalid file type',
+          details: 'Please upload a valid image file (JPEG, PNG, GIF, or WebP)',
+          requestId
+        })
       };
     }
 
     if (!locationTitle) {
+      console.error(`[${requestId}] Missing location title`);
       return {
         statusCode: 400,
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Location title is required' })
+        body: JSON.stringify({
+          error: 'Location title is required',
+          requestId
+        })
       };
     }
 
     if (!sessionId) {
+      console.error(`[${requestId}] Missing session ID`);
       return {
         statusCode: 400,
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Session ID is required' })
+        body: JSON.stringify({
+          error: 'Session ID is required',
+          requestId
+        })
       };
     }
 
     // Generate location slug
     const locationSlug = generateSlug(locationTitle);
 
-    // Upload to Cloudinary
-    console.log(`📤 Uploading photo for ${locationTitle} (${locationSlug}), session: ${sessionId}`);
+    // Upload to Cloudinary with enhanced logging
+    console.log(`[${requestId}] 📤 Starting upload:`, {
+      locationTitle,
+      locationSlug,
+      sessionId,
+      teamName: teamName || 'none',
+      locationName: locationName || 'none',
+      eventName: eventName || 'none',
+      photoSize: `${(photoBuffer.length / 1024).toFixed(2)}KB`
+    });
 
     const uploadResult = await uploadPhotoToCloudinary(
       photoBuffer,
@@ -247,11 +338,14 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('❌ Photo upload handler error:', error);
-    console.error('Error details:', {
+    console.error(`[${requestId}] ❌ Photo upload handler error:`, error);
+    console.error(`[${requestId}] Error details:`, {
       name: error.name,
       message: error.message,
       stack: error.stack,
+      sessionId,
+      teamName: teamName || 'none',
+      locationSlug: locationSlug || 'none',
       cloudinaryConfig: {
         hasCloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
         hasApiKey: !!process.env.CLOUDINARY_API_KEY,
@@ -260,6 +354,19 @@ exports.handler = async (event, context) => {
       }
     });
 
+    // Check for timeout errors
+    if (error.message && (error.message.includes('timeout') || error.message.includes('ETIMEDOUT'))) {
+      return {
+        statusCode: 504,
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          error: 'Upload timeout',
+          details: 'The upload took too long. Please try again with a smaller image or better network connection.',
+          requestId
+        })
+      };
+    }
+
     // Check if it's a Cloudinary API key error
     if (error.message && error.message.includes('api_key')) {
       return {
@@ -267,7 +374,21 @@ exports.handler = async (event, context) => {
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           error: 'Cloudinary configuration error',
-          details: 'Cloudinary API credentials are missing or invalid. Please configure environment variables in Netlify.'
+          details: 'Cloudinary API credentials are missing or invalid. Please configure environment variables in Netlify.',
+          requestId
+        })
+      };
+    }
+
+    // Check for network errors
+    if (error.message && (error.message.includes('ECONNREFUSED') || error.message.includes('ENOTFOUND'))) {
+      return {
+        statusCode: 503,
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          error: 'Service unavailable',
+          details: 'Unable to reach upload service. Please try again in a moment.',
+          requestId
         })
       };
     }
@@ -277,7 +398,8 @@ exports.handler = async (event, context) => {
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         error: 'Failed to upload photo',
-        details: error.message
+        details: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred. Please try again.',
+        requestId
       })
     };
   }

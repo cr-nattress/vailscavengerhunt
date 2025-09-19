@@ -4,10 +4,11 @@ import { useAppStore } from '../../store/appStore'
 import { useToastActions } from '../notifications/ToastProvider'
 
 interface LeaderboardEntry {
-  teamName: string
+  teamId: string
   completedStops: number
   totalStops: number
-  completionTime?: string
+  percentComplete: number
+  latestActivity?: string | null
   rank: number
 }
 
@@ -16,31 +17,33 @@ const RankingsView: React.FC = () => {
   const { organizationId, huntId, teamName: currentTeam } = useAppStore()
 
   // Fetch leaderboard data
-  const { data: leaderboard, isLoading, error } = useQuery({
+  const { data: leaderboardData, isLoading, error } = useQuery({
     queryKey: ['leaderboard', organizationId, huntId],
     queryFn: async () => {
       const orgId = organizationId || 'bhhs'
       const hunt = huntId || 'fall-2025'
 
       try {
-        const response = await fetch(`/api/leaderboard/${orgId}/${hunt}`)
+        const response = await fetch(`/api/leaderboard-get?orgId=${orgId}&huntId=${hunt}`)
         if (!response.ok) {
           if (response.status === 404) {
             // No data yet, return empty leaderboard
-            return []
+            return { teams: [] }
           }
           throw new Error('Failed to fetch leaderboard')
         }
         const data = await response.json()
-        return data.leaderboard || []
+        return data
       } catch (err) {
         console.error('Failed to fetch leaderboard:', err)
-        return []
+        return { teams: [] }
       }
     },
     enabled: !!organizationId && !!huntId,
     refetchInterval: 30000, // Refresh every 30 seconds
   })
+
+  const leaderboard = leaderboardData?.teams || []
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -76,27 +79,8 @@ const RankingsView: React.FC = () => {
     )
   }
 
-  const sortedLeaderboard = [...(leaderboard || [])]
-    .sort((a, b) => {
-      // Sort by completion percentage, then by time
-      const percentA = getCompletionPercentage(a.completedStops, a.totalStops)
-      const percentB = getCompletionPercentage(b.completedStops, b.totalStops)
-
-      if (percentA !== percentB) {
-        return percentB - percentA
-      }
-
-      // If same percentage, sort by completion time (earlier is better)
-      if (a.completionTime && b.completionTime) {
-        return new Date(a.completionTime).getTime() - new Date(b.completionTime).getTime()
-      }
-
-      return 0
-    })
-    .map((entry, index) => ({
-      ...entry,
-      rank: index + 1,
-    }))
+  // The leaderboard is already sorted and ranked by the server
+  const sortedLeaderboard = leaderboard
 
   return (
     <div className="max-w-screen-sm mx-auto px-4 py-4">
@@ -124,12 +108,12 @@ const RankingsView: React.FC = () => {
       ) : (
         <div className="space-y-3">
           {sortedLeaderboard.map((entry) => {
-            const percentage = getCompletionPercentage(entry.completedStops, entry.totalStops)
-            const isCurrentTeam = entry.teamName === currentTeam
+            const percentage = entry.percentComplete || getCompletionPercentage(entry.completedStops, entry.totalStops)
+            const isCurrentTeam = entry.teamId === currentTeam
 
             return (
               <div
-                key={entry.teamName}
+                key={entry.teamId}
                 className={`
                   bg-white rounded-lg border overflow-hidden shadow-sm
                   ${isCurrentTeam ? 'border-blue-500 border-2' : 'border-gray-200'}
@@ -143,7 +127,7 @@ const RankingsView: React.FC = () => {
                       </span>
                       <div>
                         <h3 className={`font-semibold ${isCurrentTeam ? 'text-blue-600' : 'text-gray-900'}`}>
-                          {entry.teamName}
+                          {entry.teamId.toUpperCase()}
                           {isCurrentTeam && (
                             <span className="ml-2 text-xs font-normal text-blue-500">
                               (You)
@@ -159,7 +143,7 @@ const RankingsView: React.FC = () => {
                       <div className="text-2xl font-bold text-gray-900">
                         {percentage}%
                       </div>
-                      {entry.completionTime && percentage === 100 && (
+                      {percentage === 100 && (
                         <p className="text-xs text-green-600">
                           Finished!
                         </p>
