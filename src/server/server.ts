@@ -19,6 +19,7 @@ import photoRouter from './photoRoute';
 import settingsRouter from './settingsRoute';
 import progressRouter from './progressRoute';
 import leaderboardRouter from './leaderboardRoute';
+import teamRouter from './teamRoute';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -39,6 +40,7 @@ app.use('/api', photoRouter);
 app.use('/api', settingsRouter);
 app.use('/api', progressRouter);
 app.use('/api', leaderboardRouter);
+app.use('/api', teamRouter);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -7,6 +7,7 @@ import { useNavigationStore } from './features/navigation/navigationStore'
 import { useToastActions } from './features/notifications/ToastProvider.tsx'
 import { useAppStore } from './store/appStore'
 import { getPathParams, isValidParamSet, normalizeParams } from './utils/url'
+import { TeamLockWrapper } from './features/teamLock/TeamLockWrapper'
 
 /**
  * Vail Scavenger Hunt — React single-page app for a couples' scavenger/date experience in Vail.
@@ -170,20 +171,21 @@ export default function App() {
   }
 
   return (
-    <div className='min-h-screen text-slate-900' style={{backgroundColor: 'var(--color-cream)'}}>
-      <Header
-        isMenuOpen={isMenuOpen}
-        onToggleMenu={() => setIsMenuOpen(!isMenuOpen)}
-        completeCount={0} // Will be managed in ActiveView
-        totalStops={0} // Will be managed in ActiveView
-        percent={0} // Will be managed in ActiveView
-        onReset={reset}
-        onToggleTips={() => setShowTips(!showTips)}
-      />
+    <TeamLockWrapper>
+      <div className='min-h-screen text-slate-900' style={{backgroundColor: 'var(--color-cream)'}}>
+        <Header
+          isMenuOpen={isMenuOpen}
+          onToggleMenu={() => setIsMenuOpen(!isMenuOpen)}
+          completeCount={0} // Will be managed in ActiveView
+          totalStops={0} // Will be managed in ActiveView
+          percent={0} // Will be managed in ActiveView
+          onReset={reset}
+          onToggleTips={() => setShowTips(!showTips)}
+        />
 
-      <main className='max-w-screen-sm mx-auto'>
-        {/* Tab Container - Main Content */}
-        <TabContainer />
+        <main className='max-w-screen-sm mx-auto'>
+          {/* Tab Container - Main Content */}
+          <TabContainer />
 
         {/* Tips Modal */}
         {showTips && (
@@ -240,8 +242,9 @@ export default function App() {
         )}
       </main>
 
-      {/* Bottom Navigation - Hide on health/diagnostics pages */}
-      {activeTab !== 'health' && activeTab !== 'diagnostics' && <BottomNavigation />}
-    </div>
+        {/* Bottom Navigation - Hide on health/diagnostics pages */}
+        {activeTab !== 'health' && activeTab !== 'diagnostics' && <BottomNavigation />}
+      </div>
+    </TeamLockWrapper>
   )
 }

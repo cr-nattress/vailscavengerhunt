@@ -90,11 +90,108 @@ export const AppSettingsSchema = z.object({
   updatedAt: DateISOSchema
 })
 
+// Server-validated Settings and Progress schemas (consolidation plan)
+export const SettingsSchema = z.object({
+  locationName: z.string().min(1),
+  teamName: z.string().min(1),
+  sessionId: GuidSchema,
+  eventName: z.string().optional(),
+  // Context fields may be omitted if inferred from storage key
+  organizationId: z.string().optional(),
+  huntId: z.string().optional(),
+  lastModifiedBy: GuidSchema.optional(),
+  lastModifiedAt: DateISOSchema.optional(),
+})
+
+export const StopProgressSchema = z.object({
+  done: z.boolean(),
+  notes: z.string().optional(),
+  photo: z.string().url().nullable().optional(),
+  revealedHints: z.number().int().nonnegative().optional(),
+  completedAt: DateISOSchema.optional(),
+  lastModifiedBy: GuidSchema.optional(),
+})
+
+// Use explicit key type for broader Zod compatibility
+export const ProgressDataSchema = z.record(z.string(), StopProgressSchema)
+
+// Team lock specific error codes
+export enum TeamLockErrorCode {
+  TEAM_CODE_INVALID = 'TEAM_CODE_INVALID',
+  TEAM_LOCK_CONFLICT = 'TEAM_LOCK_CONFLICT',
+  TEAM_LOCK_EXPIRED = 'TEAM_LOCK_EXPIRED',
+  TEAM_MISMATCH = 'TEAM_MISMATCH',
+  RATE_LIMITED = 'RATE_LIMITED',
+  STORAGE_ERROR = 'STORAGE_ERROR',
+  INVALID_TOKEN = 'INVALID_TOKEN'
+}
+
+// Team code mapping (Table Storage)
+export const TeamCodeMappingSchema = z.object({
+  partitionKey: z.literal('team'),
+  rowKey: z.string().min(1, 'Team code required'), // teamCode
+  teamId: z.string().min(1, 'Team ID required'),
+  teamName: z.string().min(1, 'Team name required'),
+  isActive: z.boolean(),
+  createdAt: DateISOSchema,
+  eventId: z.string().optional()
+})
+
+// Team data (Blob Storage)
+export const TeamDataSchema = z.object({
+  teamId: z.string().min(1, 'Team ID required'),
+  name: z.string().min(1, 'Team name required'),
+  score: z.number().int().nonnegative().default(0),
+  huntProgress: ProgressDataSchema.default({}),
+  updatedAt: DateISOSchema
+})
+
+// Client lock state (localStorage)
+export const TeamLockSchema = z.object({
+  teamId: z.string().min(1, 'Team ID required'),
+  issuedAt: z.number().int().positive('Issue timestamp required'),
+  expiresAt: z.number().int().positive('Expiry timestamp required'),
+  teamCodeHash: z.string().optional(), // Optional for client-side
+  lockToken: z.string().min(1, 'Lock token required')
+})
+
+// Lock token payload (server-side)
+export const LockTokenPayloadSchema = z.object({
+  teamId: z.string().min(1),
+  exp: z.number().int().positive(),
+  iat: z.number().int().positive(),
+  sub: z.literal('team-lock')
+})
+
+// Team verification request
+export const TeamVerifyRequestSchema = z.object({
+  code: z.string().min(1, 'Team code required'),
+  deviceHint: z.string().optional()
+})
+
+// Team verification response
+export const TeamVerifyResponseSchema = z.object({
+  teamId: z.string().min(1),
+  teamName: z.string().min(1),
+  lockToken: z.string().min(1),
+  ttlSeconds: z.number().int().positive()
+})
+
 // Error response schema
 export const ErrorResponseSchema = z.object({
   error: z.string().min(1, 'Error message required'),
   details: z.string().optional(),
   status: z.number().int().optional()
+})
+
+// Enhanced error response schema for team operations
+export const TeamErrorResponseSchema = ErrorResponseSchema.extend({
+  code: z.nativeEnum(TeamLockErrorCode),
+  context: z.object({
+    teamId: z.string().optional(),
+    remainingTtlSeconds: z.number().optional(),
+    retryAfterSeconds: z.number().optional()
+  }).optional()
 })
 
 // Export inferred types
@@ -109,6 +206,16 @@ export type KVListResponse = z.infer<typeof KVListResponseSchema>
 export type SessionData = z.infer<typeof SessionDataSchema>
 export type AppSettings = z.infer<typeof AppSettingsSchema>
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>
+export type Settings = z.infer<typeof SettingsSchema>
+export type StopProgress = z.infer<typeof StopProgressSchema>
+export type ProgressData = z.infer<typeof ProgressDataSchema>
+export type TeamCodeMapping = z.infer<typeof TeamCodeMappingSchema>
+export type TeamData = z.infer<typeof TeamDataSchema>
+export type TeamLock = z.infer<typeof TeamLockSchema>
+export type LockTokenPayload = z.infer<typeof LockTokenPayloadSchema>
+export type TeamVerifyRequest = z.infer<typeof TeamVerifyRequestSchema>
+export type TeamVerifyResponse = z.infer<typeof TeamVerifyResponseSchema>
+export type TeamErrorResponse = z.infer<typeof TeamErrorResponseSchema>
 
 // Utility function to safely parse and validate data
 export function validateSchema<T>(schema: z.ZodSchema<T>, data: unknown, context?: string): T {
@@ -116,7 +223,8 @@ export function validateSchema<T>(schema: z.ZodSchema<T>, data: unknown, context
     return schema.parse(data)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessage = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+      const issues = (error as z.ZodError).issues || []
+      const errorMessage = issues.map((e: z.ZodIssue) => `${(e.path || []).join('.')}: ${e.message}`).join(', ')
       throw new Error(`Schema validation failed${context ? ` for ${context}` : ''}: ${errorMessage}`)
     }
     throw error

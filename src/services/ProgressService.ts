@@ -2,19 +2,9 @@
  * ProgressService - Handles server-side storage of hunt progress
  * Replaces localStorage with API calls for team-shared progress
  */
+import { ProgressDataSchema, StopProgressSchema, validateSchema, type ProgressData, type StopProgress } from '../types/schemas'
 
-export interface StopProgress {
-  done: boolean
-  notes?: string
-  photo?: string | null
-  revealedHints?: number
-  completedAt?: string
-  lastModifiedBy?: string
-}
-
-export interface ProgressData {
-  [stopId: string]: StopProgress
-}
+// Types now sourced from zod schemas in ../types/schemas
 
 class ProgressService {
   private baseUrl: string
@@ -48,8 +38,10 @@ class ProgressService {
       }
 
       const data = await response.json()
-      console.log('[ProgressService] Progress loaded successfully')
-      return data || {}
+      // Validate shape using Zod schema
+      const parsed = validateSchema(ProgressDataSchema, data, 'progress response')
+      console.log('[ProgressService] Progress loaded successfully (validated)')
+      return parsed || {}
     } catch (error) {
       console.error('[ProgressService] Failed to load progress:', error)
       return {}
@@ -73,6 +65,8 @@ class ProgressService {
     }
 
     try {
+      // Validate payload before sending
+      validateSchema(ProgressDataSchema, progress, 'progress payload')
       const response = await fetch(
         `${this.baseUrl}/progress/${orgId}/${teamId}/${huntId}`,
         {
@@ -118,6 +112,10 @@ class ProgressService {
     }
 
     try {
+      // Validate the partial update against StopProgress constraints where possible
+      // We validate a synthetic object that merges defaults with provided fields for type safety
+      const synthetic: any = { done: false, ...data }
+      validateSchema(StopProgressSchema.partial(), synthetic, 'stop progress update')
       const response = await fetch(
         `${this.baseUrl}/progress/${orgId}/${teamId}/${huntId}/stop/${stopId}`,
         {

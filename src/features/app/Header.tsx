@@ -1,4 +1,5 @@
 import React from 'react'
+import { TeamChip } from '../../components/TeamChip'
 
 interface HeaderProps {
   isMenuOpen: boolean
@@ -44,7 +45,12 @@ export default function Header({
             <line x1="38" y1="20" x2="220" y2="20" stroke="white" strokeWidth="0.8"/>
           </svg>
         </div>
-        
+
+        {/* Team Chip (only shows when team lock is active) */}
+        <div className="flex-1 flex justify-center">
+          <TeamChip />
+        </div>
+
         {/* Hamburger Menu Button */}
         <button
           onClick={onToggleMenu}

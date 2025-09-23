@@ -12,10 +12,7 @@ export default async (req, context) => {
   }
 
   try {
-    const store = getStore({
-      name: process.env.NETLIFY_BLOBS_STORE_NAME || 'vail-hunt-state',
-      siteID: context.site.id
-    });
+    const store = getStore({ name: 'kv' });
 
     const value = await store.get(key);
 
