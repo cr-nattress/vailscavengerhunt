@@ -26,10 +26,13 @@ export default function Header({
       borderBottomColor: 'var(--color-border)'
     }}>
       <div className='max-w-screen-sm mx-auto px-4 py-3 flex items-center justify-between'>
-        <div className='flex items-center'>
-          <h1 className='text-xl font-bold' style={{ color: 'var(--color-text-primary)' }}>
-            FindrQuest
-          </h1>
+        <div className='flex items-center justify-start'>
+          <img
+            src="/app-logo.svg"
+            alt="FindrQuest"
+            className="h-12 w-auto max-w-[200px] object-contain"
+            style={{ display: 'block' }}
+          />
         </div>
 
         {/* Team Chip (only shows when team lock is active) */}
