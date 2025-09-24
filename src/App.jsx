@@ -172,7 +172,7 @@ export default function App() {
 
   return (
     <TeamLockWrapper>
-      <div className='min-h-screen text-slate-900' style={{backgroundColor: 'var(--color-cream)'}}>
+      <div className='min-h-screen text-slate-900' style={{backgroundColor: 'var(--color-background)'}}>
         <Header
           isMenuOpen={isMenuOpen}
           onToggleMenu={() => setIsMenuOpen(!isMenuOpen)}
@@ -200,28 +200,28 @@ export default function App() {
             <div
               className='absolute inset-x-0 bottom-0 rounded-t-3xl p-5 shadow-2xl'
               style={{
-                backgroundColor: 'var(--color-white)',
+                backgroundColor: 'var(--color-surface)',
                 animation: 'slideUpModal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
                 marginBottom: '64px' // Account for bottom navigation
               }}
             >
               <div className='mx-auto max-w-screen-sm'>
                 <div className='flex items-center justify-between'>
-                  <h3 className='text-lg font-semibold flex items-center gap-2' style={{ color: 'var(--color-cabernet)' }}>📖 Rules</h3>
+                  <h3 className='text-lg font-semibold flex items-center gap-2' style={{ color: 'var(--color-text-primary)' }}>📖 Rules</h3>
                   <button
                     className='p-2 rounded-lg transition-all duration-150 transform hover:scale-110 active:scale-95'
                     style={{ backgroundColor: 'transparent' }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-light-pink)'}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--color-background)'}
                     onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                     onClick={()=>setShowTips(false)}
                     aria-label='Close'
                   >
-                    <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24' style={{ color: 'var(--color-medium-grey)' }}>
+                    <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24' style={{ color: 'var(--color-text-secondary)' }}>
                       <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
                     </svg>
                   </button>
                 </div>
-                <div className='mt-3 space-y-3 text-sm' style={{ color: 'var(--color-dark-neutral)' }}>
+                <div className='mt-3 space-y-3 text-sm' style={{ color: 'var(--color-text-primary)' }}>
                   <p className='font-medium'>Take a group photo in front of each location to prove you completed the clue.</p>
 
                   <div className='space-y-2'>

@@ -11,6 +11,7 @@ import { getRandomStops } from '../../utils/random'
 import { useProgress } from '../../hooks/useProgress'
 import { usePhotoUpload } from '../../hooks/usePhotoUpload'
 import { useCollage } from '../../hooks/useCollage'
+import { photoFlowLogger } from '../../utils/photoFlowLogger'
 
 const ActiveView: React.FC = () => {
   const { success, error: showError, warning, info } = useToastActions()
@@ -47,16 +48,25 @@ const ActiveView: React.FC = () => {
     locationName,
     eventName,
     onSuccess: (stopId, photoUrl) => {
-      // Update progress with photo URL
-      setProgress({
+      const newProgressState = {
         ...progress,
         [stopId]: {
           ...progress[stopId],
           photo: photoUrl,
           done: true,
-          timestamp: new Date().toISOString()
+          completedAt: new Date().toISOString()
         }
+      }
+
+      photoFlowLogger.info('ActiveView', 'progress_updated_with_photo', {
+        stopId,
+        photoUrl: photoUrl?.substring(0, 100) + '...',
+        stopData: newProgressState[stopId],
+        totalStopsWithPhotos: Object.values(newProgressState).filter((s: any) => s.photo).length
       })
+
+      // Update progress with photo URL
+      setProgress(newProgressState)
 
       // Trigger transition animation
       setTransitioning(stopId, true)
@@ -117,10 +127,33 @@ const ActiveView: React.FC = () => {
         const teamId = teamName || 'berrypicker'
         const hunt = huntId || 'fall-2025'
 
+        const progressWithPhotos = Object.entries(progress).filter(([_, data]: [string, any]) => data.photo)
+
+        photoFlowLogger.info('ActiveView', 'auto_save_triggered', {
+          orgId,
+          teamId,
+          hunt,
+          totalStops: Object.keys(progress).length,
+          stopsWithPhotos: progressWithPhotos.length,
+          photosData: progressWithPhotos.map(([stopId, data]: [string, any]) => ({
+            stopId,
+            hasPhoto: !!data.photo,
+            done: data.done
+          }))
+        })
+
         await progressService.saveProgress(orgId, teamId, hunt, progress, sessionId)
         console.log('✅ Progress saved to server')
+
+        photoFlowLogger.info('ActiveView', 'auto_save_success', {
+          orgId,
+          teamId,
+          hunt,
+          stopsWithPhotos: progressWithPhotos.length
+        })
       } catch (err) {
         console.error('Failed to save progress to server:', err)
+        photoFlowLogger.error('ActiveView', 'auto_save_failed', { error: err.message }, err.message)
       }
     }
 

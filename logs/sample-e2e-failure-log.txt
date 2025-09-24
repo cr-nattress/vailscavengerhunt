@@ -1,0 +1,109 @@
+E2E TEST FAILURE ANALYSIS
+============================================================
+Timestamp: 2025-09-23T22:04:35.966Z
+Base URL: http://localhost:8888
+Total Tests: 44
+Passed: 31
+Failed: 13
+Duration: 8562ms
+Exit Code: 1
+
+DETAILED FAILURE ANALYSIS (3 failures)
+============================================================
+
+FAILURE #1
+----------------------------------------
+Test: POST /team-verify should validate team codes
+File: netlify-functions.test.js
+Suite: Netlify Functions E2E Tests > Team Verification
+Endpoint: POST /.netlify/functions/team-verify
+Function: team-verify
+Error: expected 401 to be 200
+Expected Status: 200
+Actual Status: 401
+
+MANUAL TEST COMMAND:
+curl -s "http://localhost:8888/.netlify/functions/team-verify" -X POST -H "Content-Type: application/json" -d '{"code":"ALPHA01","deviceHint":"test-device"}'
+
+POSSIBLE CAUSES:
+  • Team code not found in expected storage system
+  • Authentication failure - RLS blocking access
+  • Storage bridge not working properly
+
+RECOMMENDATIONS:
+  • Test manually with curl command above
+  • Verify team codes exist in Supabase team_codes table
+  • Check if SupabaseTeamStorage bridge is working
+  • Review function logs for detailed error messages
+
+============================================================
+
+FAILURE #2
+----------------------------------------
+Test: POST /progress-set should update progress data
+File: netlify-functions.test.js
+Suite: Netlify Functions E2E Tests > Progress Management
+Endpoint: POST /.netlify/functions/progress-set
+Function: progress-set
+Error: expected 400 to be 200
+Expected Status: 200
+Actual Status: 400
+
+MANUAL TEST COMMAND:
+curl -s "http://localhost:8888/.netlify/functions/progress-set" -X POST -H "Content-Type: application/json" -d '{"orgId":"bhhs","teamId":"berrypicker","huntId":"fall-2025","progress":{"covered-bridge":{"done":true,"completedAt":"2025-09-23T22:00:00.000Z","revealedHints":1}}}'
+
+POSSIBLE CAUSES:
+  • Invalid request data or missing parameters
+  • Request validation failure
+  • Storage backend not accessible (blob storage vs Supabase)
+
+RECOMMENDATIONS:
+  • Test manually with curl command above
+  • Check request payload format matches expected schema
+  • Verify team exists in database
+  • Use progress-set-supabase function instead
+
+============================================================
+
+FAILURE #3
+----------------------------------------
+Test: GET /kv-get should retrieve stored data
+File: netlify-functions.test.js
+Suite: Netlify Functions E2E Tests > KV Store Operations
+Endpoint: GET /.netlify/functions/kv-get
+Function: kv-get
+Error: expected 404 to be 200
+Expected Status: 200
+Actual Status: 404
+
+MANUAL TEST COMMAND:
+curl -s "http://localhost:8888/.netlify/functions/kv-get?key=test-e2e-key"
+
+POSSIBLE CAUSES:
+  • Function not found or not loaded
+  • Blob storage not accessible in dev environment
+  • Function file missing or not deployed
+
+RECOMMENDATIONS:
+  • Test manually with curl command above
+  • Check health endpoint for blob storage status
+  • Verify function exists in netlify/functions directory
+  • Check Netlify dev console for function loading errors
+
+============================================================
+
+HEALTH CHECK COMMANDS:
+============================================================
+# Test overall system health
+curl "http://localhost:8888/.netlify/functions/health"
+
+# Test team verification with known good code
+curl -X POST "http://localhost:8888/.netlify/functions/team-verify" \
+  -H "Content-Type: application/json" \
+  -d '{"code":"ALPHA01","deviceHint":"debug"}'
+
+# Test Supabase progress functions
+curl "http://localhost:8888/.netlify/functions/progress-get-supabase/bhhs/berrypicker/fall-2025"
+
+# Verify Supabase data migration
+npm run migrate:data

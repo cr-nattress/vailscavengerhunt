@@ -25,7 +25,7 @@ export default function ProgressRing({
         style={{
           width: `${size * 0.67}px`, // Smaller for completed
           height: `${size * 0.67}px`,
-          backgroundColor: '#10B981',
+          backgroundColor: 'var(--color-success)',
           boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)',
           fontSize: `${size * 0.31}px`
         }}
@@ -52,7 +52,7 @@ export default function ProgressRing({
           cy={center}
           r={radius}
           fill="none"
-          stroke="#e5e7eb"
+          stroke="var(--color-border)"
           strokeWidth={strokeWidth}
         />
         
@@ -62,7 +62,7 @@ export default function ProgressRing({
           cy={center}
           r={radius}
           fill="none"
-          stroke="#3B82F6"
+          stroke="var(--color-accent)"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -75,8 +75,8 @@ export default function ProgressRing({
       
       {/* Number in center */}
       <div 
-        className="absolute inset-0 flex items-center justify-center font-bold text-slate-700"
-        style={{ fontSize: `${size * 0.39}px` }}
+        className="absolute inset-0 flex items-center justify-center font-bold"
+        style={{ fontSize: `${size * 0.39}px`, color: 'var(--color-text-primary)' }}
       >
         {number}
       </div>

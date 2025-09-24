@@ -1,10 +1,10 @@
-import { getStore } from '@netlify/blobs';
+const SupabaseStateStore = require('./_lib/supabaseStateStore');
 
 /**
- * GET /api/state/:key
- * Retrieves a value by its key from Netlify Blobs
+ * GET /state-get?key=state-key&orgId=org1&teamId=team1&sessionId=session-123
+ * Retrieves a state value by its key from Supabase
  */
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -31,11 +31,10 @@ export const handler = async (event, context) => {
   }
 
   try {
-    // Extract key from path
-    const pathParts = event.path.split('/');
-    const key = pathParts[pathParts.length - 1];
+    // Extract parameters from query string
+    const { key, orgId, teamId, sessionId, huntId } = event.queryStringParameters || {};
 
-    if (!key || key === 'state-get') {
+    if (!key) {
       return {
         statusCode: 400,
         headers,
@@ -43,27 +42,30 @@ export const handler = async (event, context) => {
       };
     }
 
-    // Get the Netlify Blobs store
-    const store = getStore({
-      name: 'vail-hunt-state',
-      consistency: 'strong' // Ensures immediate consistency
-    });
+    // Build context for state isolation
+    const context = {
+      organizationId: orgId || null,
+      teamId: teamId || null,
+      userSessionId: sessionId || null,
+      huntId: huntId || null
+    };
 
-    // Retrieve the value
-    const value = await store.get(key, { type: 'json' });
+    // Retrieve the value from Supabase
+    const value = await SupabaseStateStore.get(key, context);
 
     if (value === null) {
       return {
         statusCode: 404,
         headers,
-        body: JSON.stringify({ 
-          error: 'Key not found', 
-          key 
+        body: JSON.stringify({
+          error: 'State not found',
+          key,
+          context
         })
       };
     }
 
-    console.log(`✅ Retrieved key: ${key}`);
+    console.log(`✅ Retrieved state key: ${key} for context:`, context);
 
     return {
       statusCode: 200,
@@ -71,7 +73,8 @@ export const handler = async (event, context) => {
       body: JSON.stringify({
         key,
         value,
-        timestamp: new Date().toISOString()
+        context,
+        retrieved_at: new Date().toISOString()
       })
     };
 

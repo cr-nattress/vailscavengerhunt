@@ -12,7 +12,7 @@ const DiagnosticsView = lazy(() => import('../views/DiagnosticsView'))
 // Loading component for suspense fallback
 const LoadingView: React.FC = () => (
   <div className="flex items-center justify-center min-h-screen">
-    <div className="text-gray-500">Loading...</div>
+    <div style={{ color: 'var(--color-text-secondary)' }}>Loading...</div>
   </div>
 )
 

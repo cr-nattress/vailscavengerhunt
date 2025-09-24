@@ -1,44 +1,85 @@
-import { getStore } from '@netlify/blobs';
+const { SupabaseKVStore } = require('./_lib/supabaseKVStore.js');
 
-export default async (req, context) => {
-  const url = new URL(req.url);
-  const key = url.pathname.split('/').pop();
+exports.handler = async (event, context) => {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Content-Type': 'application/json'
+  };
 
-  if (!key) {
-    return new Response(JSON.stringify({ error: 'Key is required' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' }
-    });
+  // Handle OPTIONS request for CORS
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: ''
+    };
+  }
+
+  if (event.httpMethod !== 'GET') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
   }
 
   try {
-    const store = getStore({ name: 'kv' });
+    const { key } = event.queryStringParameters || {};
 
-    const value = await store.get(key);
-
-    if (!value) {
-      return new Response(JSON.stringify({ error: 'Key not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    if (!key) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Missing required parameter: key',
+          usage: 'GET /kv-get?key=your-key'
+        })
+      };
     }
 
-    return new Response(value, {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  } catch (error) {
-    console.error('Error getting blob:', error);
-    return new Response(JSON.stringify({
-      error: 'Failed to get value',
-      message: error.message
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-};
+    console.log(`[kv-get] Retrieving key: ${key}`);
 
-export const config = {
-  path: "/kv-get/*"
+    // Try Supabase first (new storage system)
+    const supabaseValue = await SupabaseKVStore.get(key);
+
+    if (supabaseValue !== null) {
+      console.log(`[kv-get] Found in Supabase: ${key}`);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          key,
+          value: supabaseValue,
+          source: 'supabase',
+          retrieved_at: new Date().toISOString()
+        })
+      };
+    }
+
+    // If not found in Supabase, return 404
+    console.log(`[kv-get] Key not found in Supabase: ${key}`);
+    return {
+      statusCode: 404,
+      headers,
+      body: JSON.stringify({
+        error: 'Key not found',
+        key,
+        source: 'supabase'
+      })
+    };
+
+  } catch (error) {
+    console.error('[kv-get] Error:', error);
+
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: 'Internal server error',
+        message: error.message
+      })
+    };
+  }
 };

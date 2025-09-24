@@ -3,6 +3,7 @@
  * Handles team code validation and lock token issuance
  */
 const { TeamStorage } = require('./_lib/teamStorage')
+const { SupabaseTeamStorage } = require('./_lib/supabaseTeamStorage')
 const { LockUtils } = require('./_lib/lockUtils')
 const { TeamErrorHandler } = require('./_lib/teamErrors')
 const { TeamLogger } = require('./_lib/teamLogger')
@@ -73,8 +74,13 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Look up team code mapping
-    const mapping = await TeamStorage.getTeamCodeMapping(normalizedCode)
+    // Look up team code mapping (try Supabase first, fallback to blob storage)
+    let mapping = await SupabaseTeamStorage.getTeamCodeMapping(normalizedCode)
+    if (!mapping) {
+      // Fallback to blob storage for backward compatibility
+      mapping = await TeamStorage.getTeamCodeMapping(normalizedCode)
+    }
+
     if (!mapping || !mapping.isActive) {
       TeamLogger.logVerificationAttempt(normalizedCode, 'invalid_code')
       const { error, status } = TeamErrorHandler.teamCodeInvalid()
@@ -86,11 +92,17 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Ensure team data exists
-    const { data: teamData } = await TeamStorage.getTeamData(mapping.teamId)
+    // Ensure team data exists (try Supabase first, fallback to blob storage)
+    let { data: teamData } = await SupabaseTeamStorage.getTeamData(mapping.teamId)
+    if (!teamData) {
+      // Fallback to blob storage
+      const blobResult = await TeamStorage.getTeamData(mapping.teamId)
+      teamData = blobResult.data
+    }
+
     if (!teamData) {
       // Create team if mapping exists but team data doesn't
-      const newTeam = await TeamStorage.createTeam(mapping.teamId, mapping.teamName)
+      const newTeam = await SupabaseTeamStorage.createTeam(mapping.teamId, mapping.teamName, mapping.organizationId, mapping.huntId)
       if (!newTeam) {
         TeamLogger.logVerificationAttempt(normalizedCode, 'error', mapping.teamId, 'Failed to create team')
         const { error, status } = TeamErrorHandler.storageError('Team creation failed')

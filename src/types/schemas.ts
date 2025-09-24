@@ -116,7 +116,7 @@ export const StopProgressSchema = z.object({
 // Progress data includes both stop progress objects and metadata fields
 export const ProgressDataSchema = z.record(z.string(), z.union([
   StopProgressSchema,
-  z.string() // Allow string values for metadata fields like lastModifiedBy, lastModifiedAt
+  z.string() // Allow string values for additional metadata fields (non-progress related)
 ]))
 
 // Team lock specific error codes

@@ -1,0 +1,82 @@
+{
+  "sessionId": "1758691064454",
+  "timestamp": "2025-09-24T05:18:14.455Z",
+  "entries": [
+    {
+      "timestamp": "2025-09-24T05:18:08.373Z",
+      "level": "INFO",
+      "component": "ActiveView",
+      "action": "auto_save_triggered",
+      "data": {
+        "orgId": "bhhs",
+        "teamId": "berrypicker",
+        "hunt": "fall-2025",
+        "totalStops": 1,
+        "stopsWithPhotos": 1,
+        "photosData": [
+          {
+            "stopId": "on-the-bus",
+            "hasPhoto": true,
+            "done": true
+          }
+        ]
+      }
+    },
+    {
+      "timestamp": "2025-09-24T05:18:08.373Z",
+      "level": "INFO",
+      "component": "ProgressService",
+      "action": "save_progress_request",
+      "data": {
+        "url": "/api/progress/bhhs/berrypicker/fall-2025",
+        "method": "POST",
+        "stopsWithPhotos": 1,
+        "totalStops": 1,
+        "requestBody": {
+          "progress": {
+            "on-the-bus": {
+              "done": true,
+              "hasPhoto": true,
+              "photo": "https://res.cloudinary.com/dfhxtcp4u/image/upload/v1758691079/scavenger/entries/ca303f32-331a-4b35-9...",
+              "completedAt": "2025-09-24T05:17:59.947Z"
+            }
+          },
+          "sessionId": "ca303f32-331a-4b35-9c90-ea457bbb83a3",
+          "timestamp": "2025-09-24T05:18:08.373Z"
+        }
+      }
+    },
+    {
+      "timestamp": "2025-09-24T05:18:08.381Z",
+      "level": "INFO",
+      "component": "ProgressService",
+      "action": "save_progress_response_success",
+      "data": {
+        "status": 200,
+        "responseData": {
+          "success": true,
+          "progress": {
+            "on-the-bus": {
+              "done": true,
+              "photo": "https://res.cloudinary.com/dfhxtcp4u/image/upload/v1758691079/scavenger/entries/ca303f32-331a-4b35-9c90-ea457bbb83a3/on-the-bus_1758691078081.jpg",
+              "completedAt": "2025-09-24T05:17:59.947Z",
+              "revealedHints": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2025-09-24T05:18:08.381Z",
+      "level": "INFO",
+      "component": "ActiveView",
+      "action": "auto_save_success",
+      "data": {
+        "orgId": "bhhs",
+        "teamId": "berrypicker",
+        "hunt": "fall-2025",
+        "stopsWithPhotos": 1
+      }
+    }
+  ]
+}

@@ -39,6 +39,12 @@
   to = "/.netlify/functions/photo-upload"
   status = 200
 
+# Log writing endpoint
+[[redirects]]
+  from = "/api/write-log"
+  to = "/.netlify/functions/write-log"
+  status = 200
+
 # Settings endpoints
 [[redirects]]
   from = "/api/settings/*"

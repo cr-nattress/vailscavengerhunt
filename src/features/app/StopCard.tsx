@@ -45,12 +45,12 @@ export default function StopCard({
       }`}
       onClick={state.done && !isTransitioning ? () => onToggleExpanded(stop.id) : undefined}
       style={{
-        backgroundColor: isTransitioning ? 'var(--color-light-pink)' : 'var(--color-white)',
+        backgroundColor: isTransitioning ? 'var(--color-accent)' : 'var(--color-surface)',
         borderColor: isTransitioning 
           ? 'var(--color-success)' 
-          : state.done 
-            ? 'var(--color-blush-pink)'
-            : 'var(--color-light-grey)',
+          : state.done
+            ? 'var(--color-accent)'
+            : 'var(--color-border)',
         borderWidth: isTransitioning ? '2px' : '1px',
         transform: isTransitioning ? 'scale(1.05) translateY(-4px)' : 'scale(1)',
         transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -75,10 +75,10 @@ export default function StopCard({
                   size={36}
                 />
               )}
-              <h3 className={`text-base font-semibold ${!state.photo ? 'blur-sm' : ''}`} style={{ color: 'var(--color-cabernet)' }}>{stop.title}</h3>
+              <h3 className={`text-base font-semibold ${!state.photo ? 'blur-sm' : ''}`} style={{ color: 'var(--color-text-primary)' }}>{stop.title}</h3>
             </div>
             {state.done && (
-              <span style={{ color: 'var(--color-cabernet)' }}>
+              <span style={{ color: 'var(--color-text-primary)' }}>
                 {expanded ? '▼' : '▶'}
               </span>
             )}
@@ -91,22 +91,22 @@ export default function StopCard({
                   revealNextHint()
                 }}
                 className='relative w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 shadow-sm'
-                style={{ 
-                  backgroundColor: '#f8fafc', 
-                  border: '1px solid #e2e8f0' 
+                style={{
+                  backgroundColor: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)'
                 }}
                 onMouseEnter={(e) => {
-                  (e.target as HTMLElement).style.backgroundColor = '#f1f5f9'
+                  (e.target as HTMLElement).style.backgroundColor = 'var(--color-background)'
                 }}
                 onMouseLeave={(e) => {
-                  (e.target as HTMLElement).style.backgroundColor = '#f8fafc'
+                  (e.target as HTMLElement).style.backgroundColor = 'var(--color-surface)'
                 }}
               >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" style={{ color: 'var(--color-cabernet)' }}>
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" style={{ color: 'var(--color-text-primary)' }}>
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                 </svg>
                 <span className='absolute -top-1 -right-1 w-4 h-4 text-white text-xs rounded-full flex items-center justify-center font-bold'
-                      style={{ backgroundColor: 'var(--color-cabernet)' }}>
+                      style={{ backgroundColor: 'var(--color-accent)' }}>
                   {state.revealedHints + 1}
                 </span>
               </button>
@@ -122,15 +122,15 @@ export default function StopCard({
                   <div
                     className='border-l-3 p-3 rounded-r-lg transition-all duration-300'
                     style={{
-                      backgroundColor: 'var(--color-light-pink)',
-                      borderColor: 'var(--color-cabernet)',
+                      backgroundColor: 'var(--color-surface)',
+                      borderColor: 'var(--color-accent)',
                       animation: `slideInFromLeft 0.4s ease-out forwards`,
                       opacity: 0
                     }}
                   >
                     <div className='flex items-center gap-2'>
                       <span>🎯</span>
-                      <p className='text-sm' style={{ color: 'var(--color-cabernet)' }}>
+                      <p className='text-sm' style={{ color: 'var(--color-text-primary)' }}>
                         <strong>Clue:</strong> {stop.clue}
                       </p>
                     </div>
@@ -143,9 +143,9 @@ export default function StopCard({
                 <div className='mt-3 space-y-2'>
                   {stop.hints && stop.hints.slice(0, state.revealedHints).map((hint: string, hintIndex: number) => {
                     const hintConfig = {
-                      0: { bg: 'var(--color-light-pink)', border: 'var(--color-cabernet)', text: 'var(--color-cabernet)', icon: '🎯' },
-                      1: { bg: '#f0f9ff', border: '#0ea5e9', text: '#0c4a6e', icon: '🔍' },
-                      2: { bg: '#faf5ff', border: '#a855f7', text: '#581c87', icon: '💡' }
+                      0: { bg: 'var(--color-surface)', border: 'var(--color-accent)', text: 'var(--color-accent)', icon: '🎯' },
+                      1: { bg: 'var(--color-surface)', border: 'var(--color-accent)', text: 'var(--color-accent)', icon: '🔍' },
+                      2: { bg: 'var(--color-surface)', border: 'var(--color-accent)', text: 'var(--color-accent)', icon: '💡' }
                     }[hintIndex] || { bg: '#f8fafc', border: '#64748b', text: '#334155', icon: String(hintIndex + 1) }
                     
                     return (
@@ -166,7 +166,7 @@ export default function StopCard({
                           >
                             {hintConfig.icon}
                           </span>
-                          <p className='text-sm leading-snug flex-1' style={{ color: hintConfig.text }}>
+                          <p className='text-sm leading-snug flex-1' style={{ color: 'var(--color-text-primary)' }}>
                             {hint}
                           </p>
                         </div>
@@ -184,7 +184,7 @@ export default function StopCard({
       {(!state.done || expanded) && (
         <>
           <div className='mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3'>
-            <div className='rounded-xl border p-3'>
+            <div className='rounded-xl p-3' style={{ border: '1px solid var(--color-border)' }}>
               {state.photo && (
                 <div className={`text-xs uppercase tracking-wide`} style={{ color: 'var(--color-success)' }}>
                   ✅ Photo Complete
@@ -192,7 +192,7 @@ export default function StopCard({
               )}
               {/* If this image fails to load, confirm the path root (see PHOTO_GUIDES note). */}
               {displayImage && <img src={displayImage} alt='Selfie' className='mt-2 rounded-md object-cover w-full h-40' onError={(e) => {(e.target as HTMLElement).style.display='none'}} />}
-              <div className='mt-2 flex items-center gap-2 text-xs text-slate-500'>
+              <div className='mt-2 flex items-center gap-2 text-xs' style={{ color: 'var(--color-text-secondary)' }}>
                 {state.photo ? '✨ Your photo' : '📷 Capture a creative selfie together at this location.'}
               </div>
             </div>
@@ -214,9 +214,9 @@ export default function StopCard({
                     ? 'cursor-wait hover:scale-[1.02] active:scale-[0.98]' 
                     : 'hover:scale-[1.02] active:scale-[0.98]'
                 }`} 
-                style={{ backgroundColor: isUploading ? 'var(--color-warm-grey)' : 'var(--color-cabernet)' }} 
-                onMouseEnter={(e) => { if (!isUploading) (e.target as HTMLElement).style.backgroundColor = 'var(--color-cabernet-hover)' }} 
-                onMouseLeave={(e) => { if (!isUploading) (e.target as HTMLElement).style.backgroundColor = 'var(--color-cabernet)' }}
+                style={{ backgroundColor: isUploading ? 'var(--color-warm-grey)' : 'var(--color-accent)' }}
+                onMouseEnter={(e) => { if (!isUploading) (e.target as HTMLElement).style.backgroundColor = 'var(--color-accent)' }}
+                onMouseLeave={(e) => { if (!isUploading) (e.target as HTMLElement).style.backgroundColor = 'var(--color-accent)' }}
                 onClick={(e) => e.stopPropagation()}
               >
                 {isUploading ? (
@@ -235,7 +235,7 @@ export default function StopCard({
           )}
 
           {state.done && (
-            <div className='mt-3 flex items-center gap-2 text-sm italic' style={{ color: 'var(--color-cabernet)' }}>
+            <div className='mt-3 flex items-center gap-2 text-sm italic' style={{ color: 'var(--color-text-secondary)' }}>
               <span>❤</span> {stop.funFact}
             </div>
           )}

@@ -7,6 +7,18 @@ const router = Router()
 const localProgressStore = new Map<string, any>()
 const localMetadataStore = new Map<string, any>()
 
+// Metadata fields that should not be included in progress data
+const METADATA_FIELDS = ['lastModifiedBy', 'lastModifiedAt'] as const
+
+// Utility function to clean metadata fields from progress data
+function cleanProgressData(progress: any): any {
+  const cleaned = { ...progress }
+  METADATA_FIELDS.forEach(field => {
+    delete cleaned[field]
+  })
+  return cleaned
+}
+
 // GET progress for a team's hunt
 router.get('/progress/:orgId/:teamId/:huntId', async (req, res) => {
   const { orgId, teamId, huntId } = req.params
@@ -20,7 +32,11 @@ router.get('/progress/:orgId/:teamId/:huntId', async (req, res) => {
 
   try {
     const progress = localProgressStore.get(key) || {}
-    res.json(progress)
+
+    // Clean progress data by removing any metadata fields that shouldn't be there
+    const cleanProgress = cleanProgressData(progress)
+
+    res.json(cleanProgress)
   } catch (error) {
     console.error('Error fetching progress:', error)
     res.status(500).json({ error: 'Failed to fetch progress' })
@@ -65,13 +81,16 @@ router.post('/progress/:orgId/:teamId/:huntId', async (req, res) => {
       })
     }
 
-    // Merge with existing progress (team-shared)
+    // Merge with existing progress (team-shared) - exclude metadata fields
     const existingProgress = localProgressStore.get(key) || {}
+
+    // Clean existing progress by removing any metadata fields that shouldn't be there
+    const cleanExistingProgress = cleanProgressData(existingProgress)
+
+    // Merge only the actual progress data (no metadata)
     const mergedProgress = {
-      ...existingProgress,
-      ...progress,
-      lastModifiedBy: sessionId,
-      lastModifiedAt: timestamp || new Date().toISOString()
+      ...cleanExistingProgress,
+      ...progress
     }
 
     localProgressStore.set(key, mergedProgress)

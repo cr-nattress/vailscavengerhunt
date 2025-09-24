@@ -3,6 +3,7 @@
  * Replaces localStorage with API calls for team-shared progress
  */
 import { ProgressDataSchema, StopProgressSchema, validateSchema, type ProgressData, type StopProgress } from '../types/schemas'
+import { photoFlowLogger } from '../utils/photoFlowLogger'
 
 // Types now sourced from zod schemas in ../types/schemas
 
@@ -67,6 +68,37 @@ class ProgressService {
     try {
       // Validate payload before sending
       validateSchema(ProgressDataSchema, progress, 'progress payload')
+
+      // Log the progress data being sent (with photo URLs)
+      const progressWithPhotos = Object.entries(progress).filter(([_, data]) => (data as any).photo)
+      console.log(`[ProgressService] Sending progress with ${progressWithPhotos.length} photo URLs:`,
+        progressWithPhotos.map(([stopId, data]) => ({ stopId, photo: (data as any).photo?.substring(0, 50) + '...' })))
+
+      const requestBody = {
+        progress,
+        sessionId, // For audit trail only
+        timestamp: new Date().toISOString()
+      }
+
+      photoFlowLogger.info('ProgressService', 'save_progress_request', {
+        url: `${this.baseUrl}/progress/${orgId}/${teamId}/${huntId}`,
+        method: 'POST',
+        stopsWithPhotos: progressWithPhotos.length,
+        totalStops: Object.keys(progress).length,
+        requestBody: {
+          ...requestBody,
+          progress: Object.entries(progress).reduce((acc, [stopId, data]: [string, any]) => {
+            acc[stopId] = {
+              done: data.done,
+              hasPhoto: !!data.photo,
+              photo: data.photo?.substring(0, 100) + '...' || null,
+              completedAt: data.completedAt
+            }
+            return acc
+          }, {} as any)
+        }
+      })
+
       const response = await fetch(
         `${this.baseUrl}/progress/${orgId}/${teamId}/${huntId}`,
         {
@@ -74,22 +106,33 @@ class ProgressService {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            progress,
-            sessionId, // For audit trail only
-            timestamp: new Date().toISOString()
-          })
+          body: JSON.stringify(requestBody)
         }
       )
 
       if (!response.ok) {
+        const errorText = await response.text()
+        photoFlowLogger.error('ProgressService', 'save_progress_response_error', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        }, `${response.status}: ${response.statusText}`)
         throw new Error(`Failed to save progress: ${response.statusText}`)
       }
+
+      const responseData = await response.json()
+      photoFlowLogger.info('ProgressService', 'save_progress_response_success', {
+        status: response.status,
+        responseData
+      })
 
       console.log('[ProgressService] Progress saved successfully')
       return true
     } catch (error) {
       console.error('[ProgressService] Failed to save progress:', error)
+      photoFlowLogger.error('ProgressService', 'save_progress_error', {
+        error: error.message
+      }, error.message)
       return false
     }
   }

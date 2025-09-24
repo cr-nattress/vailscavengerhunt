@@ -1,11 +1,11 @@
-import { getStore } from '@netlify/blobs';
+const SupabaseStateStore = require('./_lib/supabaseStateStore');
 
 /**
- * GET /api/state-list
- * Lists all keys in Netlify Blobs store with optional values
- * Query params: includeValues=true to include values
+ * GET /state-list?orgId=org1&teamId=team1&type=session
+ * Lists all state keys for a context with optional filtering
+ * Query params: orgId, teamId, sessionId, type
  */
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -32,57 +32,33 @@ export const handler = async (event, context) => {
   }
 
   try {
-    // Get the Netlify Blobs store
-    const store = getStore({
-      name: 'vail-hunt-state',
-      consistency: 'strong'
-    });
-
     // Parse query parameters
-    const { includeValues } = event.queryStringParameters || {};
+    const { orgId, teamId, sessionId, huntId, type } = event.queryStringParameters || {};
 
-    // List all keys
-    const { blobs } = await store.list();
-    const keys = blobs.map(blob => blob.key);
+    // Build context for state isolation
+    const context = {
+      organizationId: orgId || null,
+      teamId: teamId || null,
+      userSessionId: sessionId || null,
+      huntId: huntId || null
+    };
 
-    if (includeValues === 'true') {
-      // Fetch all values
-      const entries = {};
-      
-      for (const key of keys) {
-        try {
-          const data = await store.get(key, { type: 'json' });
-          entries[key] = data ? data.value : null;
-        } catch (error) {
-          console.warn(`Failed to retrieve value for key ${key}:`, error);
-          entries[key] = null;
-        }
-      }
+    // List all state keys for the context
+    const keys = await SupabaseStateStore.list(context, type);
 
-      console.log(`✅ Listed ${keys.length} keys with values`);
+    console.log(`✅ Listed ${keys.length} state keys for context:`, context, 'type:', type);
 
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          count: keys.length,
-          data: entries,
-          timestamp: new Date().toISOString()
-        })
-      };
-    } else {
-      console.log(`✅ Listed ${keys.length} keys`);
-
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          count: keys.length,
-          keys,
-          timestamp: new Date().toISOString()
-        })
-      };
-    }
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        keys,
+        count: keys.length,
+        context,
+        type: type || 'all',
+        retrieved_at: new Date().toISOString()
+      })
+    };
 
   } catch (error) {
     console.error('Error listing keys:', error);

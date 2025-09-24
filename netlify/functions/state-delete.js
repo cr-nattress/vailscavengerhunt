@@ -1,10 +1,10 @@
-import { getStore } from '@netlify/blobs';
+const SupabaseStateStore = require('./_lib/supabaseStateStore');
 
 /**
- * DELETE /api/state-delete/:key
- * Deletes a key-value pair from Netlify Blobs
+ * DELETE /state-delete?key=state-key&orgId=org1&teamId=team1
+ * Deletes a state value from Supabase
  */
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -31,11 +31,10 @@ export const handler = async (event, context) => {
   }
 
   try {
-    // Extract key from path
-    const pathParts = event.path.split('/');
-    const key = pathParts[pathParts.length - 1];
+    // Extract parameters from query string
+    const { key, orgId, teamId, sessionId, huntId } = event.queryStringParameters || {};
 
-    if (!key || key === 'state-delete') {
+    if (!key) {
       return {
         statusCode: 400,
         headers,
@@ -43,38 +42,50 @@ export const handler = async (event, context) => {
       };
     }
 
-    // Get the Netlify Blobs store
-    const store = getStore({
-      name: 'vail-hunt-state',
-      consistency: 'strong'
-    });
+    // Build context for state isolation
+    const context = {
+      organizationId: orgId || null,
+      teamId: teamId || null,
+      userSessionId: sessionId || null,
+      huntId: huntId || null
+    };
 
-    // Check if key exists before deleting
-    const existingValue = await store.get(key, { type: 'json' });
-    
+    // Check if state exists before deleting
+    const existingValue = await SupabaseStateStore.get(key, context);
+
     if (existingValue === null) {
       return {
         statusCode: 404,
         headers,
-        body: JSON.stringify({ 
-          error: 'Key not found', 
-          key 
+        body: JSON.stringify({
+          error: 'State not found',
+          key,
+          context
         })
       };
     }
 
-    // Delete the key
-    await store.delete(key);
+    // Delete the state
+    const success = await SupabaseStateStore.delete(key, context);
 
-    console.log(`✅ Deleted key: ${key}`);
+    if (!success) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Failed to delete state' })
+      };
+    }
+
+    console.log(`✅ Deleted state key: ${key} for context:`, context);
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        message: 'Value deleted successfully',
+        success: true,
         key,
-        timestamp: new Date().toISOString()
+        context,
+        deleted_at: new Date().toISOString()
       })
     };
 

@@ -54,14 +54,30 @@ const HistoryView: React.FC = () => {
   // Transform progress data into history entries
   const historyEntries: HistoryEntry[] = stops
     .filter(stop => progress?.[stop.id]?.done)
-    .map(stop => ({
-      stopId: stop.id,
-      stopTitle: stop.title,
-      photo: progress[stop.id].photo,
-      timestamp: progress[stop.id].timestamp,
-      done: true,
-    }))
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .map(stop => {
+      // Try multiple timestamp fields for backward compatibility
+      const stopProgress = progress[stop.id]
+      const timestamp = stopProgress.completedAt || stopProgress.timestamp || new Date().toISOString()
+
+      return {
+        stopId: stop.id,
+        stopTitle: stop.title,
+        photo: stopProgress.photo,
+        timestamp,
+        done: true,
+      }
+    })
+    .sort((a, b) => {
+      // Safely handle date sorting with fallback
+      const dateA = new Date(a.timestamp)
+      const dateB = new Date(b.timestamp)
+
+      // If either date is invalid, use current time as fallback
+      const timeA = isNaN(dateA.getTime()) ? new Date().getTime() : dateA.getTime()
+      const timeB = isNaN(dateB.getTime()) ? new Date().getTime() : dateB.getTime()
+
+      return timeB - timeA
+    })
 
   const togglePhotoExpanded = (stopId: string) => {
     setExpandedPhotos(prev => {
@@ -77,13 +93,24 @@ const HistoryView: React.FC = () => {
 
   const formatDate = (timestamp: string) => {
     const date = new Date(timestamp)
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    })
+
+    // Handle invalid dates gracefully
+    if (isNaN(date.getTime())) {
+      return 'Recently'
+    }
+
+    try {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+    } catch (error) {
+      // Fallback for any formatting errors
+      return 'Recently'
+    }
   }
 
   if (isLoading) {

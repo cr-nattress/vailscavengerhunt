@@ -7,7 +7,7 @@
     <title>Vail Scavenger Hunt</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      /* BHHS Color Palette CSS Variables */
+      /* BHHS Color Palette CSS Variables (Legacy - to be deprecated) */
       :root {
         --color-cabernet: #552448;
         --color-cabernet-hover: #6B3057;
@@ -24,14 +24,33 @@
         --color-warning: #A67C52;
         --color-white: #FFFFFF;
         --color-black: #000000;
+
+        /* Modern Tech Color Scheme */
+        --color-primary: #0F172A;           /* Navy blue for headers/primary elements */
+        --color-background: #F1F5F9;       /* Cool gray background */
+        --color-surface: #FFFFFF;          /* White for cards/containers */
+        --color-accent: #14B8A6;           /* Teal for progress/interactive elements */
+        --color-text-primary: #475569;     /* Slate for primary text */
+        --color-text-secondary: #64748B;   /* Light slate for secondary text */
+        --color-border: #E2E8F0;           /* Light borders and dividers */
+        --color-success: #10B981;          /* Success green */
+        --color-error: #EF4444;            /* Error red */
+        --color-warning: #F59E0B;          /* Warning amber */
         
         --font-family-primary: "Georgia", "Times New Roman", serif;
         --font-family-secondary: "Helvetica Neue", "Arial", sans-serif;
         
-        --shadow-sm: 0 1px 2px 0 rgba(85, 36, 72, 0.05);
-        --shadow-md: 0 4px 6px -1px rgba(85, 36, 72, 0.1), 0 2px 4px -1px rgba(85, 36, 72, 0.06);
-        --shadow-lg: 0 10px 15px -3px rgba(85, 36, 72, 0.1), 0 4px 6px -2px rgba(85, 36, 72, 0.05);
-        --shadow-xl: 0 20px 25px -5px rgba(85, 36, 72, 0.1), 0 10px 10px -5px rgba(85, 36, 72, 0.04);
+        /* Legacy shadows (to be deprecated) */
+        --shadow-sm-legacy: 0 1px 2px 0 rgba(85, 36, 72, 0.05);
+        --shadow-md-legacy: 0 4px 6px -1px rgba(85, 36, 72, 0.1), 0 2px 4px -1px rgba(85, 36, 72, 0.06);
+        --shadow-lg-legacy: 0 10px 15px -3px rgba(85, 36, 72, 0.1), 0 4px 6px -2px rgba(85, 36, 72, 0.05);
+        --shadow-xl-legacy: 0 20px 25px -5px rgba(85, 36, 72, 0.1), 0 10px 10px -5px rgba(85, 36, 72, 0.04);
+
+        /* Modern Tech shadows */
+        --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+        --shadow-md: 0 4px 6px rgba(15, 23, 42, 0.08);
+        --shadow-lg: 0 10px 15px rgba(15, 23, 42, 0.08);
+        --shadow-xl: 0 20px 25px rgba(15, 23, 42, 0.08);
       }
       
       /* Global Typography */
@@ -46,6 +65,19 @@
         font-weight: 600;
       }
       
+      /* Theme Transition Classes */
+      .theme-transition * {
+        transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
+      }
+
+      .theme-modern {
+        /* Modern theme is active - classes will be applied via components */
+      }
+
+      .theme-legacy {
+        /* Legacy theme is active - default styling */
+      }
+
       /* Custom animations for enhanced UX */
       @keyframes slideDown {
         from {
@@ -113,7 +145,7 @@
       }
     </style>
   </head>
-  <body style="background-color: var(--color-cream);">
+  <body class="theme-modern" style="background-color: var(--color-background);">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

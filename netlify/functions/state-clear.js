@@ -1,10 +1,11 @@
-import { getStore } from '@netlify/blobs';
+const SupabaseStateStore = require('./_lib/supabaseStateStore');
 
 /**
- * POST /api/state-clear
- * Clears all key-value pairs from Netlify Blobs store
+ * POST /state-clear
+ * Clears state data for a specific context
+ * Body: { context: {}, type: string }
  */
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -31,30 +32,31 @@ export const handler = async (event, context) => {
   }
 
   try {
-    // Get the Netlify Blobs store
-    const store = getStore({
-      name: 'vail-hunt-state',
-      consistency: 'strong'
-    });
+    // Parse request body
+    const { context: requestContext, type } = JSON.parse(event.body || '{}');
 
-    // List all keys first
-    const { blobs } = await store.list();
-    const keys = blobs.map(blob => blob.key);
-    const previousSize = keys.length;
+    // Build context for state isolation
+    const context = {
+      organizationId: requestContext?.organizationId || null,
+      teamId: requestContext?.teamId || null,
+      userSessionId: requestContext?.userSessionId || null,
+      huntId: requestContext?.huntId || null
+    };
 
-    // Delete all keys
-    const deletePromises = keys.map(key => store.delete(key));
-    await Promise.all(deletePromises);
+    // Clear all state for the context
+    const clearedCount = await SupabaseStateStore.clear(context, type);
 
-    console.log(`⚠️ Cleared all state (${previousSize} entries removed)`);
+    console.log(`⚠️ Cleared ${clearedCount} state entries for context:`, context, 'type:', type);
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        message: 'All state cleared',
-        entriesCleared: previousSize,
-        timestamp: new Date().toISOString()
+        success: true,
+        cleared_count: clearedCount,
+        context,
+        type: type || 'all',
+        cleared_at: new Date().toISOString()
       })
     };
 

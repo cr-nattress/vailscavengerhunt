@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { PhotoUploadService } from '../client/PhotoUploadService'
 import { base64ToFile } from '../utils/image'
 import { useToastActions } from '../features/notifications/ToastProvider'
+import { photoFlowLogger } from '../utils/photoFlowLogger'
 
 interface UsePhotoUploadOptions {
   sessionId: string
@@ -28,6 +29,13 @@ export function usePhotoUpload({
     fileOrDataUrl: File | string,
     stopTitle: string
   ) => {
+    photoFlowLogger.info('usePhotoUpload', 'upload_start', {
+      stopId,
+      stopTitle,
+      fileType: typeof fileOrDataUrl === 'string' ? 'dataUrl' : 'file',
+      fileSize: typeof fileOrDataUrl === 'string' ? fileOrDataUrl.length : fileOrDataUrl.size
+    })
+
     // Mark as uploading
     setUploadingStops(prev => new Set(prev).add(stopId))
 
@@ -124,6 +132,12 @@ export function usePhotoUpload({
       }
 
       const photoUrl = response.photoUrl
+
+      photoFlowLogger.info('usePhotoUpload', 'upload_success', {
+        stopId,
+        photoUrl: photoUrl?.substring(0, 100) + '...',
+        responseData: response
+      })
 
       // Mark upload complete
       setUploadingStops(prev => {

@@ -13,9 +13,18 @@ export default defineConfig({
         secure: false
       },
       '/api/progress': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:8890/.netlify/functions',
         changeOrigin: true,
-        secure: false
+        secure: false,
+        configure: (proxy, _options) => {
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            if (req.method === 'GET') {
+              proxyReq.path = proxyReq.path.replace('/api/progress', '/progress-get')
+            } else if (req.method === 'POST') {
+              proxyReq.path = proxyReq.path.replace('/api/progress', '/progress-set')
+            }
+          })
+        }
       },
       '/api/leaderboard': {
         target: 'http://localhost:3001',

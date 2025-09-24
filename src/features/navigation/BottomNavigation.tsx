@@ -65,21 +65,28 @@ export const BottomNavigation: React.FC = () => {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom" style={{ backgroundColor: 'var(--color-surface)', borderTop: '1px solid var(--color-border)' }}>
       <div className="flex justify-around items-center h-16 px-2">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => handleTabClick(tab.id)}
-            className={`
-              flex-1 flex flex-col items-center justify-center
-              py-2 px-3 text-xs
-              transition-colors duration-200
-              ${activeTab === tab.id
-                ? 'text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
+            className="flex-1 flex flex-col items-center justify-center py-2 px-3 text-xs transition-colors duration-200"
+            style={{
+              color: activeTab === tab.id
+                ? 'var(--color-accent)'
+                : 'var(--color-text-secondary)'
+            }}
+            onMouseEnter={(e) => {
+              if (activeTab !== tab.id) {
+                (e.currentTarget as HTMLElement).style.color = 'var(--color-text-primary)'
               }
-            `}
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== tab.id) {
+                (e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)'
+              }
+            }}
             aria-label={tab.label}
             aria-current={activeTab === tab.id ? 'page' : undefined}
           >

@@ -1,11 +1,11 @@
-import { getStore } from '@netlify/blobs';
+const SupabaseStateStore = require('./_lib/supabaseStateStore');
 
 /**
- * POST /api/state-set
- * Creates or updates a key-value pair in Netlify Blobs
- * Body: { key: string, value: any }
+ * POST /state-set
+ * Creates or updates a state value in Supabase
+ * Body: { key: string, value: any, context: {}, type: string, ttlSeconds: number }
  */
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -33,7 +33,7 @@ export const handler = async (event, context) => {
 
   try {
     // Parse request body
-    const { key, value } = JSON.parse(event.body || '{}');
+    const { key, value, context: requestContext, type, ttlSeconds } = JSON.parse(event.body || '{}');
 
     if (!key) {
       return {
@@ -51,36 +51,44 @@ export const handler = async (event, context) => {
       };
     }
 
-    // Get the Netlify Blobs store
-    const store = getStore({
-      name: 'vail-hunt-state',
-      consistency: 'strong'
-    });
-
-    // Check if key already exists
-    const existingValue = await store.get(key, { type: 'json' });
-    const isUpdate = existingValue !== null;
-
-    // Set the value with metadata
-    const dataToStore = {
-      value,
-      createdAt: isUpdate ? existingValue.createdAt : new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    // Build context for state isolation
+    const context = {
+      organizationId: requestContext?.organizationId || null,
+      teamId: requestContext?.teamId || null,
+      userSessionId: requestContext?.userSessionId || null,
+      huntId: requestContext?.huntId || null,
+      stateType: type || 'session'
     };
 
-    await store.setJSON(key, dataToStore);
+    // Check if state already exists
+    const existingValue = await SupabaseStateStore.get(key, context);
+    const isUpdate = existingValue !== null;
 
-    console.log(`✅ ${isUpdate ? 'Updated' : 'Created'} key: ${key}`);
+    // Set the state value in Supabase
+    const success = await SupabaseStateStore.set(key, value, context, ttlSeconds);
+
+    if (!success) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Failed to store state value' })
+      };
+    }
+
+    console.log(`✅ ${isUpdate ? 'Updated' : 'Created'} state key: ${key} for context:`, context);
 
     return {
       statusCode: isUpdate ? 200 : 201,
       headers,
       body: JSON.stringify({
-        message: isUpdate ? 'Value updated successfully' : 'Value created successfully',
+        success: true,
         key,
         value,
+        context,
+        type: context.stateType,
         action: isUpdate ? 'update' : 'create',
-        timestamp: new Date().toISOString()
+        stored_at: new Date().toISOString(),
+        ttl_seconds: ttlSeconds || null
       })
     };
 

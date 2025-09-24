@@ -1,5 +1,7 @@
 import { getStore } from '@netlify/blobs'
 import { z } from 'zod'
+import { SupabaseTeamStorage } from './_lib/supabaseTeamStorage.js'
+import { serverLogger } from './_lib/serverLogger.js'
 
 // Zod schemas mirroring client-side definitions (kept local to avoid TS imports)
 const DateISOSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/, 'Invalid ISO date format')
@@ -39,7 +41,13 @@ export default async (req, context) => {
 
   if (pathParts.length < 3) {
     console.error('Missing parameters. Path parts:', pathParts, 'URL:', url.pathname)
-    return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
+    return new Response(JSON.stringify({
+      error: 'Missing required parameters',
+      expected: 'POST /progress-set/{orgId}/{teamId}/{huntId}',
+      received: `POST ${url.pathname}`,
+      pathParts: pathParts,
+      usage: 'Include orgId, teamId, and huntId in URL path'
+    }), {
       status: 400,
       headers: {
         'Content-Type': 'application/json',
@@ -53,25 +61,114 @@ export default async (req, context) => {
   const metadataKey = `${orgId}/${teamId}/${huntId}/metadata`
 
   try {
-    const body = await req.json()
+    let body
+    try {
+      body = await req.json()
+    } catch (jsonError) {
+      console.error('JSON parsing error:', jsonError)
+      return new Response(JSON.stringify({
+        error: 'Invalid JSON payload',
+        message: jsonError.message,
+        usage: 'Send valid JSON with progress data'
+      }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      })
+    }
+
     const { progress, sessionId, timestamp } = body
 
-    // Validate progress payload shape
-    const parsedProgress = ProgressDataSchema.safeParse(progress)
-    if (!parsedProgress.success) {
-      const details = parsedProgress.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')
-      return new Response(JSON.stringify({ error: 'Invalid progress payload', details }), {
+    if (!progress) {
+      serverLogger.error('progress-set', 'missing_progress_data', {
+        received: Object.keys(body),
+        expected: 'Object with progress property containing stop data'
+      })
+      return new Response(JSON.stringify({
+        error: 'Progress data required',
+        received: Object.keys(body),
+        expected: 'Object with progress property containing stop data'
+      }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
       })
     }
 
-    if (!progress) {
-      return new Response(JSON.stringify({ error: 'Progress data required' }), {
+    // Log progress data received with photo URLs
+    const progressWithPhotos = Object.entries(progress).filter(([_, data]) => data?.photo)
+    console.log(`[progress-set] Received progress data with ${progressWithPhotos.length} photo URLs:`,
+      progressWithPhotos.map(([stopId, data]) => ({
+        stopId,
+        photo: data.photo?.substring(0, 50) + '...',
+        done: data.done
+      })))
+
+    serverLogger.info('progress-set', 'request_received', {
+      orgId,
+      teamId,
+      huntId,
+      sessionId,
+      totalStops: Object.keys(progress).length,
+      stopsWithPhotos: progressWithPhotos.length,
+      progressData: Object.entries(progress).reduce((acc, [stopId, data]) => {
+        acc[stopId] = {
+          done: data.done,
+          hasPhoto: !!data.photo,
+          photo: data.photo?.substring(0, 100) + '...' || null,
+          completedAt: data.completedAt
+        }
+        return acc
+      }, {})
+    })
+
+    // Filter out metadata fields from progress data before validation
+    const { lastModifiedBy, lastModifiedAt, ...cleanProgressForValidation } = progress
+
+    // Validate progress payload shape with detailed error reporting
+    const parsedProgress = ProgressDataSchema.safeParse(cleanProgressForValidation)
+    if (!parsedProgress.success) {
+      const details = parsedProgress.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')
+      console.error('Progress validation failed:', {
+        errors: parsedProgress.error.issues,
+        receivedProgress: progress
+      })
+
+      return new Response(JSON.stringify({
+        error: 'Invalid progress payload',
+        details,
+        receivedKeys: Object.keys(progress || {}),
+        sampleValidProgress: {
+          "stop-id": {
+            done: true,
+            completedAt: "2025-09-23T22:00:00.000Z",
+            revealedHints: 1
+          }
+        }
+      }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
       })
     }
+
+    // Try Supabase first for team validation
+    console.log(`[progress-set] Validating team exists: ${orgId}/${teamId}/${huntId}`)
+    const teamExists = await SupabaseTeamStorage.validateTeamExists(orgId, teamId, huntId)
+
+    if (!teamExists) {
+      console.warn(`[progress-set] Team not found in Supabase: ${orgId}/${teamId}/${huntId}`)
+    } else {
+      console.log(`[progress-set] Team validated successfully: ${orgId}/${teamId}/${huntId}`)
+    }
+
+    console.log(`[progress-set] Will attempt Supabase save: teamExists=${teamExists}`)
 
     const store = getStore({ name: 'hunt-data' })
 
@@ -80,11 +177,73 @@ export default async (req, context) => {
     const mergedProgress = {
       ...existingProgress,
       ...parsedProgress.data,
-      lastModifiedBy: sessionId,
+      lastModifiedBy: sessionId || 'unknown',
       lastModifiedAt: timestamp || new Date().toISOString()
     }
 
     await store.setJSON(key, mergedProgress)
+
+    // Also try to save to Supabase if team exists
+    if (teamExists) {
+      try {
+        console.log(`[progress-set] Saving to Supabase: ${orgId}/${teamId}/${huntId}`)
+
+        // Clean merged progress data to remove metadata fields before sending to Supabase
+        const cleanedProgress = { ...mergedProgress }
+        delete cleanedProgress.lastModifiedBy
+        delete cleanedProgress.lastModifiedAt
+
+        console.log(`[progress-set] Cleaned progress data before Supabase:`, Object.keys(cleanedProgress))
+        const cleanedProgressWithPhotos = Object.entries(cleanedProgress).filter(([_, data]) => data?.photo)
+        console.log(`[progress-set] Cleaned progress with photos (${cleanedProgressWithPhotos.length}):`,
+          cleanedProgressWithPhotos.map(([k, v]) => ({ [k]: { done: v.done, hasPhoto: !!v.photo, photoUrl: v.photo?.substring(0, 50) + '...' } })))
+
+        serverLogger.info('progress-set', 'supabase_save_attempt', {
+          orgId,
+          teamId,
+          huntId,
+          totalStops: Object.keys(cleanedProgress).length,
+          stopsWithPhotos: cleanedProgressWithPhotos.length,
+          cleanedProgressData: Object.entries(cleanedProgress).reduce((acc, [stopId, data]) => {
+            acc[stopId] = {
+              done: data.done,
+              hasPhoto: !!data.photo,
+              photo: data.photo?.substring(0, 100) + '...' || null,
+              completedAt: data.completedAt
+            }
+            return acc
+          }, {})
+        })
+
+        console.log(`[progress-set] About to call SupabaseTeamStorage.updateTeamProgress...`)
+        const supabaseResult = await SupabaseTeamStorage.updateTeamProgress(orgId, teamId, huntId, cleanedProgress)
+        console.log(`[progress-set] Supabase call result:`, supabaseResult)
+
+        serverLogger.info('progress-set', 'supabase_save_success', {
+          orgId,
+          teamId,
+          huntId,
+          stopsWithPhotos: cleanedProgressWithPhotos.length
+        })
+      } catch (supabaseError) {
+        console.warn('[progress-set] Supabase save failed, continuing with blob storage:', supabaseError.message)
+        console.error('[progress-set] Supabase error details:', supabaseError)
+
+        serverLogger.error('progress-set', 'supabase_save_failed', {
+          orgId,
+          teamId,
+          huntId,
+          error: supabaseError.message,
+          stack: supabaseError.stack
+        }, supabaseError.message)
+      }
+    } else {
+      serverLogger.warn('progress-set', 'team_not_found_skipping_supabase', {
+        orgId,
+        teamId,
+        huntId
+      })
+    }
 
     // Update metadata for audit trail
     const metadata = await store.get(metadataKey, { type: 'json' }) || { contributors: [] }
