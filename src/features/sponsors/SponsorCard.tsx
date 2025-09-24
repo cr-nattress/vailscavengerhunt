@@ -41,15 +41,17 @@ export const SponsorCard: React.FC<SponsorCardProps> = ({ items, layout }) => {
       aria-label="Sponsors"
     >
       <div className="absolute z-10" style={{ top: '0px', right: '5px' }}>
-        <span className="px-1.5 py-0.5 bg-black bg-opacity-60 text-white text-xs rounded" style={{ fontSize: '10px' }}>
+        <span className="px-1.5 py-0.5 bg-black bg-opacity-60 text-white text-xs rounded" style={{ fontSize: '9px' }}>
           Sponsors
         </span>
       </div>
-      <div className={`grid gap-3 ${gridCols}`}>
-        {items.map((sponsor) => (
+      <div className={`grid ${gridCols}`}>
+        {items.map((sponsor, index) => (
           <SponsorItem
             key={sponsor.id}
             sponsor={sponsor}
+            index={index}
+            total={items.length}
           />
         ))}
       </div>
@@ -59,9 +61,27 @@ export const SponsorCard: React.FC<SponsorCardProps> = ({ items, layout }) => {
 
 interface SponsorItemProps {
   sponsor: SponsorAsset
+  index: number
+  total: number
 }
 
-const SponsorItem: React.FC<SponsorItemProps> = ({ sponsor }) => {
+const SponsorItem: React.FC<SponsorItemProps> = ({ sponsor, index, total }) => {
+  // Calculate border classes based on position in grid
+  const getBorderClasses = () => {
+    if (total === 1) return 'border border-gray-200 rounded'
+
+    // For 2 items (1x2 grid)
+    if (total === 2) {
+      if (index === 0) return 'border border-gray-200 rounded-l border-r-0' // Left item
+      if (index === 1) return 'border border-gray-200 rounded-r border-l-0' // Right item
+    }
+
+    // For 3+ items, remove borders between adjacent items
+    if (index === 0) return 'border border-gray-200 rounded-l border-r-0'
+    if (index === total - 1) return 'border border-gray-200 rounded-r border-l-0'
+    return 'border-t border-b border-gray-200 border-l-0 border-r-0'
+  }
+
   return (
     <div className="flex items-center justify-center">
       {sponsor.type === 'svg' && sponsor.svg ? (
@@ -69,15 +89,20 @@ const SponsorItem: React.FC<SponsorItemProps> = ({ sponsor }) => {
           svg={sponsor.svg}
           alt={sponsor.alt}
           companyName={sponsor.companyName}
+          borderClasses={getBorderClasses()}
         />
       ) : sponsor.src ? (
         <SponsorImage
           src={sponsor.src}
           alt={sponsor.alt}
           companyName={sponsor.companyName}
+          borderClasses={getBorderClasses()}
         />
       ) : (
-        <SponsorPlaceholder companyName={sponsor.companyName} />
+        <SponsorPlaceholder
+          companyName={sponsor.companyName}
+          borderClasses={getBorderClasses()}
+        />
       )}
     </div>
   )
@@ -87,9 +112,10 @@ interface SponsorImageProps {
   src: string
   alt: string
   companyName: string
+  borderClasses: string
 }
 
-const SponsorImage: React.FC<SponsorImageProps> = ({ src, alt, companyName }) => {
+const SponsorImage: React.FC<SponsorImageProps> = ({ src, alt, companyName, borderClasses }) => {
   const [imageError, setImageError] = React.useState(false)
   const [imageLoaded, setImageLoaded] = React.useState(false)
 
@@ -133,9 +159,10 @@ interface SponsorSVGProps {
   svg: string
   alt: string
   companyName: string
+  borderClasses: string
 }
 
-const SponsorSVG: React.FC<SponsorSVGProps> = ({ svg, alt, companyName }) => {
+const SponsorSVG: React.FC<SponsorSVGProps> = ({ svg, alt, companyName, borderClasses }) => {
   console.log('[SponsorSVG] Rendering SVG for:', companyName, 'SVG length:', svg.length)
 
   // Sanitize SVG content (basic safety check)
@@ -149,7 +176,7 @@ const SponsorSVG: React.FC<SponsorSVGProps> = ({ svg, alt, companyName }) => {
 
   return (
     <div
-      className="h-12 md:h-14 w-full flex items-center justify-center bg-gray-50 border border-gray-200 rounded"
+      className={`h-12 md:h-14 w-full flex items-center justify-center bg-gray-50 ${borderClasses}`}
       style={{ minWidth: '120px', minHeight: '48px' }}
       dangerouslySetInnerHTML={{ __html: sanitizedSVG }}
       title={alt}
@@ -161,11 +188,12 @@ const SponsorSVG: React.FC<SponsorSVGProps> = ({ svg, alt, companyName }) => {
 
 interface SponsorPlaceholderProps {
   companyName: string
+  borderClasses: string
 }
 
-const SponsorPlaceholder: React.FC<SponsorPlaceholderProps> = ({ companyName }) => {
+const SponsorPlaceholder: React.FC<SponsorPlaceholderProps> = ({ companyName, borderClasses }) => {
   return (
-    <div className="h-12 md:h-14 flex items-center justify-center bg-gray-100 rounded border px-3">
+    <div className={`h-12 md:h-14 flex items-center justify-center bg-gray-100 ${borderClasses} px-3`}>
       <span className="text-xs text-gray-600 text-center font-medium truncate">
         {companyName}
       </span>
