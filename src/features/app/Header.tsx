@@ -27,12 +27,9 @@ export default function Header({
     }}>
       <div className='max-w-screen-sm mx-auto px-4 py-3 flex items-center justify-between'>
         <div className='flex items-center'>
-          {/* Sponsors Logo */}
-          <img
-            src="/images/sponsors.svg"
-            alt="Sponsors"
-            className="h-13 w-auto"
-          />
+          <h1 className='text-xl font-bold' style={{ color: 'var(--color-text-primary)' }}>
+            FindrQuest
+          </h1>
         </div>
 
         {/* Team Chip (only shows when team lock is active) */}
@@ -101,29 +98,9 @@ export default function Header({
                 <span style={{ color: 'var(--color-text-primary)' }}>Rules</span>
               </button>
               
-              <button 
-                onClick={() => {
-                  onReset()
-                  onToggleMenu()
-                }}
-                className='w-full text-left px-4 py-3 rounded-lg transition-all duration-150 transform hover:scale-[1.01] active:scale-[0.99] flex items-center gap-3 opacity-0'
-                onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = 'var(--color-background)'}
-                onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
-                onMouseDown={(e) => (e.target as HTMLElement).style.backgroundColor = 'var(--color-border)'}
-                onMouseUp={(e) => (e.target as HTMLElement).style.backgroundColor = 'var(--color-background)'}
-                style={{
-                  animation: 'fadeInSlide 0.3s ease-out 0.2s forwards'
-                }}
-              >
-                <svg className='w-5 h-5 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' />
-                </svg>
-                <span style={{ color: 'var(--color-text-primary)' }}>Reset</span>
-              </button>
-              
               <div className='pt-3 mt-3 border-t opacity-0' style={{
                 borderTopColor: 'var(--color-border)',
-                animation: 'fadeInSlide 0.3s ease-out 0.3s forwards'
+                animation: 'fadeInSlide 0.3s ease-out 0.2s forwards'
               }}>
                 <div className='px-4 py-2 text-sm' style={{ color: 'var(--color-text-secondary)' }}>
                   Progress: {completeCount}/{totalStops} stops complete ({percent}%)

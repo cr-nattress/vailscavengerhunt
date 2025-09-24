@@ -20,6 +20,7 @@ import settingsRouter from './settingsRoute';
 import progressRouter from './progressRoute';
 import leaderboardRouter from './leaderboardRoute';
 import teamRouter from './teamRoute';
+import sponsorsRouter from './sponsorsRoute';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -41,6 +42,7 @@ app.use('/api', settingsRouter);
 app.use('/api', progressRouter);
 app.use('/api', leaderboardRouter);
 app.use('/api', teamRouter);
+app.use('/api', sponsorsRouter);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -70,7 +72,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT} with Supabase sponsors`);
   console.log(`📁 Static files served from: ${publicPath}`);
   console.log(`☁️  Cloudinary configured: ${!!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY)}`);
   

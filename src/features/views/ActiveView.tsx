@@ -12,6 +12,8 @@ import { useProgress } from '../../hooks/useProgress'
 import { usePhotoUpload } from '../../hooks/usePhotoUpload'
 import { useCollage } from '../../hooks/useCollage'
 import { photoFlowLogger } from '../../utils/photoFlowLogger'
+import { SponsorCard } from '../sponsors/SponsorCard'
+import { useSponsors } from '../sponsors/useSponsors'
 
 const ActiveView: React.FC = () => {
   const { success, error: showError, warning, info } = useToastActions()
@@ -41,6 +43,10 @@ const ActiveView: React.FC = () => {
 
   // Use collage hook for automatic collage creation
   const { collageUrl } = useCollage({ stops, progress, teamName })
+
+  // Use sponsors hook for sponsor data
+  const { sponsors, isLoading: sponsorsLoading, error: sponsorsError } = useSponsors()
+
   // Photo upload hook replaces uploadingStops state and handlePhotoUpload function
   const { uploadPhoto, uploadingStops } = usePhotoUpload({
     sessionId,
@@ -184,9 +190,19 @@ const ActiveView: React.FC = () => {
       sessionId={sessionId}
       eventName={eventName}
     >
-      <div className='max-w-screen-sm mx-auto px-4 py-3'>
+      <div className='max-w-screen-sm mx-auto px-4 py-3 overflow-hidden h-screen'>
+        {/* Sponsor Card - appears above progress card when sponsors exist */}
+        {sponsors && sponsors.items.length > 0 && (
+          <div className="mt-0">
+            <SponsorCard
+              items={sponsors.items}
+              layout={sponsors.layout}
+            />
+          </div>
+        )}
+
         {/* Progress Card with Team/Hunt Info */}
-        <div className='border rounded-lg shadow-sm px-4 py-3 relative' style={{
+        <div className={`border rounded-lg shadow-sm px-4 py-3 relative ${sponsors && sponsors.items.length > 0 ? 'mt-3' : 'mt-0'}`} style={{
           backgroundColor: 'var(--color-white)',
           borderColor: 'var(--color-light-grey)'
         }}>
