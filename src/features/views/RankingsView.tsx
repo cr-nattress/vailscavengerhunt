@@ -24,7 +24,7 @@ const RankingsView: React.FC = () => {
       const hunt = huntId || 'fall-2025'
 
       try {
-        const response = await fetch(`/api/leaderboard-get?orgId=${orgId}&huntId=${hunt}`)
+        const response = await fetch(`/api/leaderboard/${orgId}/${hunt}`)
         if (!response.ok) {
           if (response.status === 404) {
             // No data yet, return empty leaderboard

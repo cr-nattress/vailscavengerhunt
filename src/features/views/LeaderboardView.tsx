@@ -33,12 +33,9 @@ export default function LeaderboardView() {
       setLoading(true)
       setError(null)
 
-      const response = await apiClient.get('/api/leaderboard-get', {
-        params: {
-          orgId: organizationId || 'bhhs',
-          huntId: huntId || 'fall-2025'
-        }
-      })
+      const orgId = organizationId || 'bhhs'
+      const hunt = huntId || 'fall-2025'
+      const response = await apiClient.get(`/api/leaderboard/${orgId}/${hunt}`)
 
       setLeaderboard(response.data)
     } catch (err) {

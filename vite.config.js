@@ -7,15 +7,41 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': {
+      '/api/settings': {
         target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false
       },
-      '/.netlify/functions': {
+      '/api/progress': {
         target: 'http://localhost:3001',
         changeOrigin: true,
-        rewrite: (path) => path.replace('/.netlify/functions', '/api')
+        secure: false
+      },
+      '/api/leaderboard': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false
+      },
+      '/api/export': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false
+      },
+      '/api/contributors': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false
+      },
+      '/api': {
+        target: 'http://localhost:8889/.netlify/functions',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace('/api', '')
+      },
+      '/.netlify/functions': {
+        target: 'http://localhost:8889',
+        changeOrigin: true,
+        secure: false
       }
     }
   }

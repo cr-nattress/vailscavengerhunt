@@ -113,7 +113,11 @@ export const StopProgressSchema = z.object({
 })
 
 // Use explicit key type for broader Zod compatibility
-export const ProgressDataSchema = z.record(z.string(), StopProgressSchema)
+// Progress data includes both stop progress objects and metadata fields
+export const ProgressDataSchema = z.record(z.string(), z.union([
+  StopProgressSchema,
+  z.string() // Allow string values for metadata fields like lastModifiedBy, lastModifiedAt
+]))
 
 // Team lock specific error codes
 export enum TeamLockErrorCode {
