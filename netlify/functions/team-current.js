@@ -5,6 +5,7 @@
 const { LockUtils } = require('./_lib/lockUtils')
 const { TeamStorage } = require('./_lib/teamStorage')
 const { TeamErrorHandler } = require('./_lib/teamErrors')
+const { SupabaseTeamStorage } = require('./_lib/supabaseTeamStorage')
 
 exports.handler = async (event, context) => {
   // CORS headers
@@ -69,8 +70,12 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Get team data
-    const { data: teamData } = await TeamStorage.getTeamData(tokenData.teamId)
+    // Get team data (prefer Supabase, fallback to blob storage)
+    let { data: teamData } = await SupabaseTeamStorage.getTeamData(tokenData.teamId)
+    if (!teamData) {
+      const blobResult = await TeamStorage.getTeamData(tokenData.teamId)
+      teamData = blobResult.data
+    }
     if (!teamData) {
       const { error, status } = TeamErrorHandler.storageError('Team data not found')
 

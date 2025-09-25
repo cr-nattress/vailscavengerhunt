@@ -3,6 +3,7 @@
  * Creates test team code mappings
  */
 const { TeamStorage } = require('./_lib/teamStorage')
+const crypto = require('crypto')
 
 exports.handler = async (event, context) => {
   // CORS headers
@@ -32,39 +33,97 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // Create test team mappings
-    const testMappings = [
-      {
-        partitionKey: 'team',
-        rowKey: 'ALPHA01',
-        teamId: 'TEAM_alpha_001',
-        teamName: 'Team Alpha',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        eventId: 'vail-hunt-2024'
-      },
-      {
-        partitionKey: 'team',
-        rowKey: 'BETA02',
-        teamId: 'TEAM_beta_002',
-        teamName: 'Team Beta',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        eventId: 'vail-hunt-2024'
-      },
-      {
-        partitionKey: 'team',
-        rowKey: 'GAMMA03',
-        teamId: 'TEAM_gamma_003',
-        teamName: 'Team Gamma',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        eventId: 'vail-hunt-2024'
+    // Parse input and dynamically create team code mappings (no hard-coded codes)
+    const body = JSON.parse(event.body || '{}')
+
+    // Supported inputs:
+    // - body.mappings: [{ code, teamId, teamName, isActive?, organizationId?, huntId? }]
+    // - body.teams: [{ name, teamId?, code? }]
+    // - body.generate: { count, prefix?, length? }
+    const orgId = body.organizationId || process.env.DEFAULT_ORG_ID || 'bhhs'
+    const huntId = body.huntId || process.env.DEFAULT_HUNT_ID || 'fall-2025'
+    const defaultIsActive = typeof body.isActive === 'boolean' ? body.isActive : true
+
+    function slugify(value) {
+      return String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+    }
+
+    function randomCode(len = (body.generate?.length || 6)) {
+      const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+      const bytes = crypto.randomBytes(len)
+      let out = ''
+      for (let i = 0; i < bytes.length; i++) {
+        out += chars[bytes[i] % chars.length]
       }
-    ]
+      return (body.generate?.prefix || '') + out
+    }
+
+    const mappings = []
+
+    if (Array.isArray(body.mappings) && body.mappings.length > 0) {
+      for (const m of body.mappings) {
+        const code = String(m.code || m.rowKey || randomCode()).toUpperCase()
+        const teamName = m.teamName || m.name || `Team ${code}`
+        const teamId = m.teamId || `TEAM_${slugify(teamName)}`
+        mappings.push({
+          partitionKey: 'team',
+          rowKey: code,
+          teamId,
+          teamName,
+          isActive: typeof m.isActive === 'boolean' ? m.isActive : defaultIsActive,
+          createdAt: new Date().toISOString(),
+          organizationId: m.organizationId || orgId,
+          huntId: m.huntId || huntId
+        })
+      }
+    } else if (Array.isArray(body.teams) && body.teams.length > 0) {
+      let idx = 1
+      for (const t of body.teams) {
+        const teamName = t.teamName || t.name || `Team ${idx}`
+        const teamId = t.teamId || `TEAM_${slugify(teamName)}_${String(idx).padStart(3, '0')}`
+        const code = String(t.code || randomCode()).toUpperCase()
+        mappings.push({
+          partitionKey: 'team',
+          rowKey: code,
+          teamId,
+          teamName,
+          isActive: defaultIsActive,
+          createdAt: new Date().toISOString(),
+          organizationId: orgId,
+          huntId
+        })
+        idx++
+      }
+    } else if (body.generate && Number(body.generate.count) > 0) {
+      const count = Math.min(Number(body.generate.count), 100)
+      for (let i = 1; i <= count; i++) {
+        const code = randomCode().toUpperCase()
+        const teamName = `Team ${i}`
+        const teamId = `TEAM_${slugify(teamName)}_${String(i).padStart(3, '0')}`
+        mappings.push({
+          partitionKey: 'team',
+          rowKey: code,
+          teamId,
+          teamName,
+          isActive: defaultIsActive,
+          createdAt: new Date().toISOString(),
+          organizationId: orgId,
+          huntId
+        })
+      }
+    } else {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Provide either mappings[], teams[], or generate { count } in the request body.' })
+      }
+    }
 
     const results = []
-    for (const mapping of testMappings) {
+    for (const mapping of mappings) {
       const success = await TeamStorage.setTeamCodeMapping(mapping)
       results.push({
         teamCode: mapping.rowKey,
@@ -77,7 +136,8 @@ exports.handler = async (event, context) => {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        message: 'Test team mappings created',
+        message: 'Team mappings created',
+        total: results.length,
         results
       })
     }

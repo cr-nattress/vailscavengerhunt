@@ -169,7 +169,17 @@ async function checkDeviceLockConflict(deviceFingerprint, requestedTeamCode) {
     }
 
     // Check if it's for the same team (no conflict)
-    const requestedMapping = await TeamStorage.getTeamCodeMapping(requestedTeamCode)
+    // Try Supabase first, then blob storage for backward compatibility
+    let requestedMapping = null
+    try {
+      const { SupabaseTeamStorage } = require('./_lib/supabaseTeamStorage')
+      requestedMapping = await SupabaseTeamStorage.getTeamCodeMapping(requestedTeamCode)
+    } catch (_) {
+      // ignore and fallback
+    }
+    if (!requestedMapping) {
+      requestedMapping = await TeamStorage.getTeamCodeMapping(requestedTeamCode)
+    }
     if (requestedMapping && lockData.teamId === requestedMapping.teamId) {
       return null // Same team, no conflict
     }

@@ -44,6 +44,7 @@
   from = "/api/write-log"
   to = "/.netlify/functions/write-log"
   status = 200
+  force = true
 
 # Settings endpoints
 [[redirects]]
