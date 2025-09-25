@@ -11,9 +11,13 @@ import ErrorBoundary from './components/ErrorBoundary.tsx'
 import { ToastProvider } from './features/notifications/ToastProvider.tsx'
 import { QueryProvider } from './providers/QueryProvider.tsx'
 import { maybeInitSentryBrowser } from './logging/client'
+import { setupGlobalErrorHandlers } from './utils/globalErrorHandler'
 
 // Initialize Sentry if enabled
 const sentryInitialized = maybeInitSentryBrowser()
+
+// Setup global error handlers to capture all errors
+setupGlobalErrorHandlers()
 
 // Grab the root container from `index.html`. If this returns null, verify the element id.
 const container = document.getElementById('root')

@@ -196,24 +196,16 @@ export function createLegacyLogger(component?: string): LegacyLogger {
 }
 
 export function createExpressLogger(): LegacyLogger {
-  const enableSentry = isServer ?
-    !!process.env.SENTRY_DSN :
-    !!(import.meta.env && import.meta.env.VITE_ENABLE_SENTRY === 'true')
-
   return new LegacyLogger({
     component: 'express',
-    enableSentry
+    enableSentry: true  // Always enable Sentry
   })
 }
 
 export function createApiLogger(apiName?: string): LegacyLogger {
-  const enableSentry = isServer ?
-    !!process.env.SENTRY_DSN :
-    !!(import.meta.env && import.meta.env.VITE_ENABLE_SENTRY === 'true')
-
   return new LegacyLogger({
     component: apiName ? `api.${apiName}` : 'api',
-    enableSentry
+    enableSentry: true  // Always enable Sentry
   })
 }
 

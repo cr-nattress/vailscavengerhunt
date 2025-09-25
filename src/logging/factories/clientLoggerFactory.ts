@@ -79,7 +79,7 @@ export function createPhotoFlowLogger(): Logger {
     minLevel: LogLevel.DEBUG,
     enableConsole: true,
     enableFile: true,
-    enableSentry: import.meta.env.VITE_ENABLE_SENTRY === 'true',
+    enableSentry: true,  // Always enable Sentry
     fileBatchSize: 5,
     fileFlushInterval: 3000,
     tags: ['photo-flow'],
@@ -94,7 +94,7 @@ export function createUILogger(): Logger {
     minLevel: LogLevel.INFO,
     enableConsole: true,
     enableFile: false,
-    enableSentry: import.meta.env.VITE_ENABLE_SENTRY === 'true',
+    enableSentry: true,  // Always enable Sentry
     tags: ['ui'],
     context: {
       environment: 'browser'

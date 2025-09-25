@@ -8,6 +8,7 @@ import { useToastActions } from './features/notifications/ToastProvider.tsx'
 import { useAppStore } from './store/appStore'
 import { getPathParams, isValidParamSet, normalizeParams } from './utils/url'
 import { TeamLockWrapper } from './features/teamLock/TeamLockWrapper'
+import * as Sentry from '@sentry/react'
 
 /**
  * Vail Scavenger Hunt — React single-page app for a couples' scavenger/date experience in Vail.
@@ -136,6 +137,28 @@ export default function App() {
         // Use ServerStorageService for session tracking
         const result = await ServerStorageService.createSession(sessionId, sessionData)
         console.log('✅ Session tracking started:', result)
+
+        // Verify Sentry integration is working
+        try {
+          console.log('🧪 Sending Sentry test log...')
+          Sentry.addBreadcrumb({
+            message: 'App initialized successfully',
+            level: 'info',
+            data: { sessionId, orgId, teamId, huntId }
+          })
+          Sentry.captureMessage('User triggered test log - App initialization complete', {
+            level: 'info',
+            tags: { log_source: 'sentry_test', component: 'app_init' },
+            extra: { sessionId, orgId, teamId, huntId }
+          })
+
+          // Additional Sentry logger test
+          Sentry.logger.info('User triggered test log', { log_source: 'sentry_test' })
+
+          console.log('✅ Sentry test log sent successfully')
+        } catch (sentryError) {
+          console.warn('⚠️ Sentry test log failed:', sentryError)
+        }
       } catch (error) {
         console.error('❌ Failed to initialize app:', error)
       }

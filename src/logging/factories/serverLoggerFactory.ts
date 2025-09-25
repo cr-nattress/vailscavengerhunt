@@ -23,7 +23,7 @@ export function createServerLogger(config: ServerLoggerFactoryConfig = {}): Logg
     minLevel = LogLevel.INFO,
     enableConsole = true,
     enableFile = true,
-    enableSentry = false,
+    enableSentry = true,  // Always enable Sentry by default
     logDir = './logs',
     logFileName = 'server.log',
     maxFileSize = 10 * 1024 * 1024, // 10MB
@@ -81,7 +81,7 @@ export function createExpressServerLogger(): Logger {
     minLevel: LogLevel.INFO,
     enableConsole: true,
     enableFile: true,
-    enableSentry: !!process.env.SENTRY_DSN,
+    enableSentry: true,  // Always enable Sentry
     logFileName: 'express-server.log',
     tags: ['express', 'server'],
     context: {
@@ -96,7 +96,7 @@ export function createNetlifyFunctionLogger(functionName: string): Logger {
     minLevel: LogLevel.DEBUG,
     enableConsole: true,
     enableFile: false, // Netlify handles file logging
-    enableSentry: !!process.env.SENTRY_DSN,
+    enableSentry: true,  // Always enable Sentry
     tags: ['netlify-function', functionName],
     context: {
       service: 'netlify-function',

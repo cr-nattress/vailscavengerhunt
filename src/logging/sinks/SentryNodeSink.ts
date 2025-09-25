@@ -18,7 +18,7 @@ export class SentryNodeSink implements LogSink {
     }
   }
 
-  async log(entry: LogEntry): Promise<void> {
+  async write(entry: LogEntry): Promise<void> {
     if (!this.isEnabled) {
       return
     }

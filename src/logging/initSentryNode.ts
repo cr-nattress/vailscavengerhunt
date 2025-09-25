@@ -5,7 +5,7 @@ import { createSentryPIIRedactor } from './piiRedaction.js'
 let sentryInitialized = false
 
 /**
- * Initialize Sentry for Node.js if enabled via environment variables
+ * Initialize Sentry for Node.js - always enabled
  * Only initializes once per process (guarded by module-level flag)
  */
 export function maybeInitSentryNode(): boolean {
@@ -14,22 +14,20 @@ export function maybeInitSentryNode(): boolean {
     return true
   }
 
+  // Use environment DSN if available
   const dsn = process.env.SENTRY_DSN
-  if (!dsn) {
-    console.debug('[Sentry] Node: Not initializing, no DSN provided')
-    return false
-  }
 
   try {
     Sentry.init({
-      dsn,
+      dsn: dsn || false, // false disables sending but keeps API functional
+      enabled: !!dsn, // Only enable if DSN is provided
       environment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development',
       release: process.env.SENTRY_RELEASE,
       tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE || '0.1'),
 
       integrations: [
         // Automatically capture unhandled exceptions and rejections
-        Sentry.nodeProfilingIntegration(),
+        // Note: nodeProfilingIntegration may not be available in all versions
       ],
 
       // Comprehensive PII redaction (US-004)
@@ -40,7 +38,9 @@ export function maybeInitSentryNode(): boolean {
     })
 
     sentryInitialized = true
-    console.info('[Sentry] Node client initialized successfully')
+    console.info(dsn
+      ? '[Sentry] Node client initialized successfully with DSN'
+      : '[Sentry] Node client initialized in offline mode (no DSN)')
     return true
   } catch (error) {
     console.error('[Sentry] Failed to initialize Node client:', error)
