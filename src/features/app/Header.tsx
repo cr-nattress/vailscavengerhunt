@@ -26,7 +26,7 @@ export default function Header({
       borderBottomColor: 'var(--color-border)'
     }}>
       <div className='max-w-screen-sm mx-auto px-4 py-3 flex items-center justify-between'>
-        <div className='flex items-center justify-start'>
+        <div className='flex items-center justify-start !self-center'>
           <img
             src="/app-logo.svg"
             alt="FindrQuest"

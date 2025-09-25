@@ -23,7 +23,7 @@
     "noFallthroughCasesInSwitch": true,
 
     /* Server-specific */
-    "types": ["node"],
+    "types": ["vite/client", "node"],
     "baseUrl": "./src"
   },
   "include": ["src"],
