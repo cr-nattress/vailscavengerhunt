@@ -97,7 +97,14 @@
   to = "/.netlify/functions/state-clear"
   status = 200
 
-# SPA fallback - serve index.html for all routes
+# Favicon redirect
+[[redirects]]
+  from = "/favicon.ico"
+  to = "/favicon.svg"
+  status = 200
+
+# SPA fallback - serve index.html for all non-API routes
+# IMPORTANT: This must be LAST to avoid intercepting API calls
 [[redirects]]
   from = "/*"
   to = "/index.html"
@@ -127,12 +134,6 @@ name = "hunt-data"
   targetPort = 5173              # Vite dev server port
   publish = "."                 # serve from project root in dev
   autoLaunch = false
-
-# Favicon redirect
-[[redirects]]
-  from = "/favicon.ico"
-  to = "/favicon.svg"
-  status = 200
 
 # Environment variables (set these in Netlify dashboard)
 # NETLIFY_BLOBS_STORE_NAME = "vail-hunt-state"
