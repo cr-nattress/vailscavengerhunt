@@ -6,10 +6,16 @@
 
 import { SponsorsRequest, SponsorsResponse, SponsorServiceCache } from '../types/sponsors'
 import { createClient } from '@supabase/supabase-js'
+import { createClientLogger } from '../logging/client'
 
 export class SponsorsService {
   private static cache = new Map<string, SponsorServiceCache>()
   private static readonly CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+  private static logger = createClientLogger({
+    minLevel: 'info' as any,
+    enableSentry: true,
+    tags: ['sponsors-service']
+  })
 
   /**
    * Fetch sponsor assets for a given organization and hunt
@@ -21,16 +27,24 @@ export class SponsorsService {
     const cached = this.cache.get(cacheKey)
     const isDevelopment = import.meta.env.DEV
     if (cached && Date.now() - cached.timestamp < this.CACHE_TTL && !isDevelopment) {
-      console.log('[SponsorsService] Returning cached sponsor data')
+      this.logger.info('SponsorsService', 'get-sponsors-cached', {
+        message: 'Returning cached sponsor data',
+        cacheKey
+      })
       return cached.data
     }
 
     if (isDevelopment && cached) {
-      console.log('[SponsorsService] Cache found but disabled in development, fetching fresh data')
+      this.logger.info('SponsorsService', 'get-sponsors-dev-bypass', {
+        message: 'Cache found but disabled in development, fetching fresh data'
+      })
     }
 
     try {
-      console.log('[SponsorsService] Fetching sponsors from API', request)
+      this.logger.info('SponsorsService', 'get-sponsors-start', {
+        message: 'Fetching sponsors from API',
+        request
+      })
 
       // Try Express server first in development, then Netlify functions
       const isDevelopment = import.meta.env.DEV
@@ -38,7 +52,11 @@ export class SponsorsService {
         ? `${import.meta.env.VITE_API_URL}/sponsors`
         : '/.netlify/functions/sponsors-get'
 
-      console.log('[SponsorsService] Using API URL:', apiUrl)
+      this.logger.info('SponsorsService', 'get-sponsors-url', {
+        message: 'Using API URL',
+        apiUrl,
+        isDevelopment
+      })
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -63,30 +81,45 @@ export class SponsorsService {
       }
 
       if (!data.layout || !['1x1', '1x2', '1x3'].includes(data.layout)) {
-        console.warn('[SponsorsService] Invalid or missing layout, using default')
+        this.logger.warn('SponsorsService', 'invalid-layout', {
+          message: 'Invalid or missing layout, using default',
+          originalLayout: data.layout
+        })
         data.layout = '1x2'
       }
 
       // Validate sponsor items
       data.items = data.items.filter(item => {
         if (!item || typeof item !== 'object') {
-          console.warn('[SponsorsService] Filtering out invalid sponsor item:', item)
+          this.logger.warn('SponsorsService', 'filter-invalid-item', {
+            message: 'Filtering out invalid sponsor item',
+            item
+          })
           return false
         }
 
         if (!item.id || !item.companyId || !item.companyName || !item.alt || !item.type) {
-          console.warn('[SponsorsService] Filtering out incomplete sponsor item:', item)
+          this.logger.warn('SponsorsService', 'filter-incomplete-item', {
+            message: 'Filtering out incomplete sponsor item',
+            item
+          })
           return false
         }
 
         if (!['svg', 'png', 'jpeg', 'jpg'].includes(item.type)) {
-          console.warn('[SponsorsService] Filtering out sponsor with invalid type:', item)
+          this.logger.warn('SponsorsService', 'filter-invalid-type', {
+            message: 'Filtering out sponsor with invalid type',
+            item
+          })
           return false
         }
 
         // Must have either src or svg content
         if (!item.src && !item.svg) {
-          console.warn('[SponsorsService] Filtering out sponsor with no content:', item)
+          this.logger.warn('SponsorsService', 'filter-no-content', {
+            message: 'Filtering out sponsor with no content',
+            item
+          })
           return false
         }
 
@@ -99,16 +132,24 @@ export class SponsorsService {
         timestamp: Date.now()
       })
 
-      console.log(`[SponsorsService] Fetched ${data.items.length} sponsors with ${data.layout} layout`)
+      this.logger.info('SponsorsService', 'get-sponsors-success', {
+        message: `Fetched ${data.items.length} sponsors with ${data.layout} layout`,
+        count: data.items.length,
+        layout: data.layout
+      })
       return data
 
     } catch (error) {
-      console.error('[SponsorsService] Failed to fetch sponsors:', error)
+      this.logger.error('SponsorsService', 'get-sponsors-error', error as Error, {
+        message: 'Failed to fetch sponsors'
+      })
 
       // In development, try direct Supabase access
       const isDevelopment = import.meta.env.DEV
       if (isDevelopment && import.meta.env.VITE_ENABLE_SPONSOR_CARD === 'true') {
-        console.log('[SponsorsService] Trying direct Supabase access in development...')
+        this.logger.info('SponsorsService', 'try-supabase-fallback', {
+          message: 'Trying direct Supabase access in development'
+        })
 
         try {
           const supabaseResponse = await this.fetchSponsorsFromSupabase(request)
@@ -116,11 +157,16 @@ export class SponsorsService {
             return supabaseResponse
           }
         } catch (supabaseError) {
-          console.warn('[SponsorsService] Direct Supabase access failed:', supabaseError)
+          this.logger.warn('SponsorsService', 'supabase-fallback-error', {
+            message: 'Direct Supabase access failed',
+            error: supabaseError
+          })
         }
 
         // Fallback to mock data if Supabase also fails
-        console.log('[SponsorsService] Using development mock data as fallback')
+        this.logger.info('SponsorsService', 'use-mock-data', {
+          message: 'Using development mock data as fallback'
+        })
         const mockResponse: SponsorsResponse = {
           layout: '1x2',
           items: [
@@ -201,7 +247,10 @@ export class SponsorsService {
       return { layout: '1x2', items: [] }
     }
 
-    console.log(`[SponsorsService] Found ${sponsors.length} sponsors from Supabase`)
+    this.logger.info('SponsorsService', 'supabase-sponsors-found', {
+      message: `Found ${sponsors.length} sponsors from Supabase`,
+      count: sponsors.length
+    })
 
     // Transform data to match API response format
     const items = sponsors.map(sponsor => ({
@@ -225,7 +274,9 @@ export class SponsorsService {
    */
   static clearCache(): void {
     this.cache.clear()
-    console.log('[SponsorsService] Cache cleared')
+    this.logger.info('SponsorsService', 'cache-cleared', {
+      message: 'Cache cleared'
+    })
   }
 
   /**
@@ -234,7 +285,10 @@ export class SponsorsService {
   static clearCacheFor(organizationId: string, huntId: string): void {
     const cacheKey = `${organizationId}-${huntId}`
     this.cache.delete(cacheKey)
-    console.log(`[SponsorsService] Cache cleared for ${cacheKey}`)
+    this.logger.info('SponsorsService', 'cache-cleared-for', {
+      message: `Cache cleared for ${cacheKey}`,
+      cacheKey
+    })
   }
 
   /**
@@ -260,7 +314,10 @@ export class SponsorsService {
         expired: Date.now() - value.timestamp > this.CACHE_TTL
       }))
     }
-    console.log('[SponsorsService] Cache stats:', stats)
+    this.logger.info('SponsorsService', 'cache-stats', {
+      message: 'Cache stats',
+      stats
+    })
     return stats
   }
 
@@ -271,9 +328,18 @@ export class SponsorsService {
   static async preloadSponsors(request: SponsorsRequest): Promise<void> {
     try {
       await this.getSponsors(request)
-      console.log(`[SponsorsService] Preloaded sponsors for ${request.organizationId}/${request.huntId}`)
+      this.logger.info('SponsorsService', 'preload-success', {
+        message: `Preloaded sponsors for ${request.organizationId}/${request.huntId}`,
+        organizationId: request.organizationId,
+        huntId: request.huntId
+      })
     } catch (error) {
-      console.warn(`[SponsorsService] Failed to preload sponsors for ${request.organizationId}/${request.huntId}:`, error)
+      this.logger.warn('SponsorsService', 'preload-error', {
+        message: `Failed to preload sponsors for ${request.organizationId}/${request.huntId}`,
+        organizationId: request.organizationId,
+        huntId: request.huntId,
+        error
+      })
     }
   }
 }

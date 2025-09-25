@@ -11,6 +11,10 @@ const envPath = path.join(__dirname, '../../.env');
 
 dotenv.config({ path: envPath });
 
+// Initialize Sentry EARLY - before other imports
+import { maybeInitSentryNode, captureSentryException } from '../logging/server';
+maybeInitSentryNode();
+
 import express from 'express';
 import cors from 'cors';
 import collageRouter from './collageRoute';
@@ -61,10 +65,27 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../../public/index.html'));
 });
 
-// Error handling middleware
+// Error handling middleware (restart)
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Server error:', err);
-  res.status(500).json({ 
+
+  // Capture exception in Sentry if available
+  try {
+    captureSentryException(err, {
+      component: 'express-server',
+      action: 'request-handler',
+      url: req.url,
+      method: req.method,
+      headers: req.headers,
+      userAgent: req.get('User-Agent'),
+      requestId: req.headers['x-request-id'] || req.headers['x-nf-request-id']
+    });
+  } catch (sentryError) {
+    // Sentry capture failed - don't break the response
+    console.warn('Failed to capture exception in Sentry:', sentryError);
+  }
+
+  res.status(500).json({
     error: 'Internal server error',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
   });
@@ -72,7 +93,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT} with Supabase sponsors`);
+  console.log(`🚀 Server running on http://localhost:${PORT} with Supabase sponsors and Sentry integration`);
   console.log(`📁 Static files served from: ${publicPath}`);
   console.log(`☁️  Cloudinary configured: ${!!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY)}`);
   

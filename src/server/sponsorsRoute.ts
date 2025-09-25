@@ -7,15 +7,24 @@
 import express from 'express'
 import { SponsorsRequest, SponsorsResponse } from '../types/sponsors'
 import { createClient } from '@supabase/supabase-js'
+import { createServerLogger } from '../logging/server'
 
 const router = express.Router()
+const logger = createServerLogger({
+  minLevel: 'info' as any,
+  enableSentry: !!process.env.SENTRY_DSN,
+  tags: ['sponsors-route']
+})
 
 // GET /api/sponsors - fetch sponsors for an organization/hunt
 router.post('/sponsors', async (req: express.Request, res: express.Response) => {
   try {
     const request: SponsorsRequest = req.body
 
-    console.log('[sponsors-route] Received sponsors request:', request)
+    logger.info('sponsorsRoute', 'request-received', {
+      message: 'Received sponsors request',
+      request
+    })
 
     // Validate request
     if (!request.organizationId || !request.huntId) {
@@ -30,7 +39,9 @@ router.post('/sponsors', async (req: express.Request, res: express.Response) => 
       const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
       if (!supabaseUrl || !supabaseServiceKey) {
-        console.log('[sponsors-route] Missing Supabase config, returning empty response')
+        logger.warn('sponsorsRoute', 'missing-supabase-config', {
+          message: 'Missing Supabase config, returning empty response'
+        })
         return res.json({ layout: '1x2', items: [] })
       }
 
@@ -46,16 +57,26 @@ router.post('/sponsors', async (req: express.Request, res: express.Response) => 
         .order('order_index', { ascending: true })
 
       if (error) {
-        console.error('[sponsors-route] Supabase error:', error)
+        logger.error('sponsorsRoute', 'supabase-query-error', new Error(error.message), {
+          message: 'Supabase error',
+          error
+        })
         return res.status(500).json({ error: 'Failed to fetch sponsors from database' })
       }
 
       if (!sponsors || sponsors.length === 0) {
-        console.log('[sponsors-route] No sponsors found for', request.organizationId, request.huntId)
+        logger.info('sponsorsRoute', 'no-sponsors-found', {
+          message: 'No sponsors found',
+          organizationId: request.organizationId,
+          huntId: request.huntId
+        })
         return res.json({ layout: '1x2', items: [] })
       }
 
-      console.log(`[sponsors-route] Found ${sponsors.length} sponsors from Supabase`)
+      logger.info('sponsorsRoute', 'sponsors-found', {
+        message: `Found ${sponsors.length} sponsors from Supabase`,
+        count: sponsors.length
+      })
 
       // Transform database data to API response format
       const items = sponsors.map(sponsor => ({
@@ -73,19 +94,27 @@ router.post('/sponsors', async (req: express.Request, res: express.Response) => 
         items
       }
 
-      console.log('[sponsors-route] Returning sponsors from Supabase:', response)
+      logger.info('sponsorsRoute', 'response-sent', {
+        message: 'Returning sponsors from Supabase',
+        itemCount: response.items.length,
+        layout: response.layout
+      })
       res.json(response)
 
     } catch (supabaseError) {
-      console.error('[sponsors-route] Error fetching from Supabase:', supabaseError)
+      logger.error('sponsorsRoute', 'supabase-connection-error', supabaseError as Error, {
+        message: 'Error fetching from Supabase'
+      })
       return res.status(500).json({ error: 'Database connection failed' })
     }
 
   } catch (error) {
-    console.error('[sponsors-route] Error:', error)
+    logger.error('sponsorsRoute', 'internal-error', error as Error, {
+      message: 'Internal server error'
+    })
     res.status(500).json({
       error: 'Internal server error',
-      message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+      message: process.env.NODE_ENV === 'development' ? (error as Error).message : 'Something went wrong'
     })
   }
 })

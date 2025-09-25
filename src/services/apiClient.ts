@@ -2,6 +2,8 @@
  * Central API client with automatic base URL resolution, error handling,
  * timeout support, and both JSON and FormData request capabilities
  */
+import { addApiResponseBreadcrumb, addApiErrorBreadcrumb } from '../logging/sentryBreadcrumbUtils'
+import { createClientLogger } from '../logging/client'
 
 interface RequestOptions {
   timeout?: number
@@ -18,6 +20,11 @@ interface ApiError extends Error {
 class ApiClient {
   private static instance: ApiClient
   private baseUrl: string
+  private logger = createClientLogger({
+    minLevel: 'info' as any,
+    enableSentry: true,
+    tags: ['api-client']
+  })
 
   private constructor() {
     this.baseUrl = this.resolveApiBase()
@@ -41,25 +48,25 @@ class ApiClient {
     // Check for explicit API URL from environment first
     const apiUrl = import.meta.env?.VITE_API_URL
     if (apiUrl) {
-      console.log('🌐 Using VITE_API_URL:', apiUrl)
+      this.logger.info('apiClient', 'resolve-api-base', { message: '🌐 Using VITE_API_URL', apiUrl })
       return apiUrl
     }
 
     // If running on port 8888 (Netlify dev), use /api for redirects
     if (window.location.port === '8888') {
-      console.log('🌐 Detected Netlify dev (port 8888), using /api')
+      this.logger.info('apiClient', 'resolve-api-base', { message: '🌐 Detected Netlify dev (port 8888), using /api' })
       return '/api'
     }
 
     // In production, use /api URLs (Netlify will redirect to functions)
     if (window.location.hostname !== 'localhost') {
-      console.log('🌐 Production mode, using /api URLs')
+      this.logger.info('apiClient', 'resolve-api-base', { message: '🌐 Production mode, using /api URLs' })
       return '/api'
     }
 
     // In development, use local Express server
     const devUrl = 'http://localhost:3001/api'
-    console.log('🌐 Development mode, using local server:', devUrl)
+    this.logger.info('apiClient', 'resolve-api-base', { message: '🌐 Development mode, using local server', devUrl })
     return devUrl
   }
 
@@ -84,7 +91,7 @@ class ApiClient {
    */
   private createApiError(response: Response, body?: any): ApiError {
     // Log detailed error information
-    console.error('🔴 API Error Details:', {
+    this.logger.error('apiClient', 'create-api-error', new Error(`API Error: ${response.status} ${response.statusText}`), {
       url: response.url,
       status: response.status,
       statusText: response.statusText,
@@ -113,14 +120,22 @@ class ApiClient {
   ): Promise<T> {
     const { timeout = 30000, retryAttempts = 1, retryDelay = 1000 } = options
     const url = `${this.baseUrl}${path}`
-    
-    console.log(`🌐 API Request: ${init.method || 'GET'} ${url}`)
+
+    this.logger.info('apiClient', 'request-start', {
+      method: init.method || 'GET',
+      url,
+      message: `🌐 API Request: ${init.method || 'GET'} ${url}`
+    })
 
     let lastError: Error
     
     for (let attempt = 0; attempt < retryAttempts; attempt++) {
       if (attempt > 0) {
-        console.log(`🔄 Retry attempt ${attempt}/${retryAttempts - 1}`)
+        this.logger.warn('apiClient', 'request-retry', {
+          message: `🔄 Retry attempt ${attempt}/${retryAttempts - 1}`,
+          attempt,
+          maxAttempts: retryAttempts - 1
+        })
         await this.sleep(retryDelay)
       }
 
@@ -147,9 +162,16 @@ class ApiClient {
           }
         }
 
+        const startTime = Date.now()
         const response = await fetch(url, requestInit)
-        
-        console.log(`📥 Response: ${response.status} ${response.statusText}`)
+        const duration = Date.now() - startTime
+
+        this.logger.info('apiClient', 'response-received', {
+          message: `📥 Response: ${response.status} ${response.statusText}`,
+          status: response.status,
+          statusText: response.statusText,
+          duration
+        })
 
         let responseBody: any
         try {
@@ -160,31 +182,72 @@ class ApiClient {
             responseBody = await response.text()
           }
         } catch (parseError) {
-          console.warn('⚠️ Failed to parse response body:', parseError)
+          this.logger.warn('apiClient', 'parse-response-body', {
+            message: '⚠️ Failed to parse response body',
+            error: parseError
+          })
           responseBody = null
         }
 
         if (!response.ok) {
-          console.error(`⚠️ Non-OK response: ${response.status} ${response.statusText}`);
-          console.error('🔍 Response body:', responseBody);
+          this.logger.error('apiClient', 'non-ok-response', new Error(`Non-OK response: ${response.status} ${response.statusText}`), {
+            status: response.status,
+            statusText: response.statusText,
+            responseBody
+          });
+
+          // Add error breadcrumb
+          addApiErrorBreadcrumb(
+            init.method || 'GET',
+            url,
+            `${response.status} ${response.statusText}`,
+            duration
+          )
+
           throw this.createApiError(response, responseBody)
         }
+
+        // Add success breadcrumb
+        const responseSize = JSON.stringify(responseBody).length
+        addApiResponseBreadcrumb(
+          init.method || 'GET',
+          url,
+          response.status,
+          duration,
+          responseSize
+        )
 
         return responseBody as T
 
       } catch (error) {
         lastError = error as Error
 
-        console.error(`🔄 Request attempt ${attempt + 1} failed:`, {
-          error,
+        this.logger.error('apiClient', 'request-attempt-failed', error as Error, {
+          attempt: attempt + 1,
           errorType: error?.constructor?.name,
-          message: error?.message,
           url
         });
 
         if (error instanceof Error && error.name === 'AbortError') {
-          console.error(`⏰ Request timeout after ${timeout}ms`)
+          this.logger.error('apiClient', 'request-timeout', error, {
+            message: `⏰ Request timeout after ${timeout}ms`,
+            timeout
+          })
+          addApiErrorBreadcrumb(
+            init.method || 'GET',
+            url,
+            `Timeout after ${timeout}ms`
+          )
           throw new Error(`Request timeout after ${timeout}ms`)
+        }
+
+        // Add general error breadcrumb for other errors
+        if (attempt === retryAttempts - 1) {
+          addApiErrorBreadcrumb(
+            init.method || 'GET',
+            url,
+            error?.message || 'Unknown error'
+          )
         }
 
         if (error instanceof Error && (error as ApiError).status) {
@@ -195,7 +258,11 @@ class ApiClient {
           }
         }
 
-        console.warn(`❌ Request failed (attempt ${attempt + 1}):`, error.message)
+        this.logger.warn('apiClient', 'request-failed', {
+          message: `❌ Request failed (attempt ${attempt + 1})`,
+          attempt: attempt + 1,
+          error: error.message
+        })
         
         // If this is the last attempt, throw the error
         if (attempt === retryAttempts - 1) {
