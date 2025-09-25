@@ -13,12 +13,12 @@ import { config } from 'dotenv'
 // Load environment variables
 config()
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL
+const supabaseUrl = process.env.SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error('❌ Missing required environment variables:')
-  console.error('   VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY')
+  console.error('   SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY')
   process.exit(1)
 }
 

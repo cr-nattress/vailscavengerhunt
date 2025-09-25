@@ -49,8 +49,10 @@ export function usePhotoUpload({
       }
 
       // File size validation
-      const maxSizeBytes = parseInt(import.meta.env.VITE_MAX_UPLOAD_BYTES || '10485760') // Default 10MB
-      const allowLargeUploads = import.meta.env.VITE_ALLOW_LARGE_UPLOADS === 'true'
+      const { getPublicConfig } = await import('../services/PublicConfig')
+      const cfg = await getPublicConfig()
+      const maxSizeBytes = Number(cfg.MAX_UPLOAD_BYTES || 10485760) // Default 10MB
+      const allowLargeUploads = !!cfg.ALLOW_LARGE_UPLOADS
 
       if (!allowLargeUploads && file.size > maxSizeBytes) {
         const sizeMB = (file.size / 1024 / 1024).toFixed(2)
@@ -80,8 +82,8 @@ export function usePhotoUpload({
       }
 
       // Check upload configuration
-      const enableUnsignedUploads = import.meta.env.VITE_ENABLE_UNSIGNED_UPLOADS === 'true'
-      const disableResize = import.meta.env.VITE_DISABLE_CLIENT_RESIZE === 'true'
+      const enableUnsignedUploads = !!cfg.ENABLE_UNSIGNED_UPLOADS
+      const disableResize = !!cfg.DISABLE_CLIENT_RESIZE
 
       let response: Awaited<ReturnType<typeof PhotoUploadService.uploadPhoto>>
 
@@ -153,7 +155,8 @@ export function usePhotoUpload({
 
     } catch (error) {
       console.error('Photo upload failed:', error)
-      showError(`Failed to upload photo: ${error.message}`)
+      const msg = error instanceof Error ? error.message : String(error)
+      showError(`Failed to upload photo: ${msg}`)
 
       // Remove from uploading set
       setUploadingStops(prev => {
@@ -163,7 +166,7 @@ export function usePhotoUpload({
       })
 
       // Call error callback
-      onError?.(stopId, error as Error)
+      onError?.(stopId, error instanceof Error ? error : new Error(msg))
 
       return null
     }

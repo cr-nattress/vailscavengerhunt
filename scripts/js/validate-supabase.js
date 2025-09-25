@@ -12,13 +12,13 @@ dotenv.config();
 console.log('🔍 Validating Supabase Configuration...\n');
 
 // Check environment variables
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 console.log('📋 Environment Variables Status:');
-console.log(`   VITE_SUPABASE_URL: ${supabaseUrl ? '✅ Set' : '❌ Missing'}`);
-console.log(`   VITE_SUPABASE_ANON_KEY: ${supabaseAnonKey ? '✅ Set' : '❌ Missing'}`);
+console.log(`   SUPABASE_URL: ${supabaseUrl ? '✅ Set' : '❌ Missing'}`);
+console.log(`   SUPABASE_ANON_KEY: ${supabaseAnonKey ? '✅ Set' : '❌ Missing'}`);
 console.log(`   SUPABASE_SERVICE_ROLE_KEY: ${serviceRoleKey ? '✅ Set' : '❌ Missing'}`);
 
 if (!supabaseUrl || !supabaseAnonKey) {
@@ -79,9 +79,9 @@ try {
   console.log('❌ Connection test failed:', error.message);
 
   if (error.message.includes('Invalid API key')) {
-    console.log('   Check your VITE_SUPABASE_ANON_KEY - it may be incorrect');
+    console.log('   Check your SUPABASE_ANON_KEY - it may be incorrect');
   } else if (error.message.includes('fetch')) {
-    console.log('   Check your VITE_SUPABASE_URL - the project may not exist');
+    console.log('   Check your SUPABASE_URL - the project may not exist');
   }
 
   process.exit(1);

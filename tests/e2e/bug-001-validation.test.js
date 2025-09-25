@@ -206,8 +206,8 @@ describe('BUG-001: Storage Bridge Validation', () => {
       // Test that we can still access Supabase directly for validation
       const { createClient } = await import('@supabase/supabase-js')
       const supabase = createClient(
-        process.env.VITE_SUPABASE_URL,
-        process.env.VITE_SUPABASE_ANON_KEY
+        process.env.SUPABASE_URL,
+        process.env.SUPABASE_ANON_KEY
       )
 
       // Check team codes still exist

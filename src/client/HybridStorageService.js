@@ -5,7 +5,7 @@
 import { LocalStorageService } from './LocalStorageService.js';
 
 export class HybridStorageService {
-  static STATE_SERVER_URL = (import.meta.env?.VITE_API_URL || 'http://localhost:3002') + '/api/state';
+  static STATE_SERVER_URL = '/api/state';
   
   /**
    * Get a value by key (tries server first, falls back to localStorage)

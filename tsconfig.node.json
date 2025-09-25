@@ -8,5 +8,10 @@
     "strict": true,
     "types": ["node"]
   },
-  "include": ["vite.config.ts", "src/server/**/*"]
+  "include": [
+    "vite.config.ts",
+    "src/server/**/*",
+    "src/types/**/*",
+    "src/logging/**/*"
+  ]
 }

@@ -19,6 +19,7 @@ exports.handler = async () => {
     SENTRY_DSN: process.env.SENTRY_DSN || '',
     SENTRY_ENVIRONMENT: process.env.SENTRY_ENVIRONMENT || '',
     SENTRY_RELEASE: process.env.SENTRY_RELEASE || '',
+    SENTRY_TRACES_SAMPLE_RATE: process.env.SENTRY_TRACES_SAMPLE_RATE || '',
 
     // Feature flags and client settings
     SPONSOR_CARD_ENABLED: process.env.SPONSOR_CARD_ENABLED === 'true',

@@ -1,5 +1,4 @@
 import { Router } from 'express'
-import { getStore } from '@netlify/blobs'
 import { validateSettings, validateOrgId, validateTeamId, validateHuntId, validateSessionId } from '../utils/validation'
 
 const router = Router()

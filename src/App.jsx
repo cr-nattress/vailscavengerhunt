@@ -152,9 +152,6 @@ export default function App() {
             extra: { sessionId, orgId, teamId, huntId }
           })
 
-          // Additional Sentry logger test
-          Sentry.logger.info('User triggered test log', { log_source: 'sentry_test' })
-
           console.log('✅ Sentry test log sent successfully')
         } catch (sentryError) {
           console.warn('⚠️ Sentry test log failed:', sentryError)

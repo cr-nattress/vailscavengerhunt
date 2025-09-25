@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js')
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL
+const supabaseUrl = process.env.SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 if (!supabaseUrl || !supabaseServiceKey) {
@@ -13,7 +13,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
  * Supabase-based Key-Value Store
  * Provides blob storage compatible interface for key-value operations
  */
-export class SupabaseKVStore {
+class SupabaseKVStore {
   /**
    * Get value by key
    * @param {string} key - The key to retrieve

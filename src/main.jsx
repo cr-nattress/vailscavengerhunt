@@ -13,8 +13,10 @@ import { QueryProvider } from './providers/QueryProvider.tsx'
 import { maybeInitSentryBrowser } from './logging/client'
 import { setupGlobalErrorHandlers } from './utils/globalErrorHandler'
 
-// Initialize Sentry if enabled
-const sentryInitialized = maybeInitSentryBrowser()
+// Initialize Sentry if enabled (await config)
+let sentryInitialized = false
+// We intentionally block initial render very briefly to ensure ErrorBoundary is wired
+await (async () => { try { sentryInitialized = await maybeInitSentryBrowser() } catch { sentryInitialized = false } })()
 
 // Setup global error handlers to capture all errors
 setupGlobalErrorHandlers()

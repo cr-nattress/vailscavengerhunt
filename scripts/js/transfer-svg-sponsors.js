@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename)
 const envPath = path.join(__dirname, '../../.env')
 dotenv.config({ path: envPath })
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL
+const supabaseUrl = process.env.SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 if (!supabaseUrl || !supabaseServiceKey) {

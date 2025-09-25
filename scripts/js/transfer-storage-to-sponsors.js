@@ -17,13 +17,13 @@ const __dirname = path.dirname(__filename)
 const envPath = path.join(__dirname, '../../.env')
 dotenv.config({ path: envPath })
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL
+const supabaseUrl = process.env.SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error('❌ Missing Supabase configuration')
   console.log('Required environment variables:')
-  console.log('- VITE_SUPABASE_URL')
+  console.log('- SUPABASE_URL')
   console.log('- SUPABASE_SERVICE_ROLE_KEY')
   process.exit(1)
 }

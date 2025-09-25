@@ -5,8 +5,9 @@
 const { LockUtils } = require('./_lib/lockUtils')
 const { TeamErrorHandler } = require('./_lib/teamErrors')
 const { SupabaseTeamStorage } = require('./_lib/supabaseTeamStorage')
+const { withSentry } = require('./_lib/sentry')
 
-exports.handler = async (event, context) => {
+exports.handler = withSentry(async (event, context) => {
   // CORS headers
   const headers = {
     'Content-Type': 'application/json',
@@ -115,4 +116,4 @@ exports.handler = async (event, context) => {
       body: JSON.stringify(errorResponse)
     }
   }
-}
+})

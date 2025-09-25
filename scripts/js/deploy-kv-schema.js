@@ -13,13 +13,13 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 // Configuration
-const supabaseUrl = process.env.VITE_SUPABASE_URL
+const supabaseUrl = process.env.SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error('❌ Missing Supabase configuration')
   console.error('Required environment variables:')
-  console.error('  VITE_SUPABASE_URL')
+  console.error('  SUPABASE_URL')
   console.error('  SUPABASE_SERVICE_ROLE_KEY')
   process.exit(1)
 }

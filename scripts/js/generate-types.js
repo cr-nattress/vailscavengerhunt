@@ -21,12 +21,12 @@ async function generateTypes() {
   console.log('🔧 Generating TypeScript types from Supabase schema...\n');
 
   // Validate environment variables
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseUrl = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
     console.error('❌ Error: Missing required environment variables');
-    console.error('   - VITE_SUPABASE_URL: Supabase project URL');
+    console.error('   - SUPABASE_URL: Supabase project URL');
     console.error('   - SUPABASE_SERVICE_ROLE_KEY: Service role key for admin operations');
     console.error('\nPlease set these variables in your .env file');
     process.exit(1);
@@ -48,7 +48,7 @@ async function generateTypes() {
     // Extract project ID from URL
     const urlMatch = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/);
     if (!urlMatch) {
-      throw new Error('Invalid VITE_SUPABASE_URL format. Expected: https://your-project-id.supabase.co');
+      throw new Error('Invalid SUPABASE_URL format. Expected: https://your-project-id.supabase.co');
     }
     const projectId = urlMatch[1];
 

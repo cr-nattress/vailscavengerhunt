@@ -7,7 +7,8 @@ import express from 'express'
 const router = express.Router()
 
 // Dev server proxy to Netlify Functions to avoid hard-coded team codes
-const FUNCTIONS_BASE = process.env.NETLIFY_FUNCTIONS_URL || 'http://localhost:8888/.netlify/functions'
+// Use local server in development since we're handling Netlify Functions locally
+const FUNCTIONS_BASE = process.env.NETLIFY_FUNCTIONS_URL || 'http://localhost:3001/.netlify/functions'
 
 // Helper to proxy to Netlify Functions in dev
 async function proxy(path: string, init: RequestInit) {

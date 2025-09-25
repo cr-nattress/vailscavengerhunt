@@ -46,6 +46,12 @@
   status = 200
   force = true
 
+# Supabase test endpoint
+[[redirects]]
+  from = "/api/test-supabase"
+  to = "/.netlify/functions/test-supabase"
+  status = 200
+
 # Settings endpoints
 [[redirects]]
   from = "/api/settings/*"

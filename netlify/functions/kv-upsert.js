@@ -1,6 +1,19 @@
+/**
+ * KV Upsert Function - Hybrid Version with Feature Flag
+ * Stores key-value pairs with optional indexes
+ * Can use either Supabase or Netlify Blobs based on feature flag
+ */
+
+// Load environment variables
+require('dotenv').config();
+
+const { getSupabaseClient } = require('./_lib/supabaseClient');
 const { getStore } = require("@netlify/blobs");
 
-// Local development fallback storage
+// Feature flag for gradual rollout
+const USE_SUPABASE_KV = process.env.USE_SUPABASE_KV === 'true'; // Default to false for safety
+
+// Local development fallback storage (for blob mode)
 let localStore = new Map();
 let localIndexes = new Map();
 
@@ -55,60 +68,109 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`📝 Storing blob: ${key}`);
+    console.log(`📝 Storing KV pair: ${key} (Mode: ${USE_SUPABASE_KV ? 'Supabase' : 'Blobs'})`);
 
-    const store = getKVStore();
+    if (USE_SUPABASE_KV) {
+      // ========================================
+      // SUPABASE MODE
+      // ========================================
+      const supabase = getSupabaseClient();
 
-    if (store) {
-      // Production: Use Netlify Blobs
-      await store.setJSON(key, value);
+      // Prepare the data for upsert
+      const kvData = {
+        key: key,
+        value: value,
+        indexes: indexes && Array.isArray(indexes)
+          ? indexes.filter(ix => ix.key && ix.member).map(ix => `${ix.key}:${ix.member}`)
+          : [],
+        updated_at: new Date().toISOString()
+      };
 
-      // Handle indexes by storing them as JSON arrays
+      // Perform upsert (insert or update based on key)
+      const { data, error } = await supabase
+        .from('kv_store')
+        .upsert(kvData, {
+          onConflict: 'key',
+          returning: 'minimal' // Don't return the full record for performance
+        });
+
+      if (error) {
+        console.error(`❌ Supabase error:`, error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      // Handle additional index operations if needed
       if (indexes && Array.isArray(indexes)) {
-        console.log(`🔍 Processing ${indexes.length} indexes`);
+        console.log(`🔍 Processed ${indexes.length} indexes in Supabase`);
+
+        // Log index information for debugging
         for (const ix of indexes) {
           if (ix.key && ix.member) {
-            // Get existing index or create new array
-            let indexArray = [];
-            try {
-              const existing = await store.get(ix.key, { type: 'json' });
-              if (Array.isArray(existing)) {
-                indexArray = existing;
-              }
-            } catch (e) {
-              // Index doesn't exist yet, start with empty array
-            }
-
-            // Add member if not already present
-            if (!indexArray.includes(ix.member)) {
-              indexArray.push(ix.member);
-              await store.setJSON(ix.key, indexArray);
-              console.log(`✅ Added to index ${ix.key}: ${ix.member}`);
-            }
+            console.log(`✅ Index stored: ${ix.key}:${ix.member}`);
           }
         }
       }
+
+      console.log(`✅ Successfully stored in Supabase: ${key}`);
+
     } else {
-      // Local development: Use in-memory fallback
-      localStore.set(key, value);
+      // ========================================
+      // BLOB STORAGE MODE (Original)
+      // ========================================
+      const store = getKVStore();
 
-      // Handle indexes for local development
-      if (indexes && Array.isArray(indexes)) {
-        console.log(`🔍 Processing ${indexes.length} indexes (local)`);
-        for (const ix of indexes) {
-          if (ix.key && ix.member) {
-            if (!localIndexes.has(ix.key)) {
-              localIndexes.set(ix.key, new Set());
+      if (store) {
+        // Production: Use Netlify Blobs
+        await store.setJSON(key, value);
+
+        // Handle indexes by storing them as JSON arrays
+        if (indexes && Array.isArray(indexes)) {
+          console.log(`🔍 Processing ${indexes.length} indexes`);
+          for (const ix of indexes) {
+            if (ix.key && ix.member) {
+              // Get existing index or create new array
+              let indexArray = [];
+              try {
+                const existing = await store.get(ix.key, { type: 'json' });
+                if (Array.isArray(existing)) {
+                  indexArray = existing;
+                }
+              } catch (e) {
+                // Index doesn't exist yet, start with empty array
+              }
+
+              // Add member if not already present
+              if (!indexArray.includes(ix.member)) {
+                indexArray.push(ix.member);
+                await store.setJSON(ix.key, indexArray);
+                console.log(`✅ Added to index ${ix.key}: ${ix.member}`);
+              }
             }
-            localIndexes.get(ix.key).add(ix.member);
-            console.log(`✅ Added to local index ${ix.key}: ${ix.member}`);
+          }
+        }
+      } else {
+        // Local development: Use in-memory fallback
+        localStore.set(key, value);
+
+        // Handle indexes for local development
+        if (indexes && Array.isArray(indexes)) {
+          console.log(`🔍 Processing ${indexes.length} indexes (local)`);
+          for (const ix of indexes) {
+            if (ix.key && ix.member) {
+              if (!localIndexes.has(ix.key)) {
+                localIndexes.set(ix.key, new Set());
+              }
+              localIndexes.get(ix.key).add(ix.member);
+              console.log(`✅ Added to local index ${ix.key}: ${ix.member}`);
+            }
           }
         }
       }
+
+      console.log(`✅ Successfully stored in blobs: ${key}`);
     }
 
-    console.log(`✅ Successfully stored: ${key}`);
-
+    // Return same format regardless of storage backend
     return {
       statusCode: 200,
       headers: {

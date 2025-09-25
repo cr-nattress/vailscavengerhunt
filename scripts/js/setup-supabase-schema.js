@@ -19,12 +19,12 @@ async function setupSchema() {
   console.log('🗄️  Setting up Supabase database schema...\n');
 
   // Validate environment variables
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseUrl = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
     console.error('❌ Error: Missing required environment variables');
-    console.error('   - VITE_SUPABASE_URL: Supabase project URL');
+    console.error('   - SUPABASE_URL: Supabase project URL');
     console.error('   - SUPABASE_SERVICE_ROLE_KEY: Service role key for admin operations');
     console.error('\nPlease set these variables in your .env file');
     process.exit(1);

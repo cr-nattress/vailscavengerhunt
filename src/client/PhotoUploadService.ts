@@ -34,11 +34,13 @@ export class PhotoUploadService {
   ): Promise<PhotoUploadResponse> {
     console.log('📸 PhotoUploadService.uploadPhotoUnsigned() called');
 
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UNSIGNED_PRESET;
+    const { getPublicConfig } = await import('../services/PublicConfig')
+    const cfg = await getPublicConfig()
+    const cloudName = cfg.CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = cfg.CLOUDINARY_UNSIGNED_PRESET;
 
     if (!cloudName || !uploadPreset) {
-      throw new Error('Cloudinary unsigned upload not configured. Missing VITE_CLOUDINARY_CLOUD_NAME or VITE_CLOUDINARY_UNSIGNED_PRESET');
+      throw new Error('Cloudinary unsigned upload not configured. Missing CLOUDINARY_CLOUD_NAME or CLOUDINARY_UNSIGNED_PRESET');
     }
 
     // Validate inputs
@@ -102,7 +104,7 @@ export class PhotoUploadService {
     formData.append('public_id', publicId);
 
     // Add folder
-    const folder = import.meta.env.VITE_CLOUDINARY_UPLOAD_FOLDER || 'scavenger/entries';
+    const folder = cfg.CLOUDINARY_UPLOAD_FOLDER || 'scavenger/entries';
     formData.append('folder', folder);
 
     console.log('📦 FormData created for unsigned upload');

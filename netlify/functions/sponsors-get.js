@@ -5,8 +5,9 @@
  */
 
 const { createClient } = require('@supabase/supabase-js')
+const { withSentry } = require('./_lib/sentry')
 
-exports.handler = async (event, context) => {
+exports.handler = withSentry(async (event, context) => {
   // Set CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -37,7 +38,7 @@ exports.handler = async (event, context) => {
     }
 
     // Initialize Supabase client
-    const supabaseUrl = process.env.VITE_SUPABASE_URL
+    const supabaseUrl = process.env.SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!supabaseUrl || !supabaseServiceKey) {
@@ -182,7 +183,7 @@ exports.handler = async (event, context) => {
       })
     }
   }
-}
+})
 
 /**
  * Get layout configuration from settings system

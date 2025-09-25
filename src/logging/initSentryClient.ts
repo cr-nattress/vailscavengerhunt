@@ -4,19 +4,28 @@ import { createSentryPIIRedactor } from './piiRedaction.js'
 /**
  * Initialize Sentry for browser - always enabled
  */
-export function maybeInitSentryBrowser(): boolean {
-  // Use environment DSN if available
-  const dsn = import.meta.env.VITE_SENTRY_DSN
-
+export async function maybeInitSentryBrowser(): Promise<boolean> {
   try {
-    // Initialize Sentry with or without DSN
-    // When DSN is not provided, Sentry runs in "noop" mode
+    // Prefer preloaded config on window to avoid startup race
+    const win = window as any
+    let cfg = win.__PUBLIC_CONFIG__
+    if (!cfg) {
+      const mod = await import('../services/PublicConfig')
+      cfg = await mod.getPublicConfig()
+      win.__PUBLIC_CONFIG__ = cfg
+    }
+
+    const dsn: string | undefined = cfg.SENTRY_DSN
+    const environment: string = cfg.SENTRY_ENVIRONMENT || (import.meta as any)?.env?.MODE || 'development'
+    const release: string = cfg.SENTRY_RELEASE || 'unknown'
+    const tracesSampleRate: number = Number(cfg.SENTRY_TRACES_SAMPLE_RATE || 0.1)
+
     Sentry.init({
-      dsn: dsn || false, // false disables sending but keeps API functional
-      enabled: !!dsn, // Only enable if DSN is provided
-      environment: import.meta.env.MODE || 'development',
-      release: import.meta.env.VITE_SENTRY_RELEASE || 'unknown',
-      tracesSampleRate: Number(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE || '0.1'),
+      dsn: dsn || undefined,
+      enabled: !!dsn,
+      environment,
+      release,
+      tracesSampleRate,
       integrations: [
         Sentry.browserTracingIntegration(),
         Sentry.replayIntegration({
@@ -24,14 +33,9 @@ export function maybeInitSentryBrowser(): boolean {
           blockAllMedia: false,
         }),
       ],
-      // Session Replay sampling
-      replaysSessionSampleRate: 0.1, // 10% of sessions
-      replaysOnErrorSampleRate: 1.0, // 100% of sessions with an error
-
-      // Comprehensive PII redaction (US-004)
+      replaysSessionSampleRate: 0.1,
+      replaysOnErrorSampleRate: 1.0,
       beforeSend: createSentryPIIRedactor(),
-
-      // Don't send default PII
       sendDefaultPii: false,
     })
 

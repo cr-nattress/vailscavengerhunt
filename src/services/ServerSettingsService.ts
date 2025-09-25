@@ -24,8 +24,24 @@ class ServerSettingsService {
   private retryDelay = 1000 // Start with 1 second
 
   constructor() {
-    // Use relative paths for API calls
+    // Default API base for production server
     this.baseUrl = '/api'
+  }
+
+  /**
+   * Build the correct settings endpoint based on environment and method
+   * - In development, use Netlify Functions directly
+   * - In production, use the Express API under /api/settings
+   */
+  private buildSettingsUrl(orgId: string, teamId: string, huntId: string, method: 'GET' | 'POST'): string {
+    const isDev = typeof import.meta !== 'undefined' && (import.meta as any).env?.DEV
+    if (isDev) {
+      // Netlify Functions during development
+      const fnBase = method === 'GET' ? '/.netlify/functions/settings-get' : '/.netlify/functions/settings-set'
+      return `${fnBase}/${orgId}/${teamId}/${huntId}`
+    }
+    // Default: server API
+    return `${this.baseUrl}/settings/${orgId}/${teamId}/${huntId}`
   }
 
   /**
@@ -38,10 +54,8 @@ class ServerSettingsService {
     }
 
     try {
-      const response = await this.fetchWithRetry(
-        `${this.baseUrl}/settings/${orgId}/${teamId}/${huntId}`,
-        { method: 'GET' }
-      )
+      const url = this.buildSettingsUrl(orgId, teamId, huntId, 'GET')
+      const response = await this.fetchWithRetry(url, { method: 'GET' })
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -77,20 +91,18 @@ class ServerSettingsService {
     }
 
     try {
-      const response = await this.fetchWithRetry(
-        `${this.baseUrl}/settings/${orgId}/${teamId}/${huntId}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            settings,
-            sessionId, // For audit trail only
-            timestamp: new Date().toISOString()
-          })
-        }
-      )
+      const url = this.buildSettingsUrl(orgId, teamId, huntId, 'POST')
+      const response = await this.fetchWithRetry(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          settings,
+          sessionId, // For audit trail only
+          timestamp: new Date().toISOString()
+        })
+      })
 
       if (!response.ok) {
         throw new Error(`Failed to save settings: ${response.statusText}`)

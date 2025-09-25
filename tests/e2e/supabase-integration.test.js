@@ -11,9 +11,9 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 // Test configuration
-const supabaseUrl = process.env.VITE_SUPABASE_URL
+const supabaseUrl = process.env.SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY
 
 // Test data constants
 const TEST_ORG_ID = 'bhhs'

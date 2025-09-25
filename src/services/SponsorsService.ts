@@ -42,11 +42,9 @@ export class SponsorsService {
         request
       })
 
-      // Try Express server first in development, then Netlify functions
+      // Always use /api; Netlify redirects to functions in prod, Express handles in dev
       const isDevelopment = import.meta.env.DEV
-      let apiUrl = isDevelopment
-        ? `${import.meta.env.VITE_API_URL}/sponsors`
-        : '/.netlify/functions/sponsors-get'
+      let apiUrl = '/api/sponsors'
 
       this.logger.info('SponsorsService', 'get-sponsors-url', {
         message: 'Using API URL',
@@ -217,14 +215,14 @@ export class SponsorsService {
    * Used when Netlify functions are not available in dev mode
    */
   private static async fetchSponsorsFromSupabase(request: SponsorsRequest): Promise<SponsorsResponse> {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+    const { getPublicConfig } = await import('./PublicConfig')
+    const cfg = await getPublicConfig()
 
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
       throw new Error('Supabase configuration missing')
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    const supabase = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY)
 
     // Query sponsor assets
     const { data: sponsors, error } = await supabase
