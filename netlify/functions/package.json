@@ -10,8 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@netlify/blobs": "^7.4.0",
-    "@netlify/functions": "^4.2.5",
+    "@netlify/blobs": "^6.5.0",
+    "@netlify/functions": "^2.8.2",
     "cloudinary": "^2.7.0",
     "parse-multipart-data": "^1.5.0"
   }
