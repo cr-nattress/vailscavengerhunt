@@ -29,8 +29,8 @@ export function TeamLockWrapper({ children }: TeamLockWrapperProps) {
     const hunt = huntId || 'fall-2025'
 
     try {
-      await initializeSettings(orgId, teamId, hunt)
-      console.log('Settings initialized for team:', teamId)
+      await initializeSettings(orgId, teamId, hunt, teamName)
+      console.log('Settings initialized for team:', teamId, 'with name:', teamName)
     } catch (error) {
       console.error('Failed to initialize settings after team verification:', error)
     }

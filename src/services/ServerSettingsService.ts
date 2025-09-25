@@ -123,7 +123,8 @@ class ServerSettingsService {
     orgId: string,
     teamId: string,
     huntId: string,
-    sessionId: string
+    sessionId: string,
+    teamName?: string
   ): Promise<Settings> {
     // First try to load existing settings
     const existing = await this.getSettings(orgId, teamId, huntId)
@@ -142,14 +143,14 @@ class ServerSettingsService {
     // Create default settings for new hunt
     const defaultSettings: Settings = {
       locationName: 'BHHS',
-      teamName: teamId,
+      teamName: teamName || teamId,  // Use provided teamName or fallback to teamId
       sessionId,
       eventName: '',
       organizationId: orgId,
       huntId
     }
 
-    console.log('[ServerSettings] Creating new settings with defaults')
+    console.log('[ServerSettings] Creating new settings with defaults, teamName:', teamName || teamId)
     await this.saveSettings(orgId, teamId, huntId, defaultSettings, sessionId)
 
     return defaultSettings

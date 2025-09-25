@@ -23,7 +23,7 @@ interface AppActions {
   setLockedByQuery: (locked: boolean) => void
   setOrganizationId: (orgId: string) => void
   setHuntId: (huntId: string) => void
-  initializeSettings: (orgId: string, teamId: string, huntId: string) => Promise<void>
+  initializeSettings: (orgId: string, teamId: string, huntId: string, teamName?: string) => Promise<void>
   saveSettingsToServer: () => Promise<void>
 }
 
@@ -91,22 +91,28 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setHuntId: (huntId: string) => set({ huntId }),
 
   // Initialize settings from server
-  initializeSettings: async (orgId: string, teamId: string, huntId: string) => {
+  initializeSettings: async (orgId: string, teamId: string, huntId: string, teamName?: string) => {
     set({ isLoading: true, error: null })
 
     try {
       const { sessionId } = get()
+      // If teamName is provided, temporarily set it so it gets saved correctly
+      if (teamName) {
+        set({ teamName })
+      }
+
       const settings = await serverSettingsService.initializeSettings(
         orgId,
         teamId,
         huntId,
-        sessionId
+        sessionId,
+        teamName // Pass teamName to service
       )
 
       if (settings) {
         set({
           locationName: settings.locationName || 'BHHS',
-          teamName: settings.teamName || teamId,  // Display name from settings
+          teamName: settings.teamName || teamName || teamId,  // Use provided teamName, then settings, then teamId
           teamId: teamId,  // Always set the actual team ID
           eventName: settings.eventName || '',
           organizationId: orgId,
@@ -122,7 +128,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         // Use defaults on error
         organizationId: orgId,
         huntId,
-        teamName: teamId,
+        teamName: teamName || teamId,
         teamId: teamId
       })
     }
