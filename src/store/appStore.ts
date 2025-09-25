@@ -4,6 +4,7 @@ import serverSettingsService from '../services/ServerSettingsService'
 interface AppState {
   locationName: string
   teamName: string
+  teamId: string  // Actual team ID from team verification
   sessionId: string
   eventName: string
   lockedByQuery: boolean
@@ -16,6 +17,7 @@ interface AppState {
 interface AppActions {
   setLocationName: (locationName: string) => void
   setTeamName: (teamName: string) => void
+  setTeamId: (teamId: string) => void
   setSessionId: (sessionId: string) => void
   setEventName: (eventName: string) => void
   setLockedByQuery: (locked: boolean) => void
@@ -41,6 +43,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   // State
   locationName: 'BHHS',
   teamName: '',
+  teamId: '',
   sessionId: generateSessionId(),
   eventName: '',
   lockedByQuery: false,
@@ -67,6 +70,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
       await store.saveSettingsToServer()
     }
   },
+
+  setTeamId: (teamId: string) => set({ teamId }),
 
   setSessionId: (sessionId: string) => set({ sessionId }),
 

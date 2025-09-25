@@ -2,9 +2,10 @@
  * TeamLockWrapper - Wrapper component for team lock functionality
  * Conditionally shows splash screen based on team lock state
  */
-import React from 'react'
+import React, { useCallback } from 'react'
 import { SplashGate } from './SplashGate'
 import { useTeamLock } from './useTeamLock'
+import { useAppStore } from '../../store/appStore'
 
 interface TeamLockWrapperProps {
   children: React.ReactNode
@@ -12,6 +13,16 @@ interface TeamLockWrapperProps {
 
 export function TeamLockWrapper({ children }: TeamLockWrapperProps) {
   const { showSplash, isLoading, onTeamVerified } = useTeamLock()
+  const { setTeamName, setTeamId } = useAppStore()
+
+  // Handle team verification and update app store
+  const handleTeamVerified = useCallback((teamId: string, teamName: string) => {
+    // Update the team lock state
+    onTeamVerified(teamId, teamName)
+    // Update the app store with both team ID and team name
+    setTeamId(teamId)  // Set the actual team ID
+    setTeamName(teamName)  // Set the human-readable team name
+  }, [onTeamVerified, setTeamId, setTeamName])
 
   // Show loading state while checking team lock
   if (isLoading) {
@@ -30,7 +41,7 @@ export function TeamLockWrapper({ children }: TeamLockWrapperProps) {
 
   // Show splash screen when team lock is required and not present
   if (showSplash) {
-    return <SplashGate onTeamVerified={onTeamVerified} />
+    return <SplashGate onTeamVerified={handleTeamVerified} />
   }
 
   // Show main app content

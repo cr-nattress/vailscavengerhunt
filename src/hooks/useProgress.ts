@@ -1,6 +1,7 @@
 import { useMemo, useCallback } from 'react'
-import useSWR, { mutate } from 'swr'
-import progressService, { ProgressData, StopProgress } from '../services/ProgressService'
+import useSWR from 'swr'
+import progressService from '../services/ProgressService'
+import { type ProgressData } from '../types/schemas'
 import { useAppStore } from '../store/appStore'
 
 /**
@@ -11,34 +12,39 @@ import { useAppStore } from '../store/appStore'
  */
 export function useProgress(stops: any[]) {
   // Get org/team/hunt context from app store
-  const { organizationId, huntId, teamName, sessionId } = useAppStore()
+  const { organizationId, huntId, teamName, teamId, sessionId } = useAppStore()
+
+  // Use teamId if available (from team verification), otherwise fall back to teamName
+  const effectiveTeamId = teamId || teamName
 
   // Construct the SWR key - unique per team's hunt
-  const swrKey = organizationId && teamName && huntId
-    ? `/api/progress/${organizationId}/${teamName}/${huntId}`
+  const swrKey = organizationId && effectiveTeamId && huntId
+    ? `/api/progress/${organizationId}/${effectiveTeamId}/${huntId}`
     : null
 
   // Fetch progress from server with SWR
   const { data: progress = {}, error, isLoading, mutate: mutateProgress } = useSWR<ProgressData>(
     swrKey,
     async () => {
-      if (!organizationId || !teamName || !huntId) {
+      if (!organizationId || !effectiveTeamId || !huntId) {
         console.warn('[useProgress] Missing org/team/hunt context')
         return {}
       }
-      return await progressService.getProgress(organizationId, teamName, huntId)
+      return await progressService.getProgress(organizationId, effectiveTeamId, huntId)
     },
     {
-      revalidateOnFocus: true, // Refresh when tab gains focus (see team updates)
-      revalidateOnReconnect: true, // Refresh when network reconnects
-      refreshInterval: 30000, // Poll every 30 seconds for team updates
+      // Disable automatic revalidation/polling. We'll refresh explicitly after writes.
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      revalidateIfStale: false,
+      refreshInterval: 0,
       fallbackData: {}, // Use empty object while loading
     }
   )
 
   // Update progress with optimistic updates
   const setProgress = useCallback(async (updater: ((prev: ProgressData) => ProgressData) | ProgressData) => {
-    if (!organizationId || !teamName || !huntId) {
+    if (!organizationId || !effectiveTeamId || !huntId) {
       console.error('[useProgress] Cannot update - missing context')
       return
     }
@@ -57,7 +63,7 @@ export function useProgress(stops: any[]) {
       // Save to server (sessionId for audit only)
       const success = await progressService.saveProgress(
         organizationId,
-        teamName,
+        effectiveTeamId,
         huntId,
         newProgress,
         sessionId
@@ -71,14 +77,17 @@ export function useProgress(stops: any[]) {
         mutateProgress()
       }
     } catch (err) {
-      console.error('[useProgress] Error saving progress:', err)
       // Rollback will happen automatically
     }
   }, [progress, mutateProgress, organizationId, teamName, huntId, sessionId])
   
   // Derived values for the progress UI
   const completeCount = useMemo(
-    () => stops.reduce((acc, s) => acc + ((progress[s.id]?.done) ? 1 : 0), 0),
+    () => stops.reduce((acc, s) => {
+      const val = (progress as ProgressData)[s.id]
+      const isDone = val && typeof val === 'object' && (val as any).done === true
+      return acc + (isDone ? 1 : 0)
+    }, 0),
     [progress, stops]
   )
   const percent = stops.length === 0 ? 0 : Math.round((completeCount / stops.length) * 100)
@@ -89,6 +98,7 @@ export function useProgress(stops: any[]) {
     completeCount,
     percent,
     isLoading,
-    error
+    error,
+    refetch: () => mutateProgress()
   }
 }
