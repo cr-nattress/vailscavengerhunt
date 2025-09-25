@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import path from 'path';
+import fs from 'fs';
 
 // Get current file path for proper .env resolution
 const __filename = fileURLToPath(import.meta.url);
@@ -61,8 +62,18 @@ app.get('/health', (req, res) => {
 });
 
 // Serve React app for all other routes (SPA fallback)
+// In development, this should redirect to Vite dev server
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../public/index.html'));
+  if (process.env.NODE_ENV === 'development' || !fs.existsSync(path.join(__dirname, '../../public/index.html'))) {
+    // In development, redirect to Vite dev server
+    res.status(404).json({
+      error: 'Not Found',
+      message: 'In development mode, use http://localhost:5173 for the UI'
+    });
+  } else {
+    // In production, serve the built React app
+    res.sendFile(path.join(__dirname, '../../public/index.html'));
+  }
 });
 
 // Error handling middleware (restart)

@@ -51,12 +51,14 @@
   to = "/.netlify/functions/settings-get/:splat"
   status = 200
   conditions = {method = ["GET"]}
+  force = true
 
 [[redirects]]
   from = "/api/settings/*"
   to = "/.netlify/functions/settings-set/:splat"
   status = 200
   conditions = {method = ["POST"]}
+  force = true
 
 # Progress endpoints
 [[redirects]]
@@ -64,12 +66,52 @@
   to = "/.netlify/functions/progress-get/:splat"
   status = 200
   conditions = {method = ["GET"]}
+  force = true
 
 [[redirects]]
   from = "/api/progress/*"
   to = "/.netlify/functions/progress-set/:splat"
   status = 200
   conditions = {method = ["POST"]}
+  force = true
+
+# Sponsors endpoint
+[[redirects]]
+  from = "/api/sponsors"
+  to = "/.netlify/functions/sponsors-get"
+  status = 200
+  conditions = {method = ["POST"]}
+  force = true
+
+# Leaderboard endpoint
+[[redirects]]
+  from = "/api/leaderboard/*"
+  to = "/.netlify/functions/leaderboard-get/:splat"
+  status = 200
+  conditions = {method = ["GET"]}
+  force = true
+
+# Team endpoints
+[[redirects]]
+  from = "/api/team-verify"
+  to = "/.netlify/functions/team-verify"
+  status = 200
+  conditions = {method = ["POST"]}
+  force = true
+
+[[redirects]]
+  from = "/api/team-current"
+  to = "/.netlify/functions/team-current"
+  status = 200
+  conditions = {method = ["GET"]}
+  force = true
+
+[[redirects]]
+  from = "/api/team-setup"
+  to = "/.netlify/functions/team-setup"
+  status = 200
+  conditions = {method = ["POST"]}
+  force = true
 
 # Legacy state endpoints (can be removed if not used)
 [[redirects]]
