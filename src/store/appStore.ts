@@ -57,7 +57,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ locationName })
     // Auto-save to server after change
     const store = get()
-    if (store.organizationId && store.teamName && store.huntId) {
+    if (store.organizationId && (store.teamId || store.teamName) && store.huntId) {
       await store.saveSettingsToServer()
     }
   },
@@ -66,7 +66,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ teamName })
     // Auto-save to server after change
     const store = get()
-    if (store.organizationId && teamName && store.huntId) {
+    if (store.organizationId && (store.teamId || teamName) && store.huntId) {
       await store.saveSettingsToServer()
     }
   },
@@ -79,7 +79,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ eventName })
     // Auto-save to server after change
     const store = get()
-    if (store.organizationId && store.teamName && store.huntId) {
+    if (store.organizationId && (store.teamId || store.teamName) && store.huntId) {
       await store.saveSettingsToServer()
     }
   },
@@ -106,7 +106,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
       if (settings) {
         set({
           locationName: settings.locationName || 'BHHS',
-          teamName: settings.teamName || teamId,
+          teamName: settings.teamName || teamId,  // Display name from settings
+          teamId: teamId,  // Always set the actual team ID
           eventName: settings.eventName || '',
           organizationId: orgId,
           huntId,
@@ -121,7 +122,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
         // Use defaults on error
         organizationId: orgId,
         huntId,
-        teamName: teamId
+        teamName: teamId,
+        teamId: teamId
       })
     }
   },
@@ -129,9 +131,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
   // Save current settings to server
   saveSettingsToServer: async () => {
     const state = get()
-    const { organizationId, teamName, huntId, sessionId } = state
+    const { organizationId, teamName, teamId, huntId, sessionId } = state
 
-    if (!organizationId || !teamName || !huntId) {
+    // Use teamId if available, otherwise fallback to teamName
+    const effectiveTeamId = teamId || teamName
+
+    if (!organizationId || !effectiveTeamId || !huntId) {
       console.warn('[AppStore] Cannot save - missing org/team/hunt info')
       return
     }
@@ -139,7 +144,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
     try {
       const settings = {
         locationName: state.locationName,
-        teamName: state.teamName,
+        teamName: state.teamName,  // This is the display name
+        teamId: state.teamId,        // This is the actual ID
         sessionId: state.sessionId,
         eventName: state.eventName,
         organizationId,
@@ -148,7 +154,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
       const success = await serverSettingsService.saveSettings(
         organizationId,
-        teamName,
+        effectiveTeamId,  // Use the team ID for the key
         huntId,
         settings,
         sessionId

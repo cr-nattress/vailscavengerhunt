@@ -13,16 +13,28 @@ interface TeamLockWrapperProps {
 
 export function TeamLockWrapper({ children }: TeamLockWrapperProps) {
   const { showSplash, isLoading, onTeamVerified } = useTeamLock()
-  const { setTeamName, setTeamId } = useAppStore()
+  const { setTeamName, setTeamId, initializeSettings, organizationId, huntId } = useAppStore()
 
   // Handle team verification and update app store
-  const handleTeamVerified = useCallback((teamId: string, teamName: string) => {
+  const handleTeamVerified = useCallback(async (teamId: string, teamName: string) => {
     // Update the team lock state
     onTeamVerified(teamId, teamName)
     // Update the app store with both team ID and team name
     setTeamId(teamId)  // Set the actual team ID
     setTeamName(teamName)  // Set the human-readable team name
-  }, [onTeamVerified, setTeamId, setTeamName])
+
+    // Initialize settings for this team from the server
+    // Use default org/hunt if not already set
+    const orgId = organizationId || 'bhhs'
+    const hunt = huntId || 'fall-2025'
+
+    try {
+      await initializeSettings(orgId, teamId, hunt)
+      console.log('Settings initialized for team:', teamId)
+    } catch (error) {
+      console.error('Failed to initialize settings after team verification:', error)
+    }
+  }, [onTeamVerified, setTeamId, setTeamName, initializeSettings, organizationId, huntId])
 
   // Show loading state while checking team lock
   if (isLoading) {
