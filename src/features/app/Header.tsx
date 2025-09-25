@@ -1,5 +1,4 @@
 import React from 'react'
-import { TeamChip } from '../../components/TeamChip'
 
 interface HeaderProps {
   isMenuOpen: boolean
@@ -25,31 +24,26 @@ export default function Header({
       backgroundColor: 'var(--color-surface)',
       borderBottomColor: 'var(--color-border)'
     }}>
-      <div className='max-w-screen-sm mx-auto px-4 py-3 flex items-center justify-between'>
-        <div className='flex items-center justify-start !self-center'>
-          <div className='flex items-center justify-center' style={{ alignItems: 'center !important' }}>
+      <div className='max-w-screen-sm mx-auto px-4 py-2 flex items-center justify-between'>
+        <div className='flex items-center justify-start !self-center' style={{ flex: '1.2 0 auto' }}>
+          <div className='flex items-center justify-start' style={{ alignItems: 'center !important', width: '100%' }}>
             <img
               src="/app-logo.svg"
               alt="FindrQuest"
-              className="h-12 w-auto max-w-[200px] object-contain !self-center"
+              className="h-10 w-auto max-w-[300px] object-contain !self-center"
               style={{
                 display: 'block',
                 alignSelf: 'center !important',
-                margin: 'auto 0'
+                margin: '0'
               }}
             />
           </div>
         </div>
 
-        {/* Team Chip (only shows when team lock is active) */}
-        <div className="flex-1 flex justify-center">
-          <TeamChip />
-        </div>
-
         {/* Hamburger Menu Button */}
         <button
           onClick={onToggleMenu}
-          className='relative p-2 rounded-lg transition-colors'
+          className='relative p-1.5 rounded-lg transition-colors'
           style={{
             backgroundColor: 'var(--color-background)',
           }}
