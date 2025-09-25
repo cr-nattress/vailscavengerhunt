@@ -6,9 +6,14 @@ let localIndexes = new Map();
 
 const getKVStore = () => {
   try {
+    // Check if we're in Netlify environment
+    if (!process.env.NETLIFY) {
+      console.log("Not in Netlify environment, using local fallback");
+      return null;
+    }
     return getStore("kv");
   } catch (error) {
-    console.log("Using local development fallback store");
+    console.log("Error getting store, using local fallback:", error.message);
     return null;
   }
 };
@@ -58,14 +63,28 @@ exports.handler = async (event, context) => {
       // Production: Use Netlify Blobs
       await store.setJSON(key, value);
 
-      // Handle indexes (append-only sets)
+      // Handle indexes by storing them as JSON arrays
       if (indexes && Array.isArray(indexes)) {
         console.log(`🔍 Processing ${indexes.length} indexes`);
         for (const ix of indexes) {
           if (ix.key && ix.member) {
-            const set = store.set(ix.key);
-            await set.add(ix.member);
-            console.log(`✅ Added to index ${ix.key}: ${ix.member}`);
+            // Get existing index or create new array
+            let indexArray = [];
+            try {
+              const existing = await store.get(ix.key, { type: 'json' });
+              if (Array.isArray(existing)) {
+                indexArray = existing;
+              }
+            } catch (e) {
+              // Index doesn't exist yet, start with empty array
+            }
+
+            // Add member if not already present
+            if (!indexArray.includes(ix.member)) {
+              indexArray.push(ix.member);
+              await store.setJSON(ix.key, indexArray);
+              console.log(`✅ Added to index ${ix.key}: ${ix.member}`);
+            }
           }
         }
       }
