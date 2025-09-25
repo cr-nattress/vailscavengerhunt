@@ -10,6 +10,18 @@
 import { createClientLogger } from '../factories/clientLoggerFactory.js'
 import { LogLevel, Logger } from '../types.js'
 
+// Conditional import for server logger
+let createServerLogger: any = null
+const isServer = typeof window === 'undefined'
+if (isServer) {
+  try {
+    const serverModule = require('../factories/serverLoggerFactory')
+    createServerLogger = serverModule.createServerLogger
+  } catch (e) {
+    createServerLogger = null
+  }
+}
+
 interface LegacyLoggerConfig {
   component?: string
   enableConsole?: boolean
@@ -34,38 +46,85 @@ export class LegacyLogger {
 
     this.component = component
 
-    // Always use client logger to avoid importing Node.js modules in browser
-    this.logger = createClientLogger({
-      minLevel,
-      enableConsole,
-      enableSentry,
-      tags: ['legacy-logger', component]
-    })
-  }
-
-  // Standard logging methods
-  info(message: string, data?: any): void {
-    this.logger.info(this.component, 'info', { message, data })
-  }
-
-  warn(message: string, data?: any): void {
-    this.logger.warn(this.component, 'warn', { message, data })
-  }
-
-  error(message: string, error?: Error | any, data?: any): void {
-    if (error instanceof Error) {
-      this.logger.error(this.component, 'error', error, { message, data })
+    // Use appropriate logger based on environment
+    if (isServer && createServerLogger) {
+      this.logger = createServerLogger({
+        minLevel,
+        enableConsole,
+        enableSentry,
+        tags: ['legacy-logger', component]
+      })
     } else {
-      this.logger.error(this.component, 'error', new Error(message), {
-        message,
-        errorData: error,
-        data
+      this.logger = createClientLogger({
+        minLevel,
+        enableConsole,
+        enableSentry,
+        tags: ['legacy-logger', component]
       })
     }
   }
 
-  debug(message: string, data?: any): void {
-    this.logger.debug(this.component, 'debug', { message, data })
+  // Standard logging methods with overloads for backward compatibility
+  info(messageOrComponent: string, messageOrData?: string | any, data?: any): void {
+    if (typeof messageOrData === 'string' && data !== undefined) {
+      // Legacy 3-parameter format: info(component, message, data)
+      this.logger.info(messageOrData, { component: this.component, ...data })
+    } else if (typeof messageOrData === 'string') {
+      // Legacy 2-parameter format: info(component, message)
+      this.logger.info(messageOrData, { component: this.component })
+    } else {
+      // New format: info(message, data)
+      const contextData = messageOrData && typeof messageOrData === 'object' ? messageOrData : {}
+      this.logger.info(messageOrComponent, { component: this.component, ...contextData })
+    }
+  }
+
+  warn(messageOrComponent: string, messageOrData?: string | any, data?: any): void {
+    if (typeof messageOrData === 'string' && data !== undefined) {
+      // Legacy 3-parameter format: warn(component, message, data)
+      this.logger.warn(messageOrData, { component: this.component, ...data })
+    } else if (typeof messageOrData === 'string') {
+      // Legacy 2-parameter format: warn(component, message)
+      this.logger.warn(messageOrData, { component: this.component })
+    } else {
+      // New format: warn(message, data)
+      const contextData = messageOrData && typeof messageOrData === 'object' ? messageOrData : {}
+      this.logger.warn(messageOrComponent, { component: this.component, ...contextData })
+    }
+  }
+
+  error(messageOrComponent: string, errorOrMessage?: Error | string | any, dataOrError?: any, data?: any): void {
+    if (typeof errorOrMessage === 'string' && dataOrError instanceof Error) {
+      // Legacy 4-parameter format: error(component, message, error, data)
+      this.logger.error(errorOrMessage, dataOrError, { component: this.component, ...data })
+    } else if (typeof errorOrMessage === 'string' && dataOrError && typeof dataOrError === 'object' && !(dataOrError instanceof Error)) {
+      // Legacy 3-parameter format: error(component, message, data)
+      this.logger.error(errorOrMessage, new Error(errorOrMessage), { component: this.component, ...dataOrError })
+    } else if (typeof errorOrMessage === 'string') {
+      // Legacy 2-parameter format: error(component, message)
+      this.logger.error(errorOrMessage, new Error(errorOrMessage), { component: this.component })
+    } else if (errorOrMessage instanceof Error) {
+      // New format: error(message, error, data)
+      this.logger.error(messageOrComponent, errorOrMessage, { component: this.component, ...dataOrError })
+    } else {
+      // New format: error(message, data)
+      const contextData = errorOrMessage && typeof errorOrMessage === 'object' ? errorOrMessage : {}
+      this.logger.error(messageOrComponent, new Error(messageOrComponent), { component: this.component, ...contextData })
+    }
+  }
+
+  debug(messageOrComponent: string, messageOrData?: string | any, data?: any): void {
+    if (typeof messageOrData === 'string' && data !== undefined) {
+      // Legacy 3-parameter format: debug(component, message, data)
+      this.logger.debug(messageOrData, { component: this.component, ...data })
+    } else if (typeof messageOrData === 'string') {
+      // Legacy 2-parameter format: debug(component, message)
+      this.logger.debug(messageOrData, { component: this.component })
+    } else {
+      // New format: debug(message, data)
+      const contextData = messageOrData && typeof messageOrData === 'object' ? messageOrData : {}
+      this.logger.debug(messageOrComponent, { component: this.component, ...contextData })
+    }
   }
 
   // Common legacy patterns
@@ -137,16 +196,24 @@ export function createLegacyLogger(component?: string): LegacyLogger {
 }
 
 export function createExpressLogger(): LegacyLogger {
+  const enableSentry = isServer ?
+    !!process.env.SENTRY_DSN :
+    !!(import.meta.env && import.meta.env.VITE_ENABLE_SENTRY === 'true')
+
   return new LegacyLogger({
     component: 'express',
-    enableSentry: !!process.env.SENTRY_DSN
+    enableSentry
   })
 }
 
 export function createApiLogger(apiName?: string): LegacyLogger {
+  const enableSentry = isServer ?
+    !!process.env.SENTRY_DSN :
+    !!(import.meta.env && import.meta.env.VITE_ENABLE_SENTRY === 'true')
+
   return new LegacyLogger({
     component: apiName ? `api.${apiName}` : 'api',
-    enableSentry: !!process.env.SENTRY_DSN
+    enableSentry
   })
 }
 

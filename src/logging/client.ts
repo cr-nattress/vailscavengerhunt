@@ -20,9 +20,10 @@ export * from './initSentryClient'
 export * from './piiRedaction'
 export * from './adapters/consoleAdapter'
 
-// Configuration and monitoring (shared)
+// Configuration (shared)
 export * from './config'
-export * from './monitoring'
+
+// Note: monitoring.ts is only exported from server.ts as it has server dependencies
 
 // Legacy logger with client-only functionality
 export { createLegacyLogger } from './adapters/legacyLogger'

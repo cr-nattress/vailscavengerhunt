@@ -7,14 +7,10 @@
 import express from 'express'
 import { SponsorsRequest, SponsorsResponse } from '../types/sponsors'
 import { createClient } from '@supabase/supabase-js'
-import { createServerLogger } from '../logging/server'
+import { createApiLogger } from '../logging/adapters/legacyLogger'
 
 const router = express.Router()
-const logger = createServerLogger({
-  minLevel: 'info' as any,
-  enableSentry: !!process.env.SENTRY_DSN,
-  tags: ['sponsors-route']
-})
+const logger = createApiLogger('sponsors')
 
 // GET /api/sponsors - fetch sponsors for an organization/hunt
 router.post('/sponsors', async (req: express.Request, res: express.Response) => {

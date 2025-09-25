@@ -11,7 +11,9 @@ let createServerLogger: any = null
 if (typeof process !== 'undefined' && process.versions?.node) {
   try {
     // Dynamic import to avoid bundling server code in browser
-    createServerLogger = require('./server').createServerLogger
+    // Import directly from factory to avoid circular dependency
+    const serverModule = require('./factories/serverLoggerFactory')
+    createServerLogger = serverModule.createServerLogger
   } catch (e) {
     // Server modules not available in browser - that's expected
     createServerLogger = null
