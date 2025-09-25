@@ -17,8 +17,8 @@ export const useSponsors = (): UseSponsorsResult => {
   // Get organization and hunt info from app store
   const { organizationId, huntId, teamName } = useAppStore()
 
-  // Check feature flag
-  const featureEnabled = import.meta.env.VITE_ENABLE_SPONSOR_CARD === 'true'
+  // Check feature flag - ALWAYS ENABLED
+  const featureEnabled = true // Always enable sponsors regardless of environment variable
 
   // Create stable request object
   const request = useMemo(() => {
@@ -71,10 +71,8 @@ export const useSponsors = (): UseSponsorsResult => {
 
   // Log feature flag status for debugging
   useEffect(() => {
-    if (!featureEnabled) {
-      console.log('[useSponsors] Sponsor card feature is disabled via VITE_ENABLE_SPONSOR_CARD flag')
-    }
-  }, [featureEnabled])
+    console.log('[useSponsors] Sponsor card feature is ENABLED')
+  }, [])
 
   return {
     sponsors,

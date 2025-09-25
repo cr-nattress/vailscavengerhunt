@@ -142,7 +142,7 @@ export class SponsorsService {
 
       // In development, try direct Supabase access
       const isDevelopment = import.meta.env.DEV
-      if (isDevelopment && import.meta.env.VITE_ENABLE_SPONSOR_CARD === 'true') {
+      if (isDevelopment) { // Always try Supabase fallback in development
         this.logger.info('SponsorsService', 'try-supabase-fallback', {
           message: 'Trying direct Supabase access in development'
         })
