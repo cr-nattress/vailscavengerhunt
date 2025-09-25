@@ -28,9 +28,16 @@ exports.handler = async (event, context) => {
     }
   }
 
+  // Parse body outside try/catch to safely reference in fallback
+  let parsedBody
   try {
-    const body = JSON.parse(event.body || '{}')
-    const { filename, data } = body
+    parsedBody = JSON.parse(event.body || '{}')
+  } catch (_) {
+    parsedBody = {}
+  }
+
+  try {
+    const { filename, data } = parsedBody
 
     if (!filename || !data) {
       return {
@@ -72,8 +79,8 @@ exports.handler = async (event, context) => {
     // In development or if Blobs fail, just log and return success
     // This prevents the app from breaking when logging fails
     console.log('[write-log] Fallback - log data:', {
-      filename: body?.filename,
-      dataSize: JSON.stringify(body?.data || {}).length
+      filename: parsedBody?.filename,
+      dataSize: JSON.stringify(parsedBody?.data || {}).length
     })
 
     return {
@@ -81,7 +88,7 @@ exports.handler = async (event, context) => {
       headers,
       body: JSON.stringify({
         success: true,
-        filename: body?.filename || 'unknown',
+        filename: parsedBody?.filename || 'unknown',
         fallback: true,
         message: 'Log accepted (fallback mode)'
       })

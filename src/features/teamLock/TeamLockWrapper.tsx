@@ -2,7 +2,7 @@
  * TeamLockWrapper - Wrapper component for team lock functionality
  * Conditionally shows splash screen based on team lock state
  */
-import React, { useCallback } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import { SplashGate } from './SplashGate'
 import { useTeamLock } from './useTeamLock'
 import { useAppStore } from '../../store/appStore'
@@ -12,7 +12,7 @@ interface TeamLockWrapperProps {
 }
 
 export function TeamLockWrapper({ children }: TeamLockWrapperProps) {
-  const { showSplash, isLoading, onTeamVerified } = useTeamLock()
+  const { showSplash, isLoading, onTeamVerified, teamId, teamName } = useTeamLock()
   const { setTeamName, setTeamId, initializeSettings, organizationId, huntId } = useAppStore()
 
   // Handle team verification and update app store
@@ -35,6 +35,26 @@ export function TeamLockWrapper({ children }: TeamLockWrapperProps) {
       console.error('Failed to initialize settings after team verification:', error)
     }
   }, [onTeamVerified, setTeamId, setTeamName, initializeSettings, organizationId, huntId])
+
+  // Initialize settings when we have an existing team lock (e.g., on page refresh)
+  useEffect(() => {
+    if (!isLoading && teamId && teamName && !showSplash) {
+      // We have a valid team lock, initialize settings
+      const orgId = organizationId || 'bhhs'
+      const hunt = huntId || 'fall-2025'
+
+      console.log('Existing team lock detected, initializing settings for:', teamId)
+
+      // Update the app store with team info
+      setTeamId(teamId)
+      setTeamName(teamName)
+
+      // Initialize settings from server
+      initializeSettings(orgId, teamId, hunt, teamName).catch(error => {
+        console.error('Failed to initialize settings for existing team lock:', error)
+      })
+    }
+  }, [isLoading, teamId, teamName, showSplash, organizationId, huntId, setTeamId, setTeamName, initializeSettings])
 
   // Show loading state while checking team lock
   if (isLoading) {
