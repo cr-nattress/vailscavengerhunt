@@ -161,7 +161,11 @@ let currentConfig: LoggingSystemConfig = { ...DEFAULT_CONFIG }
  * Load configuration from environment variables and overrides
  */
 export function loadConfig(overrides: Partial<LoggingSystemConfig> = {}): LoggingSystemConfig {
-  const environment = (process.env.NODE_ENV as any) || 'development'
+  // Browser-safe environment detection
+  const isBrowser = typeof window !== 'undefined'
+  const environment = isBrowser ?
+    (import.meta.env?.MODE || 'development') :
+    (process?.env?.NODE_ENV || 'development')
   const envConfig = ENVIRONMENT_CONFIGS[environment] || {}
 
   // Merge configurations: defaults -> environment -> overrides
@@ -188,9 +192,15 @@ export function loadConfig(overrides: Partial<LoggingSystemConfig> = {}): Loggin
       ...DEFAULT_CONFIG.sentry,
       ...envConfig.sentry,
       ...overrides.sentry,
-      dsn: process.env.SENTRY_DSN,
-      environment: process.env.SENTRY_ENVIRONMENT || environment,
-      release: process.env.SENTRY_RELEASE || '1.0.0'
+      dsn: isBrowser ?
+        import.meta.env?.VITE_SENTRY_DSN :
+        process?.env?.SENTRY_DSN,
+      environment: isBrowser ?
+        (import.meta.env?.VITE_SENTRY_ENVIRONMENT || environment) :
+        (process?.env?.SENTRY_ENVIRONMENT || environment),
+      release: isBrowser ?
+        (import.meta.env?.VITE_SENTRY_RELEASE || '1.0.0') :
+        (process?.env?.SENTRY_RELEASE || '1.0.0')
     },
 
     performance: {
