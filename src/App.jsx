@@ -42,8 +42,7 @@ export default function App() {
     setOrganizationId,
     setHuntId,
     lockedByQuery,
-    setLockedByQuery,
-    initializeSettings
+    setLockedByQuery
   } = useAppStore()
 
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -79,38 +78,33 @@ export default function App() {
 
     const initializeApp = async () => {
       try {
-        // Extract org/team/hunt from URL or use defaults
+        // Extract org/hunt from URL or use defaults
         const pathParts = window.location.pathname.split('/').filter(Boolean)
         let orgId = 'bhhs' // default org
-        let teamId = 'berrypicker'
         let huntId = 'fall-2025'
 
         // If we have path params, use them
-        if (pathParts.length >= 3) {
+        if (pathParts.length >= 2) {
           orgId = pathParts[0]
-          teamId = pathParts[2] // Assuming /{org}/{event}/{team} format
           huntId = pathParts[1]
         }
 
         // Check for query parameters to override path params
-        // All three parameters must be present for query params to be used
+        // Both org and hunt parameters must be present for query params to be used
         const urlParams = new URLSearchParams(window.location.search)
         const hasOrgParam = urlParams.has('org')
-        const hasTeamParam = urlParams.has('team')
         const hasHuntParam = urlParams.has('hunt')
 
-        if (hasOrgParam && hasTeamParam && hasHuntParam) {
+        if (hasOrgParam && hasHuntParam) {
           // All parameters present - use query params
           orgId = urlParams.get('org')
-          teamId = urlParams.get('team')
           huntId = urlParams.get('hunt')
-          console.log('📎 Using query params for configuration:', { orgId, teamId, huntId })
-        } else if (hasOrgParam || hasTeamParam || hasHuntParam) {
+          console.log('📎 Using query params for configuration:', { orgId, huntId })
+        } else if (hasOrgParam || hasHuntParam) {
           // Partial parameters - warn and ignore
-          console.warn('⚠️ Partial query parameters detected. All three (org, team, hunt) are required.')
+          console.warn('⚠️ Partial query parameters detected. Both (org, hunt) are required.')
           console.warn('  Received:', {
             org: hasOrgParam ? urlParams.get('org') : 'missing',
-            team: hasTeamParam ? urlParams.get('team') : 'missing',
             hunt: hasHuntParam ? urlParams.get('hunt') : 'missing'
           })
           console.warn('  Using defaults/path params instead.')
@@ -120,9 +114,9 @@ export default function App() {
         setOrganizationId(orgId)
         setHuntId(huntId)
 
-        // Initialize settings from server
-        console.log('🚀 Initializing settings from server:', { orgId, teamId, huntId })
-        await initializeSettings(orgId, teamId, huntId)
+        // Don't initialize settings here with hardcoded teamId
+        // Settings will be initialized after team verification in TeamLockWrapper
+        console.log('🚀 Org and hunt set, settings will be initialized after team verification')
 
         // Initialize session tracking (audit only)
         const sessionData = {
@@ -144,12 +138,12 @@ export default function App() {
           Sentry.addBreadcrumb({
             message: 'App initialized successfully',
             level: 'info',
-            data: { sessionId, orgId, teamId, huntId }
+            data: { sessionId, orgId, huntId }
           })
           Sentry.captureMessage('User triggered test log - App initialization complete', {
             level: 'info',
             tags: { log_source: 'sentry_test', component: 'app_init' },
-            extra: { sessionId, orgId, teamId, huntId }
+            extra: { sessionId, orgId, huntId }
           })
 
           console.log('✅ Sentry test log sent successfully')
