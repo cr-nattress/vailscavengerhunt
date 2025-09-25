@@ -120,11 +120,13 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api/settings': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        secure: false
-      },
+      // NOTE: Using Netlify Functions for settings in development.
+      // The Express proxy is disabled to avoid 500s when API server isn't running.
+      // '/api/settings': {
+      //   target: 'http://localhost:3001',
+      //   changeOrigin: true,
+      //   secure: false
+      // },
       '/api/progress': {
         target: 'http://localhost:3001',
         changeOrigin: true,
@@ -152,7 +154,7 @@ export default defineConfig({
         rewrite: (path) => path.replace('/api', '')
       },
       '/.netlify/functions': {
-        target: 'http://localhost:8889',
+        target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false
       }

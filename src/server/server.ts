@@ -17,6 +17,7 @@ import { maybeInitSentryNode, captureSentryException } from '../logging/server';
 maybeInitSentryNode();
 
 import express from 'express';
+import * as Sentry from '@sentry/node'
 import cors from 'cors';
 import collageRouter from './collageRoute';
 import kvRouter from './kvRoute';
@@ -32,6 +33,19 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
+// Setup Sentry Express handlers (works across SDK versions)
+try {
+  // v8-style helper adds request + error handlers
+  // @ts-ignore
+  if (typeof (Sentry as any).setupExpressErrorHandler === 'function') {
+    // @ts-ignore
+    (Sentry as any).setupExpressErrorHandler(app)
+  } else if ((Sentry as any).Handlers?.requestHandler) {
+    // v7 Handlers fallback
+    app.use((Sentry as any).Handlers.requestHandler())
+  }
+} catch {}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -49,10 +63,65 @@ app.use('/api', leaderboardRouter);
 app.use('/api', teamRouter);
 app.use('/api', sponsorsRouter);
 
+// Handle Netlify Functions locally in development
+app.all('/.netlify/functions/:functionName*', async (req, res) => {
+  try {
+    const functionPath = req.params.functionName + (req.params[0] || '');
+    let functionFile = functionPath.split('/')[0];
+
+    // Use Supabase versions for functions that use Netlify Blobs
+    const supabaseVersions: Record<string, string> = {
+      'settings-get': 'settings-get-supabase',
+      'settings-set': 'settings-set-supabase',
+      'kv-get': 'kv-get-supabase',
+      'kv-set': 'kv-set-supabase',
+      'kv-upsert': 'kv-upsert-supabase',
+      'progress-get': 'progress-get-supabase',
+      'progress-set': 'progress-set-supabase'
+    };
+
+    if (supabaseVersions[functionFile]) {
+      functionFile = supabaseVersions[functionFile];
+    }
+
+    console.log(`Executing Netlify function: ${functionFile} (path: ${functionPath})`);
+
+    // Import and execute the Netlify function locally
+    const netlifyFunction = await import(`../../netlify/functions/${functionFile}.js`);
+
+    // Prepare event object similar to Netlify's
+    const event = {
+      path: req.path,
+      httpMethod: req.method,
+      headers: req.headers,
+      queryStringParameters: req.query,
+      body: req.body ? JSON.stringify(req.body) : null,
+      isBase64Encoded: false,
+      // Add path parameters for functions like settings-get
+      pathParameters: {
+        proxy: functionPath.substring(functionFile.length + 1) // Remove function name and slash
+      }
+    };
+
+    const result = await netlifyFunction.handler(event);
+
+    // Set headers from the function response
+    Object.entries(result.headers || {}).forEach(([key, value]) => {
+      res.setHeader(key, value as string);
+    });
+
+    // Send the response
+    res.status(result.statusCode || 200).send(result.body);
+  } catch (error) {
+    console.error('Error executing Netlify function:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
     cloudinary: {
       configured: !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY),
@@ -75,6 +144,13 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../../public/index.html'));
   }
 });
+
+// Sentry error handler MUST come before any other error middleware (v7 fallback)
+try {
+  if ((Sentry as any).Handlers?.errorHandler) {
+    app.use((Sentry as any).Handlers.errorHandler())
+  }
+} catch {}
 
 // Error handling middleware (restart)
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -114,3 +190,4 @@ app.listen(PORT, () => {
 });
 
 export default app;
+
