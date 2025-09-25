@@ -77,7 +77,8 @@ app.all('/.netlify/functions/:functionName*', async (req, res) => {
       'kv-set': 'kv-set-supabase',
       'kv-upsert': 'kv-upsert-supabase',
       'progress-get': 'progress-get-supabase',
-      'progress-set': 'progress-set-supabase'
+      'progress-set': 'progress-set-supabase',
+      'leaderboard-get': 'leaderboard-get-supabase'
     };
 
     if (supabaseVersions[functionFile]) {

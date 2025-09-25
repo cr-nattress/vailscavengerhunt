@@ -27,12 +27,18 @@ export default function Header({
     }}>
       <div className='max-w-screen-sm mx-auto px-4 py-3 flex items-center justify-between'>
         <div className='flex items-center justify-start !self-center'>
-          <img
-            src="/app-logo.svg"
-            alt="FindrQuest"
-            className="h-12 w-auto max-w-[200px] object-contain"
-            style={{ display: 'block' }}
-          />
+          <div className='flex items-center justify-center' style={{ alignItems: 'center !important' }}>
+            <img
+              src="/app-logo.svg"
+              alt="FindrQuest"
+              className="h-12 w-auto max-w-[200px] object-contain !self-center"
+              style={{
+                display: 'block',
+                alignSelf: 'center !important',
+                margin: 'auto 0'
+              }}
+            />
+          </div>
         </div>
 
         {/* Team Chip (only shows when team lock is active) */}

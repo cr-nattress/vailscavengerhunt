@@ -46,9 +46,9 @@ exports.handler = async (event, context) => {
   const key = `${orgId}/${teamId}/${huntId}/settings`
 
   // Parse the request body
-  let settings
+  let body
   try {
-    settings = JSON.parse(event.body)
+    body = JSON.parse(event.body || '{}')
   } catch (error) {
     return {
       statusCode: 400,
@@ -60,10 +60,53 @@ exports.handler = async (event, context) => {
     }
   }
 
+  const { settings, sessionId, timestamp } = body
+
+  if (!settings) {
+    return {
+      statusCode: 400,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ error: 'Settings data required' })
+    }
+  }
+
   console.log('Saving settings to Supabase with key:', key)
 
   try {
-    await SupabaseKVStore.set(key, settings)
+    // Store settings with metadata (similar to original)
+    const settingsToSave = {
+      ...settings,
+      lastModifiedBy: sessionId,
+      lastModifiedAt: timestamp || new Date().toISOString()
+    }
+
+    await SupabaseKVStore.set(key, settingsToSave)
+
+    // Also update metadata for audit trail
+    const metadataKey = `${orgId}/${teamId}/${huntId}/metadata`
+    const metadata = await SupabaseKVStore.get(metadataKey) || { contributors: [] }
+
+    // Update contributor tracking
+    const contributorIndex = metadata.contributors.findIndex(c => c.sessionId === sessionId)
+
+    if (contributorIndex >= 0) {
+      metadata.contributors[contributorIndex].lastActive = new Date().toISOString()
+    } else if (sessionId) {
+      metadata.contributors.push({
+        sessionId,
+        firstActive: new Date().toISOString(),
+        lastActive: new Date().toISOString()
+      })
+    }
+
+    metadata.lastModifiedBy = sessionId
+    metadata.lastModifiedAt = new Date().toISOString()
+    metadata.totalUpdates = (metadata.totalUpdates || 0) + 1
+
+    await SupabaseKVStore.set(metadataKey, metadata)
 
     return {
       statusCode: 200,

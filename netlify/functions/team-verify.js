@@ -179,20 +179,7 @@ exports.handler = withSentry(async (event, context) => {
  */
 async function checkDeviceLockConflict(deviceFingerprint, requestedTeamCode) {
   try {
-    const { getStore } = require('@netlify/blobs')
-    const store = getStore('device-locks')
-
-    const lockData = await store.get(deviceFingerprint, { type: 'json' })
-    if (!lockData) return null
-
-    const now = Date.now()
-    if (lockData.expiresAt <= now) {
-      // Lock expired, clean it up
-      await store.delete(deviceFingerprint)
-      return null
-    }
-
-    // Check if it's for the same team (no conflict)
+    // Get the requested team mapping first
     let requestedMapping = null
     try {
       const { SupabaseTeamStorage } = require('./_lib/supabaseTeamStorage')
@@ -200,14 +187,14 @@ async function checkDeviceLockConflict(deviceFingerprint, requestedTeamCode) {
     } catch (error) {
       console.error('[team-verify] Error getting team code mapping in lock check:', error)
     }
-    if (requestedMapping && lockData.teamId === requestedMapping.teamId) {
-      return null // Same team, no conflict
+
+    if (!requestedMapping) {
+      return null // Can't verify without mapping
     }
 
-    return {
-      teamId: lockData.teamId,
-      remainingTtl: Math.floor((lockData.expiresAt - now) / 1000)
-    }
+    // Use Supabase for device locks
+    const { SupabaseDeviceLocks } = require('./_lib/supabaseDeviceLocks')
+    return await SupabaseDeviceLocks.checkConflict(deviceFingerprint, requestedMapping.teamId)
   } catch (error) {
     console.error('[team-verify] Failed to check device lock:', error)
     return null // Allow on error to avoid blocking legitimate users
@@ -219,14 +206,9 @@ async function checkDeviceLockConflict(deviceFingerprint, requestedTeamCode) {
  */
 async function storeDeviceLock(deviceFingerprint, teamId, expiresAt) {
   try {
-    const { getStore } = require('@netlify/blobs')
-    const store = getStore('device-locks')
-
-    await store.set(deviceFingerprint, JSON.stringify({
-      teamId,
-      expiresAt: expiresAt * 1000, // Convert to milliseconds
-      createdAt: Date.now()
-    }))
+    // Use Supabase for device locks
+    const { SupabaseDeviceLocks } = require('./_lib/supabaseDeviceLocks')
+    await SupabaseDeviceLocks.storeLock(deviceFingerprint, teamId, expiresAt)
   } catch (error) {
     console.error('[team-verify] Failed to store device lock:', error)
     // Don't fail the verification if device lock storage fails

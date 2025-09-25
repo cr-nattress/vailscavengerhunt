@@ -2,7 +2,7 @@
  * Team setup utility function for development
  * Creates test team code mappings
  */
-const { TeamStorage } = require('./_lib/teamStorage')
+const { SupabaseTeamStorage } = require('./_lib/supabaseTeamStorage')
 const crypto = require('crypto')
 
 exports.handler = async (event, context) => {
@@ -124,7 +124,17 @@ exports.handler = async (event, context) => {
 
     const results = []
     for (const mapping of mappings) {
-      const success = await TeamStorage.setTeamCodeMapping(mapping)
+      // Transform the mapping to Supabase format
+      const supabaseMapping = {
+        teamCode: mapping.rowKey,
+        teamId: mapping.teamId,
+        teamName: mapping.teamName,
+        isActive: mapping.isActive,
+        organizationId: mapping.organizationId,
+        huntId: mapping.huntId
+      }
+
+      const success = await SupabaseTeamStorage.setTeamCodeMapping(supabaseMapping)
       results.push({
         teamCode: mapping.rowKey,
         teamName: mapping.teamName,

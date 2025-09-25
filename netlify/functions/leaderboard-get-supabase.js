@@ -1,0 +1,162 @@
+const { createClient } = require('@supabase/supabase-js')
+
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
+)
+
+exports.handler = async (event) => {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json'
+  }
+
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' }
+  }
+
+  if (event.httpMethod !== 'GET') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    }
+  }
+
+  try {
+    const { orgId = 'bhhs', huntId = 'fall-2025' } = event.queryStringParameters || {}
+
+    console.log(`[leaderboard-get-supabase] Fetching leaderboard for org: ${orgId}, hunt: ${huntId}`)
+
+    // Query team progress from Supabase
+    // First try team_progress table if it exists
+    let teams = []
+
+    try {
+      // Try to get data from team_progress table (if migrated)
+      const { data: progressData, error: progressError } = await supabase
+        .from('team_progress')
+        .select('team_id, completed_stops, total_stops, percent_complete, total_score, latest_activity')
+        .eq('org_id', orgId)
+        .eq('hunt_id', huntId)
+        .order('percent_complete', { ascending: false })
+        .order('completed_stops', { ascending: false })
+        .order('latest_activity', { ascending: true })
+
+      if (!progressError && progressData) {
+        teams = progressData.map(team => ({
+          teamId: team.team_id,
+          completedStops: team.completed_stops || 0,
+          totalStops: team.total_stops || 0,
+          percentComplete: team.percent_complete || 0,
+          latestActivity: team.latest_activity,
+          totalScore: team.total_score || 0
+        }))
+        console.log(`[leaderboard-get-supabase] Found ${teams.length} teams in team_progress table`)
+      }
+    } catch (tableError) {
+      console.log('[leaderboard-get-supabase] team_progress table not available, trying kv_store')
+    }
+
+    // Fallback to kv_store if team_progress table doesn't exist or is empty
+    if (teams.length === 0) {
+      // Query from kv_store for progress data
+      const { data: kvData, error: kvError } = await supabase
+        .from('kv_store')
+        .select('key, value')
+        .like('key', `${orgId}/%/${huntId}/progress`)
+
+      if (kvError) {
+        console.error('[leaderboard-get-supabase] Error querying kv_store:', kvError)
+      } else if (kvData) {
+        console.log(`[leaderboard-get-supabase] Found ${kvData.length} progress entries in kv_store`)
+
+        // Process each team's progress from kv_store
+        for (const entry of kvData) {
+          // Extract team ID from the key pattern: orgId/teamId/huntId/progress
+          const parts = entry.key.split('/')
+          if (parts.length >= 4) {
+            const teamId = parts[1]
+            const progressData = entry.value
+
+            if (progressData) {
+              // Count completed stops
+              const completedStops = Object.values(progressData).filter(p => p && p.done).length
+              const totalStops = Object.keys(progressData).length
+
+              // Get the latest completion timestamp
+              let latestCompletionTime = null
+              let totalScore = 0
+              Object.values(progressData).forEach(p => {
+                if (p && p.done) {
+                  if (p.timestamp && (!latestCompletionTime || p.timestamp > latestCompletionTime)) {
+                    latestCompletionTime = p.timestamp
+                  }
+                  // Add score if available
+                  if (p.points) {
+                    totalScore += p.points
+                  }
+                }
+              })
+
+              teams.push({
+                teamId,
+                completedStops,
+                totalStops,
+                percentComplete: totalStops > 0 ? Math.round((completedStops / totalStops) * 100) : 0,
+                latestActivity: latestCompletionTime,
+                totalScore
+              })
+            }
+          }
+        }
+      }
+    }
+
+    // Sort teams by completion percentage, then by latest activity
+    teams.sort((a, b) => {
+      // First sort by percentage complete
+      if (b.percentComplete !== a.percentComplete) {
+        return b.percentComplete - a.percentComplete
+      }
+      // Then by total score
+      if (b.totalScore !== a.totalScore) {
+        return b.totalScore - a.totalScore
+      }
+      // Then by number of completed stops
+      if (b.completedStops !== a.completedStops) {
+        return b.completedStops - a.completedStops
+      }
+      // Finally by latest activity (earlier is better for same completion)
+      if (a.latestActivity && b.latestActivity) {
+        return a.latestActivity.localeCompare(b.latestActivity)
+      }
+      return 0
+    })
+
+    // Add ranking
+    teams.forEach((team, index) => {
+      team.rank = index + 1
+    })
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        huntId,
+        orgId,
+        teams,
+        lastUpdated: new Date().toISOString()
+      })
+    }
+  } catch (error) {
+    console.error('[leaderboard-get-supabase] Error:', error)
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: 'Failed to fetch leaderboard' })
+    }
+  }
+}
