@@ -1,4 +1,4 @@
-const { SupabaseKVStore } = require('./_lib/supabaseKVStore.js')
+const { getSettings } = require('./_lib/supabaseSettings')
 
 exports.handler = async (event, context) => {
   // Extract orgId, teamId, huntId from URL
@@ -31,11 +31,11 @@ exports.handler = async (event, context) => {
   }
 
   const [orgId, teamId, huntId] = pathParts
-  const key = `${orgId}/${teamId}/${huntId}/settings`
-  console.log('Fetching settings from Supabase with key:', key)
+  console.log(`[settings-get-supabase] Fetching settings for ${orgId}/${teamId}/${huntId}`)
 
   try {
-    const settings = await SupabaseKVStore.get(key)
+    // Fetch from Supabase using dedicated hunt_settings table
+    const settings = await getSettings(orgId, teamId, huntId)
 
     if (!settings) {
       return {

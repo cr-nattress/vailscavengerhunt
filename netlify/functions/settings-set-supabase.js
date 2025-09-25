@@ -1,4 +1,4 @@
-const { SupabaseKVStore } = require('./_lib/supabaseKVStore.js')
+const { saveSettings } = require('./_lib/supabaseSettings')
 
 exports.handler = async (event, context) => {
   // Only allow POST requests
@@ -43,7 +43,6 @@ exports.handler = async (event, context) => {
   }
 
   const [orgId, teamId, huntId] = pathParts
-  const key = `${orgId}/${teamId}/${huntId}/settings`
 
   // Parse the request body
   let body
@@ -73,40 +72,29 @@ exports.handler = async (event, context) => {
     }
   }
 
-  console.log('Saving settings to Supabase with key:', key)
+  console.log(`[settings-set-supabase] Saving settings for ${orgId}/${teamId}/${huntId}`)
 
   try {
-    // Store settings with metadata (similar to original)
-    const settingsToSave = {
-      ...settings,
-      lastModifiedBy: sessionId,
-      lastModifiedAt: timestamp || new Date().toISOString()
+    // Save to Supabase using dedicated hunt_settings table
+    const success = await saveSettings(
+      orgId,
+      teamId,
+      huntId,
+      settings,
+      sessionId || 'unknown',
+      timestamp || new Date().toISOString()
+    )
+
+    if (!success) {
+      return {
+        statusCode: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ error: 'Failed to save settings' })
+      }
     }
-
-    await SupabaseKVStore.set(key, settingsToSave)
-
-    // Also update metadata for audit trail
-    const metadataKey = `${orgId}/${teamId}/${huntId}/metadata`
-    const metadata = await SupabaseKVStore.get(metadataKey) || { contributors: [] }
-
-    // Update contributor tracking
-    const contributorIndex = metadata.contributors.findIndex(c => c.sessionId === sessionId)
-
-    if (contributorIndex >= 0) {
-      metadata.contributors[contributorIndex].lastActive = new Date().toISOString()
-    } else if (sessionId) {
-      metadata.contributors.push({
-        sessionId,
-        firstActive: new Date().toISOString(),
-        lastActive: new Date().toISOString()
-      })
-    }
-
-    metadata.lastModifiedBy = sessionId
-    metadata.lastModifiedAt = new Date().toISOString()
-    metadata.totalUpdates = (metadata.totalUpdates || 0) + 1
-
-    await SupabaseKVStore.set(metadataKey, metadata)
 
     return {
       statusCode: 200,
@@ -114,7 +102,7 @@ exports.handler = async (event, context) => {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       },
-      body: JSON.stringify({ success: true, key })
+      body: JSON.stringify({ success: true })
     }
   } catch (error) {
     console.error('Error saving settings to Supabase:', error)
