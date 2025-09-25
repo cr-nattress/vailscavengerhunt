@@ -75,9 +75,17 @@ exports.handler = async (event, context) => {
     }
 
     // Look up team code mapping (try Supabase first, fallback to blob storage)
-    let mapping = await SupabaseTeamStorage.getTeamCodeMapping(normalizedCode)
+    let mapping = null
+
+    // Try Supabase first, but handle missing configuration gracefully
+    try {
+      mapping = await SupabaseTeamStorage.getTeamCodeMapping(normalizedCode)
+    } catch (supabaseError) {
+      console.log('[team-verify] Supabase not available, falling back to blob storage:', supabaseError.message)
+    }
+
+    // Fallback to blob storage if Supabase failed or returned no data
     if (!mapping) {
-      // Fallback to blob storage for backward compatibility
       mapping = await TeamStorage.getTeamCodeMapping(normalizedCode)
     }
 
@@ -93,16 +101,33 @@ exports.handler = async (event, context) => {
     }
 
     // Ensure team data exists (try Supabase first, fallback to blob storage)
-    let { data: teamData } = await SupabaseTeamStorage.getTeamData(mapping.teamId)
+    let teamData = null
+
+    // Try Supabase first, but handle missing configuration gracefully
+    try {
+      const supabaseResult = await SupabaseTeamStorage.getTeamData(mapping.teamId)
+      teamData = supabaseResult.data
+    } catch (supabaseError) {
+      console.log('[team-verify] Supabase not available for team data, falling back to blob storage:', supabaseError.message)
+    }
+
+    // Fallback to blob storage if Supabase failed or returned no data
     if (!teamData) {
-      // Fallback to blob storage
       const blobResult = await TeamStorage.getTeamData(mapping.teamId)
       teamData = blobResult.data
     }
 
     if (!teamData) {
       // Create team if mapping exists but team data doesn't
-      const newTeam = await SupabaseTeamStorage.createTeam(mapping.teamId, mapping.teamName, mapping.organizationId, mapping.huntId)
+      let newTeam = null
+
+      // Try Supabase first for team creation
+      try {
+        newTeam = await SupabaseTeamStorage.createTeam(mapping.teamId, mapping.teamName, mapping.organizationId, mapping.huntId)
+      } catch (supabaseError) {
+        console.log('[team-verify] Supabase not available for team creation:', supabaseError.message)
+      }
+
       if (!newTeam) {
         TeamLogger.logVerificationAttempt(normalizedCode, 'error', mapping.teamId, 'Failed to create team')
         const { error, status } = TeamErrorHandler.storageError('Team creation failed')

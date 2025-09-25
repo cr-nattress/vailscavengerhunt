@@ -71,11 +71,26 @@ exports.handler = async (event, context) => {
     }
 
     // Get team data (prefer Supabase, fallback to blob storage)
-    let { data: teamData } = await SupabaseTeamStorage.getTeamData(tokenData.teamId)
-    if (!teamData) {
-      const blobResult = await TeamStorage.getTeamData(tokenData.teamId)
-      teamData = blobResult.data
+    let teamData = null
+
+    // Try Supabase first, but handle missing configuration gracefully
+    try {
+      const supabaseResult = await SupabaseTeamStorage.getTeamData(tokenData.teamId)
+      teamData = supabaseResult.data
+    } catch (supabaseError) {
+      console.log('[team-current] Supabase not available, falling back to blob storage:', supabaseError.message)
     }
+
+    // Fall back to blob storage if Supabase failed or returned no data
+    if (!teamData) {
+      try {
+        const blobResult = await TeamStorage.getTeamData(tokenData.teamId)
+        teamData = blobResult.data
+      } catch (blobError) {
+        console.error('[team-current] Blob storage error:', blobError)
+      }
+    }
+
     if (!teamData) {
       const { error, status } = TeamErrorHandler.storageError('Team data not found')
 
