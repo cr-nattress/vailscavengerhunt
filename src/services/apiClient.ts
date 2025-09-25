@@ -3,7 +3,7 @@
  * timeout support, and both JSON and FormData request capabilities
  */
 import { addApiResponseBreadcrumb, addApiErrorBreadcrumb } from '../logging/sentryBreadcrumbUtils'
-import { createClientLogger } from '../logging/client'
+import { createLegacyLogger } from '../logging/client'
 
 interface RequestOptions {
   timeout?: number
@@ -20,11 +20,7 @@ interface ApiError extends Error {
 class ApiClient {
   private static instance: ApiClient
   private baseUrl: string
-  private logger = createClientLogger({
-    minLevel: 'info' as any,
-    enableSentry: true,
-    tags: ['api-client']
-  })
+  private logger = createLegacyLogger('api-client')
 
   private constructor() {
     this.baseUrl = this.resolveApiBase()
@@ -48,25 +44,25 @@ class ApiClient {
     // Check for explicit API URL from environment first
     const apiUrl = import.meta.env?.VITE_API_URL
     if (apiUrl) {
-      this.logger.info('apiClient', 'resolve-api-base', { message: '🌐 Using VITE_API_URL', apiUrl })
+      this.logger.info('🌐 Using VITE_API_URL', { apiUrl })
       return apiUrl
     }
 
     // If running on port 8888 (Netlify dev), use /api for redirects
     if (window.location.port === '8888') {
-      this.logger.info('apiClient', 'resolve-api-base', { message: '🌐 Detected Netlify dev (port 8888), using /api' })
+      this.logger.info('🌐 Detected Netlify dev (port 8888), using /api')
       return '/api'
     }
 
     // In production, use /api URLs (Netlify will redirect to functions)
     if (window.location.hostname !== 'localhost') {
-      this.logger.info('apiClient', 'resolve-api-base', { message: '🌐 Production mode, using /api URLs' })
+      this.logger.info('🌐 Production mode, using /api URLs')
       return '/api'
     }
 
     // In development, use local Express server
     const devUrl = 'http://localhost:3001/api'
-    this.logger.info('apiClient', 'resolve-api-base', { message: '🌐 Development mode, using local server', devUrl })
+    this.logger.info('🌐 Development mode, using local server', { devUrl })
     return devUrl
   }
 
@@ -91,7 +87,7 @@ class ApiClient {
    */
   private createApiError(response: Response, body?: any): ApiError {
     // Log detailed error information
-    this.logger.error('apiClient', 'create-api-error', new Error(`API Error: ${response.status} ${response.statusText}`), {
+    this.logger.error(`API Error: ${response.status} ${response.statusText}`, new Error(`API Error: ${response.status} ${response.statusText}`), {
       url: response.url,
       status: response.status,
       statusText: response.statusText,
@@ -121,7 +117,7 @@ class ApiClient {
     const { timeout = 30000, retryAttempts = 1, retryDelay = 1000 } = options
     const url = `${this.baseUrl}${path}`
 
-    this.logger.info('apiClient', 'request-start', {
+    this.logger.info('Request started', {
       method: init.method || 'GET',
       url,
       message: `🌐 API Request: ${init.method || 'GET'} ${url}`
@@ -131,7 +127,7 @@ class ApiClient {
     
     for (let attempt = 0; attempt < retryAttempts; attempt++) {
       if (attempt > 0) {
-        this.logger.warn('apiClient', 'request-retry', {
+        this.logger.warn('Request retry', {
           message: `🔄 Retry attempt ${attempt}/${retryAttempts - 1}`,
           attempt,
           maxAttempts: retryAttempts - 1
@@ -166,7 +162,7 @@ class ApiClient {
         const response = await fetch(url, requestInit)
         const duration = Date.now() - startTime
 
-        this.logger.info('apiClient', 'response-received', {
+        this.logger.info('Response received', {
           message: `📥 Response: ${response.status} ${response.statusText}`,
           status: response.status,
           statusText: response.statusText,
@@ -182,7 +178,7 @@ class ApiClient {
             responseBody = await response.text()
           }
         } catch (parseError) {
-          this.logger.warn('apiClient', 'parse-response-body', {
+          this.logger.warn('Failed to parse response body', {
             message: '⚠️ Failed to parse response body',
             error: parseError
           })
@@ -190,7 +186,7 @@ class ApiClient {
         }
 
         if (!response.ok) {
-          this.logger.error('apiClient', 'non-ok-response', new Error(`Non-OK response: ${response.status} ${response.statusText}`), {
+          this.logger.error(`Non-OK response: ${response.status} ${response.statusText}`, new Error(`Non-OK response: ${response.status} ${response.statusText}`), {
             status: response.status,
             statusText: response.statusText,
             responseBody
@@ -222,14 +218,14 @@ class ApiClient {
       } catch (error) {
         lastError = error as Error
 
-        this.logger.error('apiClient', 'request-attempt-failed', error as Error, {
+        this.logger.error('Request attempt failed', error as Error, {
           attempt: attempt + 1,
           errorType: error?.constructor?.name,
           url
         });
 
         if (error instanceof Error && error.name === 'AbortError') {
-          this.logger.error('apiClient', 'request-timeout', error, {
+          this.logger.error('Request timeout', error as Error, {
             message: `⏰ Request timeout after ${timeout}ms`,
             timeout
           })
@@ -258,7 +254,7 @@ class ApiClient {
           }
         }
 
-        this.logger.warn('apiClient', 'request-failed', {
+        this.logger.warn('Request failed, retrying', {
           message: `❌ Request failed (attempt ${attempt + 1})`,
           attempt: attempt + 1,
           error: error.message

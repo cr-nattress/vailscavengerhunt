@@ -6,16 +6,12 @@
 
 import { SponsorsRequest, SponsorsResponse, SponsorServiceCache } from '../types/sponsors'
 import { createClient } from '@supabase/supabase-js'
-import { createClientLogger } from '../logging/client'
+import { createLegacyLogger } from '../logging/client'
 
 export class SponsorsService {
   private static cache = new Map<string, SponsorServiceCache>()
   private static readonly CACHE_TTL = 5 * 60 * 1000 // 5 minutes
-  private static logger = createClientLogger({
-    minLevel: 'info' as any,
-    enableSentry: true,
-    tags: ['sponsors-service']
-  })
+  private static logger = createLegacyLogger('sponsors-service')
 
   /**
    * Fetch sponsor assets for a given organization and hunt
