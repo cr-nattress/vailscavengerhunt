@@ -3,7 +3,6 @@
  * Returns current team information based on lock token
  */
 const { LockUtils } = require('./_lib/lockUtils')
-const { TeamStorage } = require('./_lib/teamStorage')
 const { TeamErrorHandler } = require('./_lib/teamErrors')
 const { SupabaseTeamStorage } = require('./_lib/supabaseTeamStorage')
 
@@ -70,24 +69,20 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Get team data (prefer Supabase, fallback to blob storage)
+    // Get team data from Supabase
     let teamData = null
 
-    // Try Supabase first, but handle missing configuration gracefully
     try {
       const supabaseResult = await SupabaseTeamStorage.getTeamData(tokenData.teamId)
       teamData = supabaseResult.data
     } catch (supabaseError) {
-      console.log('[team-current] Supabase not available, falling back to blob storage:', supabaseError.message)
-    }
+      console.error('[team-current] Supabase error:', supabaseError)
+      const { error, status } = TeamErrorHandler.storageError(supabaseError.message)
 
-    // Fall back to blob storage if Supabase failed or returned no data
-    if (!teamData) {
-      try {
-        const blobResult = await TeamStorage.getTeamData(tokenData.teamId)
-        teamData = blobResult.data
-      } catch (blobError) {
-        console.error('[team-current] Blob storage error:', blobError)
+      return {
+        statusCode: status,
+        headers,
+        body: JSON.stringify(error)
       }
     }
 

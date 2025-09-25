@@ -22,7 +22,7 @@ exports.handler = async (event, context) => {
 
   try {
     // Check feature flag first
-    const featureEnabled = process.env.VITE_ENABLE_SPONSOR_CARD === 'true'
+    const featureEnabled = process.env.SPONSOR_CARD_ENABLED === 'true'
 
     if (!featureEnabled) {
       console.log('[sponsors-get] Sponsor card feature is disabled')
@@ -37,7 +37,7 @@ exports.handler = async (event, context) => {
     }
 
     // Initialize Supabase client
-    const supabaseUrl = process.env.SUPABASE_URL
+    const supabaseUrl = process.env.VITE_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!supabaseUrl || !supabaseServiceKey) {

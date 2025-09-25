@@ -1,4 +1,3 @@
-import { getStore } from '@netlify/blobs'
 import { z } from 'zod'
 import { SupabaseTeamStorage } from './_lib/supabaseTeamStorage.js'
 import { serverLogger } from './_lib/serverLogger.js'
@@ -58,7 +57,6 @@ export default async (req, context) => {
 
   const [orgId, teamId, huntId] = pathParts
   const key = `${orgId}/${teamId}/${huntId}/progress`
-  const metadataKey = `${orgId}/${teamId}/${huntId}/metadata`
 
   try {
     let body
@@ -158,22 +156,30 @@ export default async (req, context) => {
       })
     }
 
-    // Try Supabase first for team validation
+    // Validate team exists in Supabase
     console.log(`[progress-set] Validating team exists: ${orgId}/${teamId}/${huntId}`)
     const teamExists = await SupabaseTeamStorage.validateTeamExists(orgId, teamId, huntId)
 
     if (!teamExists) {
-      console.warn(`[progress-set] Team not found in Supabase: ${orgId}/${teamId}/${huntId}`)
-    } else {
-      console.log(`[progress-set] Team validated successfully: ${orgId}/${teamId}/${huntId}`)
+      console.error(`[progress-set] Team not found in Supabase: ${orgId}/${teamId}/${huntId}`)
+      return new Response(JSON.stringify({
+        error: 'Team not found',
+        message: `Team ${teamId} not found in organization ${orgId} for hunt ${huntId}`
+      }), {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      })
     }
 
-    console.log(`[progress-set] Will attempt Supabase save: teamExists=${teamExists}`)
+    console.log(`[progress-set] Team validated successfully: ${orgId}/${teamId}/${huntId}`)
 
-    const store = getStore({ name: 'hunt-data' })
+    // Get existing progress from Supabase
+    const existingProgress = await SupabaseTeamStorage.getTeamProgress(teamId) || {}
 
-    // Merge with existing progress (in case multiple team members are updating)
-    const existingProgress = (await store.get(key, { type: 'json' })) || {}
+    // Merge with new progress
     const mergedProgress = {
       ...existingProgress,
       ...parsedProgress.data,
@@ -181,91 +187,59 @@ export default async (req, context) => {
       lastModifiedAt: timestamp || new Date().toISOString()
     }
 
-    await store.setJSON(key, mergedProgress)
+    // Clean merged progress data to remove metadata fields before sending to Supabase
+    const cleanedProgress = { ...mergedProgress }
+    delete cleanedProgress.lastModifiedBy
+    delete cleanedProgress.lastModifiedAt
 
-    // Also try to save to Supabase if team exists
-    if (teamExists) {
-      try {
-        console.log(`[progress-set] Saving to Supabase: ${orgId}/${teamId}/${huntId}`)
+    console.log(`[progress-set] Cleaned progress data before Supabase:`, Object.keys(cleanedProgress))
+    const cleanedProgressWithPhotos = Object.entries(cleanedProgress).filter(([_, data]) => data?.photo)
+    console.log(`[progress-set] Cleaned progress with photos (${cleanedProgressWithPhotos.length}):`,
+      cleanedProgressWithPhotos.map(([k, v]) => ({ [k]: { done: v.done, hasPhoto: !!v.photo, photoUrl: v.photo?.substring(0, 50) + '...' } })))
 
-        // Clean merged progress data to remove metadata fields before sending to Supabase
-        const cleanedProgress = { ...mergedProgress }
-        delete cleanedProgress.lastModifiedBy
-        delete cleanedProgress.lastModifiedAt
+    serverLogger.info('progress-set', 'supabase_save_attempt', {
+      orgId,
+      teamId,
+      huntId,
+      totalStops: Object.keys(cleanedProgress).length,
+      stopsWithPhotos: cleanedProgressWithPhotos.length,
+      cleanedProgressData: Object.entries(cleanedProgress).reduce((acc, [stopId, data]) => {
+        acc[stopId] = {
+          done: data.done,
+          hasPhoto: !!data.photo,
+          photo: data.photo?.substring(0, 100) + '...' || null,
+          completedAt: data.completedAt
+        }
+        return acc
+      }, {})
+    })
 
-        console.log(`[progress-set] Cleaned progress data before Supabase:`, Object.keys(cleanedProgress))
-        const cleanedProgressWithPhotos = Object.entries(cleanedProgress).filter(([_, data]) => data?.photo)
-        console.log(`[progress-set] Cleaned progress with photos (${cleanedProgressWithPhotos.length}):`,
-          cleanedProgressWithPhotos.map(([k, v]) => ({ [k]: { done: v.done, hasPhoto: !!v.photo, photoUrl: v.photo?.substring(0, 50) + '...' } })))
+    console.log(`[progress-set] About to call SupabaseTeamStorage.updateTeamProgress...`)
+    const supabaseResult = await SupabaseTeamStorage.updateTeamProgress(orgId, teamId, huntId, cleanedProgress)
+    console.log(`[progress-set] Supabase call result:`, supabaseResult)
 
-        serverLogger.info('progress-set', 'supabase_save_attempt', {
-          orgId,
-          teamId,
-          huntId,
-          totalStops: Object.keys(cleanedProgress).length,
-          stopsWithPhotos: cleanedProgressWithPhotos.length,
-          cleanedProgressData: Object.entries(cleanedProgress).reduce((acc, [stopId, data]) => {
-            acc[stopId] = {
-              done: data.done,
-              hasPhoto: !!data.photo,
-              photo: data.photo?.substring(0, 100) + '...' || null,
-              completedAt: data.completedAt
-            }
-            return acc
-          }, {})
-        })
-
-        console.log(`[progress-set] About to call SupabaseTeamStorage.updateTeamProgress...`)
-        const supabaseResult = await SupabaseTeamStorage.updateTeamProgress(orgId, teamId, huntId, cleanedProgress)
-        console.log(`[progress-set] Supabase call result:`, supabaseResult)
-
-        serverLogger.info('progress-set', 'supabase_save_success', {
-          orgId,
-          teamId,
-          huntId,
-          stopsWithPhotos: cleanedProgressWithPhotos.length
-        })
-      } catch (supabaseError) {
-        console.warn('[progress-set] Supabase save failed, continuing with blob storage:', supabaseError.message)
-        console.error('[progress-set] Supabase error details:', supabaseError)
-
-        serverLogger.error('progress-set', 'supabase_save_failed', {
-          orgId,
-          teamId,
-          huntId,
-          error: supabaseError.message,
-          stack: supabaseError.stack
-        }, supabaseError.message)
-      }
-    } else {
-      serverLogger.warn('progress-set', 'team_not_found_skipping_supabase', {
-        orgId,
-        teamId,
-        huntId
+    if (!supabaseResult.success) {
+      console.error('[progress-set] Failed to save progress to Supabase')
+      return new Response(JSON.stringify({
+        error: 'Failed to save progress',
+        message: 'Could not save progress to database'
+      }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
       })
     }
 
-    // Update metadata for audit trail
-    const metadata = await store.get(metadataKey, { type: 'json' }) || { contributors: [] }
+    serverLogger.info('progress-set', 'supabase_save_success', {
+      orgId,
+      teamId,
+      huntId,
+      stopsWithPhotos: cleanedProgressWithPhotos.length
+    })
 
-    // Update contributor tracking
-    const contributorIndex = metadata.contributors.findIndex(c => c.sessionId === sessionId)
-
-    if (contributorIndex >= 0) {
-      metadata.contributors[contributorIndex].lastActive = new Date().toISOString()
-    } else {
-      metadata.contributors.push({
-        sessionId,
-        firstActive: new Date().toISOString(),
-        lastActive: new Date().toISOString()
-      })
-    }
-
-    metadata.lastModifiedBy = sessionId
-    metadata.lastModifiedAt = new Date().toISOString()
-    metadata.totalUpdates = (metadata.totalUpdates || 0) + 1
-
-    await store.setJSON(metadataKey, metadata)
+    // Metadata for audit trail is now handled in Supabase
 
     return new Response(JSON.stringify({ success: true, progress: mergedProgress }), {
       status: 200,

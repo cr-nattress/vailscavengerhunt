@@ -41,13 +41,6 @@ class ApiClient {
       return ''
     }
 
-    // Check for explicit API URL from environment first
-    const apiUrl = import.meta.env?.VITE_API_URL
-    if (apiUrl) {
-      this.logger.info('🌐 Using VITE_API_URL', { apiUrl })
-      return apiUrl
-    }
-
     // If running on port 8888 (Netlify dev), use /api for redirects
     if (window.location.port === '8888') {
       this.logger.info('🌐 Detected Netlify dev (port 8888), using /api')

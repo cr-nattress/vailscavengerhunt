@@ -2,7 +2,6 @@
  * Team verification Netlify Function
  * Handles team code validation and lock token issuance
  */
-const { TeamStorage } = require('./_lib/teamStorage')
 const { SupabaseTeamStorage } = require('./_lib/supabaseTeamStorage')
 const { LockUtils } = require('./_lib/lockUtils')
 const { TeamErrorHandler } = require('./_lib/teamErrors')
@@ -74,19 +73,20 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Look up team code mapping (try Supabase first, fallback to blob storage)
+    // Look up team code mapping from Supabase
     let mapping = null
 
-    // Try Supabase first, but handle missing configuration gracefully
     try {
       mapping = await SupabaseTeamStorage.getTeamCodeMapping(normalizedCode)
     } catch (supabaseError) {
-      console.log('[team-verify] Supabase not available, falling back to blob storage:', supabaseError.message)
-    }
+      console.error('[team-verify] Supabase error:', supabaseError)
+      const { error, status } = TeamErrorHandler.storageError(supabaseError.message)
 
-    // Fallback to blob storage if Supabase failed or returned no data
-    if (!mapping) {
-      mapping = await TeamStorage.getTeamCodeMapping(normalizedCode)
+      return {
+        statusCode: status,
+        headers,
+        body: JSON.stringify(error)
+      }
     }
 
     if (!mapping || !mapping.isActive) {
@@ -100,37 +100,35 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Ensure team data exists (try Supabase first, fallback to blob storage)
+    // Ensure team data exists from Supabase
     let teamData = null
 
-    // Try Supabase first, but handle missing configuration gracefully
     try {
       const supabaseResult = await SupabaseTeamStorage.getTeamData(mapping.teamId)
       teamData = supabaseResult.data
     } catch (supabaseError) {
-      console.log('[team-verify] Supabase not available for team data, falling back to blob storage:', supabaseError.message)
-    }
+      console.error('[team-verify] Supabase error for team data:', supabaseError)
+      const { error, status } = TeamErrorHandler.storageError(supabaseError.message)
 
-    // Fallback to blob storage if Supabase failed or returned no data
-    if (!teamData) {
-      const blobResult = await TeamStorage.getTeamData(mapping.teamId)
-      teamData = blobResult.data
+      return {
+        statusCode: status,
+        headers,
+        body: JSON.stringify(error)
+      }
     }
 
     if (!teamData) {
       // Create team if mapping exists but team data doesn't
-      let newTeam = null
-
-      // Try Supabase first for team creation
       try {
-        newTeam = await SupabaseTeamStorage.createTeam(mapping.teamId, mapping.teamName, mapping.organizationId, mapping.huntId)
+        const newTeam = await SupabaseTeamStorage.createTeam(mapping.teamId, mapping.teamName, mapping.organizationId, mapping.huntId)
+        if (!newTeam) {
+          throw new Error('Team creation returned null')
+        }
+        teamData = newTeam
       } catch (supabaseError) {
-        console.log('[team-verify] Supabase not available for team creation:', supabaseError.message)
-      }
-
-      if (!newTeam) {
         TeamLogger.logVerificationAttempt(normalizedCode, 'error', mapping.teamId, 'Failed to create team')
-        const { error, status } = TeamErrorHandler.storageError('Team creation failed')
+        console.error('[team-verify] Failed to create team:', supabaseError)
+        const { error, status } = TeamErrorHandler.storageError('Team creation failed: ' + supabaseError.message)
 
         return {
           statusCode: status,
@@ -194,16 +192,12 @@ async function checkDeviceLockConflict(deviceFingerprint, requestedTeamCode) {
     }
 
     // Check if it's for the same team (no conflict)
-    // Try Supabase first, then blob storage for backward compatibility
     let requestedMapping = null
     try {
       const { SupabaseTeamStorage } = require('./_lib/supabaseTeamStorage')
       requestedMapping = await SupabaseTeamStorage.getTeamCodeMapping(requestedTeamCode)
-    } catch (_) {
-      // ignore and fallback
-    }
-    if (!requestedMapping) {
-      requestedMapping = await TeamStorage.getTeamCodeMapping(requestedTeamCode)
+    } catch (error) {
+      console.error('[team-verify] Error getting team code mapping in lock check:', error)
     }
     if (requestedMapping && lockData.teamId === requestedMapping.teamId) {
       return null // Same team, no conflict

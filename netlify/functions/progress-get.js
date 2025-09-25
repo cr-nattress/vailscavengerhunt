@@ -1,4 +1,4 @@
-import { getStore } from '@netlify/blobs'
+import { SupabaseTeamStorage } from './_lib/supabaseTeamStorage.js'
 
 export default async (req, context) => {
   // Extract orgId, teamId, huntId from URL
@@ -32,11 +32,25 @@ export default async (req, context) => {
   console.log('Fetching progress with key:', key)
 
   try {
-    const store = getStore({ name: 'hunt-data' })
-    const progress = await store.get(key, { type: 'json' })
+    // Validate team exists in Supabase
+    const teamExists = await SupabaseTeamStorage.validateTeamExists(orgId, teamId, huntId)
 
-    // Return empty object if no progress found (not an error)
-    return new Response(JSON.stringify(progress || {}), {
+    if (!teamExists) {
+      console.error(`[progress-get] Team not found in Supabase: ${orgId}/${teamId}/${huntId}`)
+      return new Response(JSON.stringify({}), {
+        status: 200, // Return empty progress instead of error for missing team
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      })
+    }
+
+    // Get progress from Supabase
+    const progress = await SupabaseTeamStorage.getTeamProgress(teamId) || {}
+
+    // Return progress data
+    return new Response(JSON.stringify(progress), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
