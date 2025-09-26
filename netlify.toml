@@ -137,7 +137,6 @@
 
 [[redirects]]
   from = "/api/state-list"
-  to = "/.netlify/functions/state-list"
   status = 200
 
 [[redirects]]
@@ -150,6 +149,35 @@
   from = "/favicon.ico"
   to = "/favicon.svg"
   status = 200
+
+# Consolidated endpoints
+[[redirects]]
+  from = "/api/consolidated/active/*"
+  to = "/.netlify/functions/consolidated-active/:splat"
+  status = 200
+  conditions = {method = ["GET"]}
+  force = true
+
+[[redirects]]
+  from = "/api/consolidated/history/*"
+  to = "/.netlify/functions/consolidated-history/:splat"
+  status = 200
+  conditions = {method = ["GET"]}
+  force = true
+
+[[redirects]]
+  from = "/api/consolidated/updates/*"
+  to = "/.netlify/functions/consolidated-updates/:splat"
+  status = 200
+  conditions = {method = ["GET"]}
+  force = true
+
+[[redirects]]
+  from = "/api/consolidated/rankings"
+  to = "/.netlify/functions/consolidated-rankings"
+  status = 200
+  conditions = {method = ["GET"]}
+  force = true
 
 # SPA fallback - serve index.html for all non-API routes
 # IMPORTANT: This must be LAST to avoid intercepting API calls

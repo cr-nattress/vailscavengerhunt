@@ -1,0 +1,26 @@
+# STORY-CONSO-HISTORY: History Tab Consolidated Endpoint
+
+- Type: Story
+- Epic: EPIC-CONSO-FNS
+- Status: Planned
+- Owner: Backend
+- Created: 2025-09-26
+
+## Summary
+Create a consolidated GET endpoint that returns all data needed by the History tab in one request.
+
+## Endpoint
+- GET `/api/consolidated/history/{orgId}/{teamId}/{huntId}`
+
+## Acceptance Criteria
+- Returns HTTP 200 with JSON payload including:
+  - `orgId`, `teamId`, `huntId`
+  - `settings` (from Supabase `hunt_settings.settings`)
+  - `history` array derived from `hunt_progress` for the team, sorted by `completedAt` desc, including `photo`, `notes`, and completion metadata
+  - `config` with safe environment values (mirrors `public-config.js`)
+- CORS headers present, supports `GET, OPTIONS`.
+- No changes to existing endpoints.
+
+## Notes
+- Use `SupabaseTeamStorage.getTeamProgress(teamId)` and transform to history list.
+- Include lightweight pagination inputs in the future if needed.

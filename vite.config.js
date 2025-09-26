@@ -183,6 +183,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false
       },
+      '/api/consolidated': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false
+      },
       '/api': {
         target: 'http://localhost:8889/.netlify/functions',
         changeOrigin: true,

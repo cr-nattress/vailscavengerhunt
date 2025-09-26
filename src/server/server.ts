@@ -27,6 +27,7 @@ import progressRouter from './progressRoute';
 import leaderboardRouter from './leaderboardRoute';
 import teamRouter from './teamRoute';
 import sponsorsRouter from './sponsorsRoute';
+import consolidatedRouter from './consolidatedRoute';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -62,6 +63,7 @@ app.use('/api', progressRouter);
 app.use('/api', leaderboardRouter);
 app.use('/api', teamRouter);
 app.use('/api', sponsorsRouter);
+app.use('/api', consolidatedRouter);
 
 // Handle Netlify Functions locally in development
 app.all('/.netlify/functions/:functionName*', async (req, res) => {

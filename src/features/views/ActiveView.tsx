@@ -13,7 +13,7 @@ import { usePhotoUpload } from '../../hooks/usePhotoUpload'
 import { useCollage } from '../../hooks/useCollage'
 import { photoFlowLogger } from '../../utils/photoFlowLogger'
 import { SponsorCard } from '../sponsors/SponsorCard'
-import { useSponsors } from '../sponsors/useSponsors'
+import { useActiveData } from '../../hooks/useActiveData'
 
 const ActiveView: React.FC = () => {
   const { success, error: showError, warning, info } = useToastActions()
@@ -44,8 +44,12 @@ const ActiveView: React.FC = () => {
   // Use collage hook for automatic collage creation
   const { collageUrl } = useCollage({ stops, progress, teamName })
 
-  // Use sponsors hook for sponsor data
-  const { sponsors, isLoading: sponsorsLoading, error: sponsorsError } = useSponsors()
+  // Use consolidated data hook for all data in one request
+  const { data: activeData, isLoading: dataLoading, error: dataError, refetch: refetchData } = useActiveData(
+    organizationId || 'bhhs',
+    teamName || 'berrypicker',
+    huntId || 'fall-2025'
+  )
 
   // Photo upload hook replaces uploadingStops state and handlePhotoUpload function
   const { uploadPhoto, uploadingStops } = usePhotoUpload({
@@ -105,36 +109,23 @@ const ActiveView: React.FC = () => {
     console.log(`🗺️ Location changed to: ${locationName}, updating stops...`)
     const newStops = getRandomStops(locationName)
     setStops(newStops)
+  }, [locationName])
 
-    // Load saved progress from server
-    const loadProgressFromServer = async () => {
-      try {
-        const orgId = organizationId || 'bhhs'
-        const teamId = teamName || 'berrypicker'
-        const hunt = huntId || 'fall-2025'
-
-        const savedProgress = await progressService.getProgress(orgId, teamId, hunt)
-        if (savedProgress && Object.keys(savedProgress).length > 0) {
-          // Reset revealedHints to 0 on page refresh to hide hints
-          const progressWithResetHints = {}
-          for (const [stopId, stopProgress] of Object.entries(savedProgress)) {
-            progressWithResetHints[stopId] = {
-              ...stopProgress,
-              revealedHints: 0
-            }
-          }
-          setProgress(progressWithResetHints)
-          success('✅ Loaded saved progress from server')
+  // Load progress from consolidated data
+  useEffect(() => {
+    if (activeData?.progress && Object.keys(activeData.progress).length > 0) {
+      // Reset revealedHints to 0 on page refresh to hide hints
+      const progressWithResetHints = {}
+      for (const [stopId, stopProgress] of Object.entries(activeData.progress)) {
+        progressWithResetHints[stopId] = {
+          ...stopProgress,
+          revealedHints: 0
         }
-      } catch (err) {
-        console.error('Failed to load progress from server:', err)
       }
+      setProgress(progressWithResetHints)
+      success('✅ Loaded saved progress and data from server')
     }
-
-    if (teamName && locationName) {
-      loadProgressFromServer()
-    }
-  }, [locationName, teamName, organizationId, huntId])
+  }, [activeData?.progress])
 
   // Auto-save progress to server when it changes
   useEffect(() => {
@@ -227,17 +218,17 @@ const ActiveView: React.FC = () => {
     >
       <div className='max-w-screen-sm mx-auto px-4 py-3 overflow-hidden h-screen'>
         {/* Sponsor Card - appears above progress card when sponsors exist */}
-        {sponsors && sponsors.items.length > 0 && (
+        {activeData?.sponsors && activeData.sponsors.items.length > 0 && (
           <div className="mt-0">
             <SponsorCard
-              items={sponsors.items}
-              layout={sponsors.layout}
+              items={activeData.sponsors.items}
+              layout={activeData.sponsors.layout}
             />
           </div>
         )}
 
         {/* Progress Card with Team/Hunt Info */}
-        <div className={`border rounded-lg shadow-sm px-4 py-3 relative ${sponsors && sponsors.items.length > 0 ? 'mt-3' : 'mt-0'}`} style={{
+        <div className={`border rounded-lg shadow-sm px-4 py-3 relative ${activeData?.sponsors && activeData.sponsors.items.length > 0 ? 'mt-3' : 'mt-0'}`} style={{
           backgroundColor: 'var(--color-white)',
           borderColor: 'var(--color-light-grey)'
         }}>
