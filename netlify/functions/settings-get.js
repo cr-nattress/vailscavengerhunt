@@ -1,5 +1,4 @@
-// Local in-memory store (dev-only fallback)
-const localStore = new Map()
+const { getSupabaseClient } = require('./_lib/supabaseClient')
 
 exports.handler = async (event, context) => {
   // Extract orgId, teamId, huntId from URL
@@ -28,16 +27,25 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ error: 'Missing required parameters' })
     }
   }
-
   const [orgId, teamId, huntId] = pathParts
   const key = `${orgId}/${teamId}/${huntId}/settings`
   console.log('Fetching settings with key:', key)
 
   try {
-    // Read from local in-memory store instead of Netlify Blobs
-    const settings = localStore.get(key)
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase
+      .from('team_settings')
+      .select('settings')
+      .eq('org_id', orgId)
+      .eq('team_id', teamId)
+      .eq('hunt_id', huntId)
+      .single()
 
-    if (!settings) {
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
+      throw error
+    }
+
+    if (!data || !data.settings) {
       return {
         statusCode: 404,
         headers: {
@@ -54,13 +62,14 @@ exports.handler = async (event, context) => {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       },
-      body: JSON.stringify(settings)
+      body: JSON.stringify(data.settings)
     }
   } catch (error) {
     console.error('Error fetching settings:', error)
     return {
       statusCode: 500,
       headers: {
+        'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({ error: 'Failed to fetch settings' })

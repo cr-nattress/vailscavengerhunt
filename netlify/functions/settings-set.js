@@ -1,5 +1,4 @@
-// Local in-memory store (dev-only fallback)
-const localStore = new Map()
+const { getSupabaseClient } = require('./_lib/supabaseClient')
 
 exports.handler = async (event, context) => {
   // Only allow POST requests
@@ -42,8 +41,6 @@ exports.handler = async (event, context) => {
   }
 
   const [orgId, teamId, huntId] = pathParts
-  const key = `${orgId}/${teamId}/${huntId}/settings`
-  const metadataKey = `${orgId}/${teamId}/${huntId}/metadata`
 
   try {
     const body = JSON.parse(event.body || '{}')
@@ -60,37 +57,59 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Store settings (shared by all team members)
+    // Prepare settings payload (shared by all team members)
     const settingsToSave = {
       ...settings,
       lastModifiedBy: sessionId,
       lastModifiedAt: timestamp || new Date().toISOString()
     }
 
-    // Save to in-memory store
-    localStore.set(key, settingsToSave)
+    const supabase = getSupabaseClient()
 
-    // Update metadata for audit trail
-    const metadata = localStore.get(metadataKey) || { contributors: [] }
+    // Fetch existing metadata to increment counters
+    const { data: existing, error: fetchErr } = await supabase
+      .from('team_settings')
+      .select('id, total_updates, contributors')
+      .eq('org_id', orgId)
+      .eq('team_id', teamId)
+      .eq('hunt_id', huntId)
+      .maybeSingle()
 
-    // Update contributor tracking
-    const contributorIndex = metadata.contributors.findIndex(c => c.sessionId === sessionId)
-
-    if (contributorIndex >= 0) {
-      metadata.contributors[contributorIndex].lastActive = new Date().toISOString()
-    } else {
-      metadata.contributors.push({
-        sessionId,
-        firstActive: new Date().toISOString(),
-        lastActive: new Date().toISOString()
-      })
+    if (fetchErr && fetchErr.code !== 'PGRST116') {
+      throw fetchErr
     }
 
-    metadata.lastModifiedBy = sessionId
-    metadata.lastModifiedAt = new Date().toISOString()
-    metadata.totalUpdates = (metadata.totalUpdates || 0) + 1
+    // Update contributor tracking
+    const contributors = Array.isArray(existing?.contributors) ? [...existing.contributors] : []
+    const idx = contributors.findIndex(c => c.sessionId === sessionId)
+    const nowIso = new Date().toISOString()
+    if (idx >= 0) {
+      contributors[idx].lastActive = nowIso
+    } else {
+      contributors.push({ sessionId, firstActive: nowIso, lastActive: nowIso })
+    }
 
-    localStore.set(metadataKey, metadata)
+    const totalUpdates = (existing?.total_updates || 0) + 1
+
+    // Upsert settings row
+    const upsertPayload = {
+      org_id: orgId,
+      team_id: teamId,
+      hunt_id: huntId,
+      settings: settingsToSave,
+      contributors,
+      last_modified_by: sessionId || null,
+      last_modified_at: nowIso,
+      total_updates: totalUpdates
+    }
+
+    const { error: upsertErr } = await supabase
+      .from('team_settings')
+      .upsert(upsertPayload, { onConflict: 'org_id,team_id,hunt_id', returning: 'minimal' })
+
+    if (upsertErr) {
+      throw upsertErr
+    }
 
     return {
       statusCode: 200,

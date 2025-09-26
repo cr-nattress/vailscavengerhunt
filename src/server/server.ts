@@ -184,7 +184,8 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT} with Supabase sponsors and Sentry integration`);
   console.log(`📁 Static files served from: ${publicPath}`);
   console.log(`☁️  Cloudinary configured: ${!!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY)}`);
-  
+  console.log(`☁️  Cloudinary cloud: ${process.env.CLOUDINARY_CLOUD_NAME}`);
+
   if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY) {
     console.warn('⚠️  Warning: Cloudinary not configured. Check your .env file.');
   }

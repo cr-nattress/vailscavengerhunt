@@ -1,7 +1,7 @@
 /**
  * Write Log Function - Saves debug logs to Netlify Blobs
  */
-// No external storage in dev; use console and 200 response fallback
+const { getSupabaseClient } = require('./_lib/supabaseClient')
 
 exports.handler = async (event, context) => {
   // Handle CORS
@@ -47,14 +47,30 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Fallback: log to console and return success (no external dependency)
     const timestamp = new Date().toISOString()
     const logKey = `${timestamp}_${filename}`
-    console.log('[write-log] (noop store) log entry:', {
-      filename,
-      timestamp,
-      size: JSON.stringify(data || {}).length
-    })
+
+    try {
+      const supabase = getSupabaseClient()
+      const payload = {
+        filename,
+        data,
+        timestamp,
+        ip: event.headers['x-forwarded-for']?.split(',')[0] || 'unknown',
+        headers: event.headers || {},
+      }
+      const { error } = await supabase.from('debug_logs').insert(payload)
+      if (error) throw error
+      console.log(`[write-log] Stored log in Supabase: ${logKey}`)
+    } catch (dbErr) {
+      // Fall back to console-only if Supabase is not configured or insert fails
+      console.warn('[write-log] Supabase insert failed, falling back to console:', dbErr?.message)
+      console.log('[write-log] (console fallback) log entry:', {
+        filename,
+        timestamp,
+        size: JSON.stringify(data || {}).length
+      })
+    }
 
     return {
       statusCode: 200,
