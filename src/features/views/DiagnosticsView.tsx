@@ -40,12 +40,8 @@ export default function DiagnosticsView() {
           response = await apiClient.get(test.endpoint, { timeout: 8000 });
           break;
 
-        case 'Settings POST (dry-run)':
-          response = await apiClient.post(test.endpoint, {
-            dryRun: true,
-            test: 'diagnostics',
-            timestamp
-          }, { timeout: 8000 });
+        case 'Settings Status':
+          response = await apiClient.get(test.endpoint, { timeout: 8000 });
           break;
 
         case 'Progress GET':
@@ -133,7 +129,7 @@ export default function DiagnosticsView() {
     const tests: TestResult[] = [
       { name: 'Health Check', endpoint: '/health', status: 'pending' },
       { name: 'Settings GET', endpoint: '/settings/bhhs/teacup/fall-2025', status: 'pending' },
-      { name: 'Settings POST (dry-run)', endpoint: '/settings/bhhs/teacup/fall-2025', status: 'pending' },
+      { name: 'Settings Status', endpoint: '/settings/bhhs/teacup/fall-2025/status', status: 'pending' },
       { name: 'Progress GET', endpoint: '/progress/bhhs/teacup/fall-2025', status: 'pending' },
       { name: 'Progress POST (dry-run)', endpoint: '/progress/bhhs/teacup/fall-2025', status: 'pending' },
       { name: 'KV List', endpoint: '/kv/list', status: 'pending' },
