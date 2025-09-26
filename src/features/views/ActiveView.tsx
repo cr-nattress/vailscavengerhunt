@@ -20,6 +20,7 @@ const ActiveView: React.FC = () => {
   const {
     locationName,
     teamName,
+    teamId,
     sessionId,
     eventName,
     huntId,
@@ -46,7 +47,7 @@ const ActiveView: React.FC = () => {
   // Use consolidated data hook for all data in one request
   const { data: activeData, isLoading: dataLoading, error: dataError, refetch: refetchData } = useActiveData(
     organizationId || 'bhhs',
-    teamName || 'berrypicker',
+    teamId || 'berrypicker',  // Use teamId instead of teamName
     huntId || 'fall-2025'
   )
 
