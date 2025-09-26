@@ -10,8 +10,8 @@ require('dotenv').config();
 const { getSupabaseClient } = require('./_lib/supabaseClient');
 const { getStore } = require("@netlify/blobs");
 
-// Feature flag for gradual rollout
-const USE_SUPABASE_KV = process.env.USE_SUPABASE_KV === 'true'; // Default to false for safety
+// Feature flag for gradual rollout - default to Supabase in production
+const USE_SUPABASE_KV = process.env.USE_SUPABASE_KV !== 'false'; // Default to true for production
 
 exports.handler = async (event, context) => {
   try {
