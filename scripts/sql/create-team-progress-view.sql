@@ -47,16 +47,16 @@ team_images AS (
          LATERAL jsonb_each(tp.progress) AS stop(key, value)
     GROUP BY tp.team_id
 ),
-team_settings AS (
-    -- Get team settings if they exist
+hunt_settings_data AS (
+    -- Get hunt settings if they exist
     SELECT
-        ts.team_id,
-        ts.settings->>'locationName' as location_name,
-        ts.settings->>'eventName' as event_name,
-        ts.settings->>'sessionId' as session_id,
-        ts.last_modified_at as settings_updated_at,
-        ts.total_updates as settings_update_count
-    FROM team_settings ts
+        hs.team_id,
+        hs.settings->>'locationName' as location_name,
+        hs.settings->>'eventName' as event_name,
+        hs.settings->>'sessionId' as session_id,
+        hs.updated_at as settings_updated_at,
+        hs.total_updates as settings_update_count
+    FROM hunt_settings hs
 )
 -- Combine all data
 SELECT
@@ -77,9 +77,9 @@ SELECT
     COALESCE(tpd.percent_complete, 0) as completion_percentage,
 
     -- Settings
-    ts.location_name,
-    ts.event_name,
-    ts.session_id,
+    hsd.location_name,
+    hsd.event_name,
+    hsd.session_id,
 
     -- Images
     ti.total_images,
@@ -91,16 +91,16 @@ SELECT
     -- Timestamps
     tc.code_created_at,
     tpd.progress_updated_at,
-    ts.settings_updated_at,
+    hsd.settings_updated_at,
     COALESCE(tpd.latest_activity, GREATEST(
         tc.code_created_at,
         tpd.progress_updated_at,
-        ts.settings_updated_at
+        hsd.settings_updated_at
     )) as last_activity
 FROM team_codes tc
 FULL OUTER JOIN team_progress_data tpd ON tc.team_id = tpd.team_id
 LEFT JOIN team_images ti ON COALESCE(tc.team_id, tpd.team_id) = ti.team_id
-LEFT JOIN team_settings ts ON COALESCE(tc.team_id, tpd.team_id) = ts.team_id
+LEFT JOIN hunt_settings_data hsd ON COALESCE(tc.team_id, tpd.team_id) = hsd.team_id
 ORDER BY
     completion_percentage DESC,
     completed_stops DESC,

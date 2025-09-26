@@ -41,9 +41,9 @@ SELECT
         j.value->>'photoUrl' ORDER BY j.key
     ) FILTER (WHERE j.value->>'photoUrl' IS NOT NULL) as photo_urls,
 
-    -- Team settings
-    ts.settings->>'locationName' as location_name,
-    ts.settings->>'eventName' as event_name,
+    -- Hunt settings
+    hs.settings->>'locationName' as location_name,
+    hs.settings->>'eventName' as event_name,
 
     -- Timestamps
     tp.created_at,
@@ -51,9 +51,9 @@ SELECT
 
 FROM team_progress tp
 LEFT JOIN team_mappings tm ON tp.team_id = tm.team_id
-LEFT JOIN team_settings ts ON tp.team_id = ts.team_id
-    AND tp.org_id = ts.org_id
-    AND tp.hunt_id = ts.hunt_id
+LEFT JOIN hunt_settings hs ON tp.team_id = hs.team_id
+    AND tp.org_id = hs.org_id
+    AND tp.hunt_id = hs.hunt_id
 LEFT JOIN LATERAL jsonb_each(tp.progress) AS j(key, value) ON true
 GROUP BY
     tp.team_id,
@@ -67,7 +67,7 @@ GROUP BY
     tp.percent_complete,
     tp.progress,
     tp.latest_activity,
-    ts.settings,
+    hs.settings,
     tp.created_at,
     tp.updated_at
 ORDER BY
