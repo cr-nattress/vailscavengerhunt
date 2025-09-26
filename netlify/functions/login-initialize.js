@@ -147,7 +147,7 @@ exports.handler = withSentry(async (event, ) => {
       })
     }
   }
-}
+})
 
 // Helper functions
 
@@ -314,4 +314,4 @@ function getFeatures() {
     leaderboardEnabled: true,
     tipsEnabled: true
   }
-})
+}

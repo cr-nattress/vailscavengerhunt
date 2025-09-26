@@ -163,28 +163,35 @@
   from = "/api/consolidated/active/*"
   to = "/.netlify/functions/consolidated-active/:splat"
   status = 200
-  conditions = {method = ["GET"]}
+  conditions = {method = ["GET","HEAD","OPTIONS"]}
+  force = true
+
+[[redirects]]
+  from = "/api/consolidated/active"
+  to = "/.netlify/functions/consolidated-active"
+  status = 200
+  conditions = {method = ["GET","HEAD","OPTIONS"]}
   force = true
 
 [[redirects]]
   from = "/api/consolidated/history/*"
   to = "/.netlify/functions/consolidated-history/:splat"
   status = 200
-  conditions = {method = ["GET"]}
+  conditions = {method = ["GET","HEAD","OPTIONS"]}
   force = true
 
 [[redirects]]
   from = "/api/consolidated/updates/*"
   to = "/.netlify/functions/consolidated-updates/:splat"
   status = 200
-  conditions = {method = ["GET"]}
+  conditions = {method = ["GET","HEAD","OPTIONS"]}
   force = true
 
 [[redirects]]
   from = "/api/consolidated/rankings"
   to = "/.netlify/functions/consolidated-rankings"
   status = 200
-  conditions = {method = ["GET"]}
+  conditions = {method = ["GET","HEAD","OPTIONS"]}
   force = true
 
 # SPA fallback - serve index.html for all non-API routes

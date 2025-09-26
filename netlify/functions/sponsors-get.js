@@ -171,7 +171,7 @@ exports.handler = withSentry(async (event, context) => {
       })
     }
   }
-}
+})
 
 /**
  * Get layout configuration from settings system
@@ -252,4 +252,4 @@ async function isFeatureEnabledForEvent(supabase, organizationId, huntId) {
     console.warn('[sponsors-get] Error checking event feature flag:', error.message)
     return true // Default to enabled
   }
-})
+}
