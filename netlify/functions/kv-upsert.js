@@ -32,6 +32,9 @@ const getKVStore = () => {
 };
 
 exports.handler = async (event, context) => {
+  console.log(`📌 kv-upsert called, method: ${event.httpMethod}`);
+  console.log(`📌 Environment check - SUPABASE_URL: ${!!process.env.SUPABASE_URL}, SERVICE_KEY: ${!!process.env.SUPABASE_SERVICE_ROLE_KEY}`);
+
   try {
     // Handle CORS preflight
     if (event.httpMethod === "OPTIONS") {
@@ -70,7 +73,12 @@ exports.handler = async (event, context) => {
 
     console.log(`📝 Storing KV pair: ${key} (Mode: ${USE_SUPABASE_KV ? 'Supabase' : 'Blobs'})`);
 
-    if (USE_SUPABASE_KV) {
+    // Check if Supabase is properly configured before using it
+    const canUseSupabase = USE_SUPABASE_KV &&
+      (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) &&
+      process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (canUseSupabase) {
       // ========================================
       // SUPABASE MODE
       // ========================================
