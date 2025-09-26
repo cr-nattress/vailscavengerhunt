@@ -5,8 +5,9 @@
  */
 
 const { getSupabaseClient } = require('./_lib/supabaseClient')
+const { withSentry } = require('./_lib/sentry')
 
-exports.handler = async (event, context) => {
+exports.handler = withSentry(async (event, context) => {
   // Set CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -251,4 +252,4 @@ async function isFeatureEnabledForEvent(supabase, organizationId, huntId) {
     console.warn('[sponsors-get] Error checking event feature flag:', error.message)
     return true // Default to enabled
   }
-}
+})

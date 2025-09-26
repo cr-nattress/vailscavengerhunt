@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js')
+const { withSentry } = require('./_lib/sentry')
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -6,7 +7,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
 )
 
-exports.handler = async (event) => {
+exports.handler = withSentry(async (event, ) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -159,4 +160,4 @@ exports.handler = async (event) => {
       body: JSON.stringify({ error: 'Failed to fetch leaderboard' })
     }
   }
-}
+})

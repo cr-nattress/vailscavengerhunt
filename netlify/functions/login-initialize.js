@@ -2,12 +2,13 @@ const { getSupabaseClient } = require('./_lib/supabaseClient')
 const { getSettings, initializeSettings } = require('./_lib/supabaseSettings')
 const { SupabaseTeamStorage } = require('./_lib/supabaseTeamStorage')
 const { verifyTeamCode, validateTeamLock, createTeamLock } = require('./_lib/teamVerification')
+const { withSentry } = require('./_lib/sentry')
 
 /**
  * Consolidated login/initialization endpoint
  * Handles complete initialization flow in a single request
  */
-exports.handler = async (event) => {
+exports.handler = withSentry(async (event, ) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, X-Team-Lock',
@@ -313,4 +314,4 @@ function getFeatures() {
     leaderboardEnabled: true,
     tipsEnabled: true
   }
-}
+})

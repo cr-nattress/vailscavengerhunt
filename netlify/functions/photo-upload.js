@@ -1,5 +1,6 @@
 const multipart = require('parse-multipart-data');
 const cloudinary = require('cloudinary').v2;
+const { withSentry } = require('./_lib/sentry')
 
 // Helper function to generate slug from location title
 function generateSlug(title) {
@@ -80,7 +81,7 @@ async function uploadPhotoToCloudinary(
 }
 
 // Main handler
-exports.handler = async (event, context) => {
+exports.handler = withSentry(async (event, context) => {
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -403,4 +404,4 @@ exports.handler = async (event, context) => {
       })
     };
   }
-};
+});

@@ -1,6 +1,7 @@
 const { getSupabaseClient } = require('./_lib/supabaseClient')
+const { withSentry } = require('./_lib/sentry')
 
-exports.handler = async (event, context) => {
+exports.handler = withSentry(async (event, context) => {
   // Extract orgId, teamId, huntId from URL
   const url = new URL(event.rawUrl || `https://example.com${event.path}`)
 
@@ -75,4 +76,4 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ error: 'Failed to fetch settings' })
     }
   }
-}
+})

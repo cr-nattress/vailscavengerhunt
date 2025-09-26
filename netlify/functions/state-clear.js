@@ -1,11 +1,12 @@
 const SupabaseStateStore = require('./_lib/supabaseStateStore');
+const { withSentry } = require('./_lib/sentry')
 
 /**
  * POST /state-clear
  * Clears state data for a specific context
  * Body: { context: {}, type: string }
  */
-exports.handler = async (event, context) => {
+exports.handler = withSentry(async (event, context) => {
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -71,4 +72,4 @@ exports.handler = async (event, context) => {
       })
     };
   }
-};
+});

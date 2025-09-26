@@ -1,11 +1,12 @@
 const SupabaseStateStore = require('./_lib/supabaseStateStore');
+const { withSentry } = require('./_lib/sentry')
 
 /**
  * GET /state-list?orgId=org1&teamId=team1&type=session
  * Lists all state keys for a context with optional filtering
  * Query params: orgId, teamId, sessionId, type
  */
-exports.handler = async (event, context) => {
+exports.handler = withSentry(async (event, context) => {
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -71,4 +72,4 @@ exports.handler = async (event, context) => {
       })
     };
   }
-};
+});

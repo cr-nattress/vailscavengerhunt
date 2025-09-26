@@ -1,6 +1,7 @@
 const { getSupabaseClient } = require('./_lib/supabaseClient')
+const { withSentry } = require('./_lib/sentry')
 
-exports.handler = async (event) => {
+exports.handler = withSentry(async (event, ) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -96,4 +97,4 @@ exports.handler = async (event) => {
       body: JSON.stringify({ error: 'Failed to fetch rankings' })
     }
   }
-}
+})

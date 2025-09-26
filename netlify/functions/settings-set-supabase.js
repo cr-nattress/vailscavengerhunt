@@ -1,6 +1,7 @@
 const { saveSettings } = require('./_lib/supabaseSettings')
+const { withSentry } = require('./_lib/sentry')
 
-exports.handler = async (event, context) => {
+exports.handler = withSentry(async (event, context) => {
   // Set CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -107,4 +108,4 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ error: 'Failed to save settings' })
     }
   }
-}
+})

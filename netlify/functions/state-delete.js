@@ -1,10 +1,11 @@
 const SupabaseStateStore = require('./_lib/supabaseStateStore');
+const { withSentry } = require('./_lib/sentry')
 
 /**
  * DELETE /state-delete?key=state-key&orgId=org1&teamId=team1
  * Deletes a state value from Supabase
  */
-exports.handler = async (event, context) => {
+exports.handler = withSentry(async (event, context) => {
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -100,4 +101,4 @@ exports.handler = async (event, context) => {
       })
     };
   }
-};
+});

@@ -1,11 +1,12 @@
 const SupabaseStateStore = require('./_lib/supabaseStateStore');
+const { withSentry } = require('./_lib/sentry')
 
 /**
  * POST /state-set
  * Creates or updates a state value in Supabase
  * Body: { key: string, value: any, context: {}, type: string, ttlSeconds: number }
  */
-exports.handler = async (event, context) => {
+exports.handler = withSentry(async (event, context) => {
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -103,4 +104,4 @@ exports.handler = async (event, context) => {
       })
     };
   }
-};
+});

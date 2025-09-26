@@ -4,8 +4,9 @@
  */
 const { SupabaseTeamStorage } = require('./_lib/supabaseTeamStorage')
 const crypto = require('crypto')
+const { withSentry } = require('./_lib/sentry')
 
-exports.handler = async (event, context) => {
+exports.handler = withSentry(async (event, context) => {
   // CORS headers
   const headers = {
     'Content-Type': 'application/json',
@@ -160,4 +161,4 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ error: error.message })
     }
   }
-}
+})

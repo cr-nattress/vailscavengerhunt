@@ -8,11 +8,12 @@
 require('dotenv').config();
 
 const { getSupabaseClient } = require('./_lib/supabaseClient');
+const { withSentry } = require('./_lib/sentry')
 
 // Feature flag for gradual rollout - default to Supabase in production
 const USE_SUPABASE_KV = process.env.USE_SUPABASE_KV !== 'false'; // Default to true for production
 
-exports.handler = async (event, context) => {
+exports.handler = withSentry(async (event, context) => {
   console.log(`📌 kv-list called, method: ${event.httpMethod}`);
   console.log(`📌 Environment check - SUPABASE_URL: ${!!process.env.SUPABASE_URL}, SERVICE_KEY: ${!!process.env.SUPABASE_SERVICE_ROLE_KEY}`);
 
@@ -168,4 +169,4 @@ exports.handler = async (event, context) => {
       }),
     };
   }
-};
+});

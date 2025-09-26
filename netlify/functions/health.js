@@ -1,6 +1,7 @@
+const { withSentry } = require('./_lib/sentry')
 // Blobs removed for local/dev. Health will not attempt blob access.
 
-exports.handler = async (event, context) => {
+exports.handler = withSentry(async (event, context) => {
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -90,4 +91,4 @@ exports.handler = async (event, context) => {
     headers,
     body: JSON.stringify(health, null, 2)
   };
-};
+});

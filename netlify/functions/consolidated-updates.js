@@ -1,7 +1,8 @@
 const { SupabaseTeamStorage } = require('./_lib/supabaseTeamStorage')
 const { getSettings } = require('./_lib/supabaseSettings')
+const { withSentry } = require('./_lib/sentry')
 
-exports.handler = async (event) => {
+exports.handler = withSentry(async (event, ) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -68,4 +69,4 @@ exports.handler = async (event) => {
     console.error('[consolidated-updates] error', error)
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Failed to fetch updates' }) }
   }
-}
+})

@@ -1,6 +1,7 @@
 const { SupabaseKVStore } = require('./_lib/supabaseKVStore.js')
+const { withSentry } = require('./_lib/sentry')
 
-exports.handler = async (event, context) => {
+exports.handler = withSentry(async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -76,4 +77,4 @@ exports.handler = async (event, context) => {
       })
     }
   }
-}
+})
