@@ -168,6 +168,21 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => ''
       },
+      '/api/team-verify': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false
+      },
+      '/api/team-current': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false
+      },
+      '/api/team-setup': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false
+      },
       '/api': {
         target: 'http://localhost:8889/.netlify/functions',
         changeOrigin: true,

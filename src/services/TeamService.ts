@@ -6,7 +6,7 @@ import { TeamVerifyRequest, TeamVerifyResponse, validateSchema, TeamVerifyReques
 import { TeamLockService } from './TeamLockService'
 
 export class TeamService {
-  private static readonly BASE_URL = 'http://localhost:3001/api'
+  private static readonly BASE_URL = '/api'
 
   /**
    * Verify team code and get lock token
