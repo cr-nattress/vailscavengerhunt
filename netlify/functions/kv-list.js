@@ -8,14 +8,6 @@
 require('dotenv').config();
 
 const { getSupabaseClient } = require('./_lib/supabaseClient');
-// Conditionally load @netlify/blobs to avoid ESM issues
-let getStore;
-try {
-  getStore = require("@netlify/blobs").getStore;
-} catch (error) {
-  console.log("Could not load @netlify/blobs:", error.message);
-  getStore = null;
-}
 
 // Feature flag for gradual rollout - default to Supabase in production
 const USE_SUPABASE_KV = process.env.USE_SUPABASE_KV !== 'false'; // Default to true for production
@@ -147,54 +139,10 @@ exports.handler = async (event, context) => {
       };
 
     } else {
-      // ========================================
-      // BLOB STORAGE MODE (Original)
-      // ========================================
-      if (!getStore) {
-        console.error("@netlify/blobs not available, cannot list blobs");
-        return {
-          statusCode: 500,
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            error: "@netlify/blobs module not available",
-            ok: false
-          }),
-        };
-      }
-
-      const store = getStore("kv");
-
-      console.log(`📋 Listing blobs with prefix: ${prefix || '(all)'}`);
-
-      // List all blobs with optional prefix
-      const blobs = store.list({ prefix: prefix || undefined });
-      const keys = [];
-      const data = {};
-
-      // Iterate through the blobs
-      for await (const { key } of blobs) {
-        keys.push(key);
-
-        // If includeValues is requested, fetch the actual values
-        if (includeValues === 'true') {
-          try {
-            const value = await store.getJSON(key);
-            data[key] = value;
-          } catch (err) {
-            console.warn(`Failed to get value for ${key}:`, err);
-            data[key] = null;
-          }
-        }
-      }
-
-      console.log(`✅ Found ${keys.length} blobs`);
-
+      // No blobs mode: return empty listing in dev fallback
       const response = includeValues === 'true'
-        ? { keys, data, count: keys.length }
-        : { keys, count: keys.length };
+        ? { keys: [], data: {}, count: 0 }
+        : { keys: [], count: 0 };
 
       return {
         statusCode: 200,

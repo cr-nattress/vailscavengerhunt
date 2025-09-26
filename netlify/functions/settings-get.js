@@ -1,4 +1,5 @@
-const { getStore } = require('@netlify/blobs')
+// Local in-memory store (dev-only fallback)
+const localStore = new Map()
 
 exports.handler = async (event, context) => {
   // Extract orgId, teamId, huntId from URL
@@ -33,8 +34,8 @@ exports.handler = async (event, context) => {
   console.log('Fetching settings with key:', key)
 
   try {
-    const store = getStore({ name: 'hunt-data' })
-    const settings = await store.get(key, { type: 'json' })
+    // Read from local in-memory store instead of Netlify Blobs
+    const settings = localStore.get(key)
 
     if (!settings) {
       return {
@@ -60,7 +61,6 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 500,
       headers: {
-        'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({ error: 'Failed to fetch settings' })

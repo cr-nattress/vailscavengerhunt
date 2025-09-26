@@ -1,4 +1,4 @@
-const { getStore } = require('@netlify/blobs');
+// Blobs removed for local/dev. Health will not attempt blob access.
 
 exports.handler = async (event, context) => {
   // Enable CORS
@@ -58,50 +58,11 @@ exports.handler = async (event, context) => {
     health.cloudinary.apiKeyPresent &&
     health.cloudinary.apiSecretPresent;
 
-  // Check blob store accessibility
-  try {
-    // Try to access kv store
-    const kvStore = getStore({ name: 'kv' });
-    if (kvStore) {
-      health.blobs.kv = true;
-      // Try a simple operation to verify access
-      try {
-        await kvStore.get('health-check-' + Date.now());
-        // If no error, store is accessible
-      } catch (e) {
-        // Expected - key doesn't exist, but store is accessible
-        if (!e.message.includes('not found')) {
-          health.blobs.kv = false;
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Failed to access kv store:', error.message);
-    health.blobs.kv = false;
-  }
+  // Blob stores skipped in dev/no-blobs mode
+  health.blobs.kv = false;
+  health.blobs.huntData = false;
 
-  try {
-    // Try to access hunt-data store
-    const huntDataStore = getStore({ name: 'hunt-data' });
-    if (huntDataStore) {
-      health.blobs.huntData = true;
-      // Try a simple operation to verify access
-      try {
-        await huntDataStore.get('health-check-' + Date.now());
-        // If no error, store is accessible
-      } catch (e) {
-        // Expected - key doesn't exist, but store is accessible
-        if (!e.message.includes('not found')) {
-          health.blobs.huntData = false;
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Failed to access hunt-data store:', error.message);
-    health.blobs.huntData = false;
-  }
-
-  health.checks.blobStoresAccessible = health.blobs.kv && health.blobs.huntData;
+  health.checks.blobStoresAccessible = false;
 
   // Overall health status
   if (!health.checks.cloudinaryConfigured || !health.checks.blobStoresAccessible) {

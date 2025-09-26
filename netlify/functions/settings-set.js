@@ -1,4 +1,5 @@
-const { getStore } = require('@netlify/blobs')
+// Local in-memory store (dev-only fallback)
+const localStore = new Map()
 
 exports.handler = async (event, context) => {
   // Only allow POST requests
@@ -59,8 +60,6 @@ exports.handler = async (event, context) => {
       }
     }
 
-    const store = getStore({ name: 'hunt-data' })
-
     // Store settings (shared by all team members)
     const settingsToSave = {
       ...settings,
@@ -68,10 +67,11 @@ exports.handler = async (event, context) => {
       lastModifiedAt: timestamp || new Date().toISOString()
     }
 
-    await store.setJSON(key, settingsToSave)
+    // Save to in-memory store
+    localStore.set(key, settingsToSave)
 
     // Update metadata for audit trail
-    const metadata = await store.get(metadataKey, { type: 'json' }) || { contributors: [] }
+    const metadata = localStore.get(metadataKey) || { contributors: [] }
 
     // Update contributor tracking
     const contributorIndex = metadata.contributors.findIndex(c => c.sessionId === sessionId)
@@ -90,7 +90,7 @@ exports.handler = async (event, context) => {
     metadata.lastModifiedAt = new Date().toISOString()
     metadata.totalUpdates = (metadata.totalUpdates || 0) + 1
 
-    await store.setJSON(metadataKey, metadata)
+    localStore.set(metadataKey, metadata)
 
     return {
       statusCode: 200,

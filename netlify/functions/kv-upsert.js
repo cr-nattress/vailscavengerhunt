@@ -8,14 +8,6 @@
 require('dotenv').config();
 
 const { getSupabaseClient } = require('./_lib/supabaseClient');
-// Conditionally load @netlify/blobs to avoid ESM issues
-let getStore;
-try {
-  getStore = require("@netlify/blobs").getStore;
-} catch (error) {
-  console.log("Could not load @netlify/blobs:", error.message);
-  getStore = null;
-}
 
 // Feature flag for gradual rollout - default to Supabase in production
 const USE_SUPABASE_KV = process.env.USE_SUPABASE_KV !== 'false'; // Default to true for production
@@ -24,24 +16,8 @@ const USE_SUPABASE_KV = process.env.USE_SUPABASE_KV !== 'false'; // Default to t
 let localStore = new Map();
 let localIndexes = new Map();
 
-const getKVStore = () => {
-  try {
-    // Check if getStore is available
-    if (!getStore) {
-      console.log("@netlify/blobs not available, using local fallback");
-      return null;
-    }
-    // Check if we're in Netlify environment
-    if (!process.env.NETLIFY) {
-      console.log("Not in Netlify environment, using local fallback");
-      return null;
-    }
-    return getStore("kv");
-  } catch (error) {
-    console.log("Error getting store, using local fallback:", error.message);
-    return null;
-  }
-};
+// No blob store in dev/no-blobs mode
+const getKVStore = () => null;
 
 exports.handler = async (event, context) => {
   console.log(`📌 kv-upsert called, method: ${event.httpMethod}`);
@@ -137,57 +113,24 @@ exports.handler = async (event, context) => {
       // ========================================
       // BLOB STORAGE MODE (Original)
       // ========================================
-      const store = getKVStore();
+      // Local development: Use in-memory fallback only
+      localStore.set(key, value);
 
-      if (store) {
-        // Production: Use Netlify Blobs
-        await store.setJSON(key, value);
-
-        // Handle indexes by storing them as JSON arrays
-        if (indexes && Array.isArray(indexes)) {
-          console.log(`🔍 Processing ${indexes.length} indexes`);
-          for (const ix of indexes) {
-            if (ix.key && ix.member) {
-              // Get existing index or create new array
-              let indexArray = [];
-              try {
-                const existing = await store.get(ix.key, { type: 'json' });
-                if (Array.isArray(existing)) {
-                  indexArray = existing;
-                }
-              } catch (e) {
-                // Index doesn't exist yet, start with empty array
-              }
-
-              // Add member if not already present
-              if (!indexArray.includes(ix.member)) {
-                indexArray.push(ix.member);
-                await store.setJSON(ix.key, indexArray);
-                console.log(`✅ Added to index ${ix.key}: ${ix.member}`);
-              }
+      // Handle indexes for local development
+      if (indexes && Array.isArray(indexes)) {
+        console.log(`🔍 Processing ${indexes.length} indexes (local)`);
+        for (const ix of indexes) {
+          if (ix.key && ix.member) {
+            if (!localIndexes.has(ix.key)) {
+              localIndexes.set(ix.key, new Set());
             }
-          }
-        }
-      } else {
-        // Local development: Use in-memory fallback
-        localStore.set(key, value);
-
-        // Handle indexes for local development
-        if (indexes && Array.isArray(indexes)) {
-          console.log(`🔍 Processing ${indexes.length} indexes (local)`);
-          for (const ix of indexes) {
-            if (ix.key && ix.member) {
-              if (!localIndexes.has(ix.key)) {
-                localIndexes.set(ix.key, new Set());
-              }
-              localIndexes.get(ix.key).add(ix.member);
-              console.log(`✅ Added to local index ${ix.key}: ${ix.member}`);
-            }
+            localIndexes.get(ix.key).add(ix.member);
+            console.log(`✅ Added to local index ${ix.key}: ${ix.member}`);
           }
         }
       }
 
-      console.log(`✅ Successfully stored in blobs: ${key}`);
+      console.log(`✅ Stored in local KV (no blobs): ${key}`);
     }
 
     // Return same format regardless of storage backend

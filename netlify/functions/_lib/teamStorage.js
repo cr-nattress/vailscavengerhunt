@@ -2,7 +2,9 @@
  * Team storage utilities for Netlify Functions
  * Handles team data and team code mappings using Netlify Blobs
  */
-const { getStore } = require('@netlify/blobs')
+// No Netlify Blobs in dev/no-blobs mode. Use in-memory stores.
+const tableStore = new Map() // for team code mappings (TABLE_STORE_NAME)
+const blobStore = new Map()  // for team data (BLOB_STORE_NAME)
 
 class TeamStorage {
   static get BLOB_STORE_NAME() {
@@ -18,10 +20,8 @@ class TeamStorage {
    */
   static async getTeamCodeMapping(teamCode) {
     try {
-      const store = getStore(this.TABLE_STORE_NAME)
       const key = `team:${teamCode}`
-
-      const data = await store.get(key, { type: 'json' })
+      const data = tableStore.get(key)
       if (!data) return null
 
       // Validate basic structure
@@ -47,10 +47,8 @@ class TeamStorage {
         throw new Error('Missing required mapping fields')
       }
 
-      const store = getStore(this.TABLE_STORE_NAME)
       const key = `team:${mapping.rowKey}`
-
-      await store.set(key, JSON.stringify(mapping))
+      tableStore.set(key, mapping)
       console.log(`[TeamStorage] Team code mapping stored: ${mapping.rowKey}`)
       return true
     } catch (error) {
@@ -64,10 +62,8 @@ class TeamStorage {
    */
   static async getTeamData(teamId) {
     try {
-      const store = getStore(this.BLOB_STORE_NAME)
       const key = `teams/team_${teamId}.json`
-
-      const result = await store.get(key, { type: 'json' })
+      const result = blobStore.get(key)
       if (!result) return { data: null, etag: null }
 
       // Simple ETag simulation using timestamp
@@ -90,7 +86,6 @@ class TeamStorage {
         throw new Error('Missing required team data fields')
       }
 
-      const store = getStore(this.BLOB_STORE_NAME)
       const key = `teams/team_${teamData.teamId}.json`
 
       // Check ETag for optimistic concurrency if provided
@@ -108,7 +103,7 @@ class TeamStorage {
         updatedAt: new Date().toISOString()
       }
 
-      await store.set(key, JSON.stringify(updatedData))
+      blobStore.set(key, updatedData)
 
       const newEtag = updatedData.updatedAt
 
