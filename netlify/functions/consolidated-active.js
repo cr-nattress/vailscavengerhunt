@@ -38,13 +38,16 @@ exports.handler = async (event) => {
     // Check for team lock token and get current team if provided
     let currentTeam = null
     const lockToken = event.headers['x-team-lock']
+
     if (lockToken) {
       try {
         // Verify lock token
         const tokenData = LockUtils.verifyLockToken(lockToken)
+
         if (tokenData && !LockUtils.isTokenExpired(tokenData.exp)) {
           // Get team data from Supabase
           const supabaseResult = await SupabaseTeamStorage.getTeamData(tokenData.teamId)
+
           if (supabaseResult.data) {
             currentTeam = {
               teamId: supabaseResult.data.teamId,

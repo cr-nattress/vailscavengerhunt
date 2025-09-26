@@ -5,9 +5,9 @@ import React, { useState, useEffect } from 'react';
  * Displays a collapsible album container with the prize collage image
  * 
  * @param {Object} props
- * @param {string} props.collageUrl - URL of the collage to display
- * @param {string} props.imageUrl - Full size image URL
- * @param {boolean} props.initialExpanded - Initial expanded state (default: true)
+ * @param {string} [props.collageUrl] - URL of the collage to display
+ * @param {string} [props.imageUrl] - Full size image URL
+ * @param {boolean} [props.initialExpanded=true] - Initial expanded state
  */
 const AlbumViewer = ({ collageUrl, imageUrl, initialExpanded = true }) => {
   const [expanded, setExpanded] = useState(initialExpanded);
