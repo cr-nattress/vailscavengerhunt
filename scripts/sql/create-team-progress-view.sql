@@ -8,7 +8,7 @@ WITH team_codes AS (
     SELECT
         tm.team_id,
         tm.team_name,
-        tm.row_key as team_code,
+        tm.team_code,
         tm.is_active,
         tm.created_at as code_created_at
     FROM team_mappings tm

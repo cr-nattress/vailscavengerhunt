@@ -7,7 +7,7 @@ SELECT
     -- Team identification
     t.team_id,
     t.name as team_name,
-    tm.row_key as team_code,
+    tm.team_code,
 
     -- Organization and hunt
     t.org_id,
@@ -84,7 +84,7 @@ LEFT JOIN LATERAL jsonb_each(t.hunt_progress) AS j(key, value) ON true
 GROUP BY
     t.team_id,
     t.name,
-    tm.row_key,
+    tm.team_code,
     t.org_id,
     t.hunt_id,
     t.score,
