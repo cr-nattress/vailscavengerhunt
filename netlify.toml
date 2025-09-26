@@ -87,7 +87,6 @@
   from = "/api/sponsors"
   to = "/.netlify/functions/sponsors-get"
   status = 200
-  conditions = {method = ["POST"]}
   force = true
 
 # Leaderboard endpoint
