@@ -1,12 +1,9 @@
 /**
  * ConfigService - Centralized configuration management
- * Manages all hunt locations and team configurations
+ * Fetches hunt locations and team configurations from the API
  */
 
-import { bhhsLocations } from '../data/locations/bhhs'
-import { vailValleyLocations } from '../data/locations/vail-valley'
-import { vailVillageLocations } from '../data/locations/vail-village'
-import { teamsConfig } from '../data/teams/config'
+import { ConsolidatedDataService } from './ConsolidatedDataService'
 import {
   HuntConfig,
   Location,
@@ -16,74 +13,127 @@ import {
 } from '../types/config'
 
 class ConfigService {
-  private locationConfigs: Record<string, Record<string, HuntConfig>> = {
-    'bhhs': {
-      'fall-2025': bhhsLocations
-    },
-    'vail-valley': {
-      'default': vailValleyLocations
-    },
-    'vail-village': {
-      'default': vailVillageLocations
-    }
-  }
-
-  private teamsConfig: TeamsConfig = teamsConfig
+  private locationCache: Record<string, Record<string, HuntConfig>> = {}
+  private teamsCache: TeamsConfig | null = null
 
   /**
    * Get location configuration for a specific org and hunt
+   * Fetches from the API via ConsolidatedDataService
    */
-  getLocations(org: string, hunt: string): HuntConfig | null {
-    const orgConfigs = this.locationConfigs[org]
-    if (!orgConfigs) {
-      console.warn(`[ConfigService] No configuration found for org: ${org}`)
-      return null
+  async getLocations(org: string, hunt: string): Promise<HuntConfig | null> {
+    // Check cache first
+    if (this.locationCache[org]?.[hunt]) {
+      return this.locationCache[org][hunt]
     }
 
-    const huntConfig = orgConfigs[hunt]
-    if (!huntConfig) {
-      console.warn(`[ConfigService] No hunt configuration found for org: ${org}, hunt: ${hunt}`)
+    try {
+      // Get data from the consolidated active endpoint
+      const activeData = await ConsolidatedDataService.getActiveData(
+        org,
+        'temp', // We need a team ID, use a placeholder
+        hunt
+      )
+
+      if (activeData?.locations) {
+        // Cache the result
+        if (!this.locationCache[org]) {
+          this.locationCache[org] = {}
+        }
+        this.locationCache[org][hunt] = activeData.locations
+
+        return activeData.locations
+      }
+
+      console.warn(`[ConfigService] No locations found for org: ${org}, hunt: ${hunt}`)
+      return null
+    } catch (error) {
+      console.error(`[ConfigService] Error fetching locations for org: ${org}, hunt: ${hunt}:`, error)
       return null
     }
+  }
 
-    return huntConfig
+  /**
+   * Get location configuration synchronously (from cache only)
+   * For backward compatibility - components should migrate to async version
+   */
+  getLocationsSync(org: string, hunt: string): HuntConfig | null {
+    const cached = this.locationCache[org]?.[hunt]
+    if (!cached) {
+      console.warn(`[ConfigService] No cached locations for org: ${org}, hunt: ${hunt}. Use getLocations() for async fetch.`)
+      return null
+    }
+    return cached
   }
 
   /**
    * Get a specific location by ID
    */
-  getLocationById(org: string, hunt: string, locationId: string): Location | null {
-    const config = this.getLocations(org, hunt)
+  async getLocationById(org: string, hunt: string, locationId: string): Promise<Location | null> {
+    const config = await this.getLocations(org, hunt)
     if (!config) return null
 
     return config.locations.find(loc => loc.id === locationId) || null
   }
 
   /**
+   * Get a specific location by ID (sync version - from cache only)
+   */
+  getLocationByIdSync(org: string, hunt: string, locationId: string): Location | null {
+    const config = this.getLocationsSync(org, hunt)
+    if (!config) return null
+
+    return config.locations.find(loc => loc.id === locationId) || null
+  }
+
+  /**
+   * Preload location data into cache
+   * Call this during app initialization
+   */
+  async preloadLocations(org: string, hunt: string, teamId: string): Promise<void> {
+    try {
+      const activeData = await ConsolidatedDataService.getActiveData(org, teamId, hunt)
+
+      if (activeData?.locations) {
+        if (!this.locationCache[org]) {
+          this.locationCache[org] = {}
+        }
+        this.locationCache[org][hunt] = activeData.locations
+        console.log(`[ConfigService] Preloaded locations for ${org}/${hunt}`)
+      }
+    } catch (error) {
+      console.error('[ConfigService] Failed to preload locations:', error)
+    }
+  }
+
+  /**
    * Get all teams configuration
+   * Note: This currently returns a stub as teams are managed differently
    */
   getTeamsConfig(): TeamsConfig {
-    return this.teamsConfig
+    if (!this.teamsCache) {
+      // Return a stub for now - actual teams come from the API
+      this.teamsCache = {
+        organizations: {}
+      }
+    }
+    return this.teamsCache
   }
 
   /**
    * Get organization configuration
    */
   getOrganization(orgId: string): OrganizationConfig | null {
-    return this.teamsConfig.organizations[orgId] || null
+    const config = this.getTeamsConfig()
+    return config.organizations[orgId] || null
   }
 
   /**
    * Get teams for a specific org and hunt
+   * Note: This should fetch from the API in the future
    */
   getTeams(org: string, hunt: string): TeamConfig[] {
-    const orgConfig = this.getOrganization(org)
-    if (!orgConfig) return []
-
-    const huntConfig = orgConfig.hunts[hunt]
-    if (!huntConfig) return []
-
-    return huntConfig.teams
+    // Return empty for now - actual teams come from the API
+    return []
   }
 
   /**
@@ -95,26 +145,24 @@ class ConfigService {
   }
 
   /**
-   * Check if a configuration exists
+   * Check if a configuration exists in cache
    */
   hasConfig(org: string, hunt: string): boolean {
-    return !!(this.locationConfigs[org]?.[hunt])
+    return !!(this.locationCache[org]?.[hunt])
   }
 
   /**
-   * Get all available organizations
+   * Get all available organizations from cache
    */
   getOrganizations(): string[] {
-    return Object.keys(this.teamsConfig.organizations)
+    return Object.keys(this.locationCache)
   }
 
   /**
-   * Get all hunts for an organization
+   * Get all hunts for an organization from cache
    */
   getHunts(org: string): string[] {
-    const orgConfig = this.getOrganization(org)
-    if (!orgConfig) return []
-    return Object.keys(orgConfig.hunts)
+    return Object.keys(this.locationCache[org] || {})
   }
 
   /**
@@ -130,12 +178,21 @@ class ConfigService {
     }
 
     const [org, hunt] = mappings[locationName] || ['bhhs', 'fall-2025']
-    const config = this.getLocations(org, hunt)
+    const config = this.getLocationsSync(org, hunt)
 
     if (!config) return []
 
     // Return in legacy format (array of locations)
     return config.locations
+  }
+
+  /**
+   * Clear all cached data
+   */
+  clearCache(): void {
+    this.locationCache = {}
+    this.teamsCache = null
+    console.log('[ConfigService] Cache cleared')
   }
 }
 

@@ -1,24 +1,16 @@
 import * as Sentry from '@sentry/react'
-import { createSentryPIIRedactor } from './piiRedaction.js'
 
 /**
  * Initialize Sentry for browser - always enabled
  */
 export async function maybeInitSentryBrowser(): Promise<boolean> {
   try {
-    // Prefer preloaded config on window to avoid startup race
-    const win = window as any
-    let cfg = win.__PUBLIC_CONFIG__
-    if (!cfg) {
-      const mod = await import('../services/PublicConfig')
-      cfg = await mod.getPublicConfig()
-      win.__PUBLIC_CONFIG__ = cfg
-    }
-
-    const dsn: string | undefined = cfg.SENTRY_DSN
-    const environment: string = cfg.SENTRY_ENVIRONMENT || (import.meta as any)?.env?.MODE || 'development'
-    const release: string = cfg.SENTRY_RELEASE || 'unknown'
-    const tracesSampleRate: number = Number(cfg.SENTRY_TRACES_SAMPLE_RATE || 0.1)
+    // Read from build-time environment only; do not call public-config API
+    const env: any = (import.meta as any)?.env || {}
+    const dsn: string | undefined = env.VITE_SENTRY_DSN
+    const environment: string = env.VITE_SENTRY_ENVIRONMENT || env.MODE || 'development'
+    const release: string = env.VITE_SENTRY_RELEASE || 'unknown'
+    const tracesSampleRate: number = Number(env.VITE_SENTRY_TRACES_SAMPLE_RATE ?? 0.1)
 
     Sentry.init({
       dsn: dsn || undefined,
@@ -35,8 +27,7 @@ export async function maybeInitSentryBrowser(): Promise<boolean> {
       ],
       replaysSessionSampleRate: 0.1,
       replaysOnErrorSampleRate: 1.0,
-      beforeSend: createSentryPIIRedactor(),
-      sendDefaultPii: false,
+      sendDefaultPii: true,
     })
 
     console.info(dsn

@@ -4,6 +4,7 @@
  * All data is stored hierarchically by organization/team/hunt
  */
 import { apiClient } from './apiClient'
+import { LoginService } from './LoginService'
 
 interface StorageResult {
   success: boolean
@@ -22,20 +23,17 @@ export class ServerStorageService {
    * Get org/team/hunt context from the current URL or use defaults
    */
   private static getContext(): { orgId: string; teamId: string; huntId: string } {
-    const pathParts = window.location.pathname.split('/').filter(Boolean)
-
-    // Default context
-    let orgId = 'bhhs'
-    let teamId = 'berrypicker'
-    let huntId = 'fall-2025'
-
-    // Extract from URL if available: /{org}/{event}/{team}
-    if (pathParts.length >= 3) {
-      orgId = pathParts[0]
-      huntId = pathParts[1]
-      teamId = pathParts[2]
+    // Prefer context from LoginService (set by login-initialize)
+    const ctx = LoginService.getCurrentContext()
+    if (ctx.orgId && ctx.huntId && ctx.teamId) {
+      return { orgId: ctx.orgId, huntId: ctx.huntId, teamId: ctx.teamId }
     }
 
+    // Fallback: derive from URL for pre-init flows
+    const pathParts = window.location.pathname.split('/').filter(Boolean)
+    const orgId = pathParts[0] || 'bhhs'
+    const huntId = pathParts[1] || 'fall-2025'
+    const teamId = pathParts[2] || 'unknown-team'
     return { orgId, teamId, huntId }
   }
 

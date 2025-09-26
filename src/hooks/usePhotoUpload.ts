@@ -3,6 +3,7 @@ import { PhotoUploadService } from '../client/PhotoUploadService'
 import { base64ToFile } from '../utils/image'
 import { useToastActions } from '../features/notifications/ToastProvider'
 import { photoFlowLogger } from '../utils/photoFlowLogger'
+import { LoginService } from '../services/LoginService'
 
 interface UsePhotoUploadOptions {
   sessionId: string
@@ -48,11 +49,11 @@ export function usePhotoUpload({
         file = fileOrDataUrl as File
       }
 
-      // File size validation
-      const { getPublicConfig } = await import('../services/PublicConfig')
-      const cfg = await getPublicConfig()
-      const maxSizeBytes = Number(cfg.MAX_UPLOAD_BYTES || 10485760) // Default 10MB
-      const allowLargeUploads = !!cfg.ALLOW_LARGE_UPLOADS
+      // File size validation from login-initialize config or env
+      const cfg = LoginService.getCachedConfig()
+      const env: any = (import.meta as any)?.env || {}
+      const maxSizeBytes = Number((cfg?.MAX_UPLOAD_BYTES ?? env.VITE_MAX_UPLOAD_BYTES) || 10485760) // Default 10MB
+      const allowLargeUploads = Boolean(cfg?.ALLOW_LARGE_UPLOADS ?? env.VITE_ALLOW_LARGE_UPLOADS === 'true')
 
       if (!allowLargeUploads && file.size > maxSizeBytes) {
         const sizeMB = (file.size / 1024 / 1024).toFixed(2)
@@ -82,8 +83,8 @@ export function usePhotoUpload({
       }
 
       // Check upload configuration
-      const enableUnsignedUploads = !!cfg.ENABLE_UNSIGNED_UPLOADS
-      const disableResize = !!cfg.DISABLE_CLIENT_RESIZE
+      const enableUnsignedUploads = Boolean(cfg?.ENABLE_UNSIGNED_UPLOADS ?? env.VITE_ENABLE_UNSIGNED_UPLOADS === 'true')
+      const disableResize = Boolean(cfg?.DISABLE_CLIENT_RESIZE ?? env.VITE_DISABLE_CLIENT_RESIZE === 'true')
 
       let response: Awaited<ReturnType<typeof PhotoUploadService.uploadPhoto>>
 

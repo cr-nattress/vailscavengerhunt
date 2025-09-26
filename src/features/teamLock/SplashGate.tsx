@@ -3,12 +3,13 @@
  * Full-screen overlay for team code verification
  */
 import React, { useState, useRef, useEffect } from 'react'
-import { TeamService } from '../../services/TeamService'
+import { LoginService } from '../../services/LoginService'
 import { TeamLockService } from '../../services/TeamLockService'
 import { ClientTeamErrorHandler } from '../../services/TeamErrorHandler'
+import { useAppStore } from '../../store/appStore'
 
 interface SplashGateProps {
-  onTeamVerified: (teamId: string, teamName: string) => void
+  onTeamVerified: (teamId: string, teamName: string, fullResponse?: any) => void
   onCancel?: () => void
 }
 
@@ -23,6 +24,8 @@ export function SplashGate({ onTeamVerified, onCancel }: SplashGateProps) {
     inputRef.current?.focus()
   }, [])
 
+  const { sessionId } = useAppStore()
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!teamCode.trim() || isLoading) return
@@ -31,28 +34,34 @@ export function SplashGate({ onTeamVerified, onCancel }: SplashGateProps) {
     setError(null)
 
     try {
-      const response = await TeamService.verifyTeamCode({
-        code: teamCode.trim().toUpperCase()
-      })
+      // Use consolidated login service with defaults
+      const response = await LoginService.verifyTeam(
+        'bhhs',        // Default org
+        'fall-2025',   // Default hunt
+        teamCode.trim().toUpperCase(),
+        sessionId
+      )
 
-      if (response) {
+      if (response.teamVerification?.success) {
         // Generate a simple hash of the team code for client-side storage
         const teamCodeHash = btoa(teamCode.trim().toUpperCase()).substring(0, 12)
 
-        // Store lock in localStorage
-        const lock = {
-          teamId: response.teamId,
-          issuedAt: Date.now(),
-          expiresAt: Date.now() + (response.ttlSeconds * 1000),
-          teamCodeHash,
-          lockToken: response.lockToken
+        // Store lock in localStorage if we have a lock token
+        if (response.teamVerification.lockToken) {
+          const lock = {
+            teamId: response.teamVerification.teamId!,
+            issuedAt: Date.now(),
+            expiresAt: Date.now() + (response.teamVerification.ttlSeconds || 86400) * 1000,
+            teamCodeHash,
+            lockToken: response.teamVerification.lockToken
+          }
+          TeamLockService.storeLock(lock)
         }
 
-        TeamLockService.storeLock(lock)
-        onTeamVerified(response.teamId, response.teamName)
+        onTeamVerified(response.teamVerification.teamId!, response.teamVerification.teamName!, response)
       } else {
         setError({
-          message: "That code didn't work. Check with your host.",
+          message: response.teamVerification?.error || "That code didn't work. Check with your host.",
           canRetry: true
         })
       }

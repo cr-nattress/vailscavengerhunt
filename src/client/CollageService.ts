@@ -1,12 +1,8 @@
 import { apiClient } from '../services/apiClient'
-import { 
-  CollageResponseSchema, 
-  CollageFromIdsResponseSchema,
-  UploadMetaSchema,
+import {
+  CollageResponseSchema,
   validateSchema,
-  type CollageResponse,
-  type CollageFromIdsResponse,
-  type UploadMeta
+  type CollageResponse
 } from '../types/schemas'
 
 // Legacy interface for backward compatibility
@@ -140,39 +136,6 @@ export class CollageService {
     }
   }
 
-  /**
-   * Creates a collage from existing Cloudinary public IDs
-   * @param publicIds Array of Cloudinary public IDs
-   * @param metadata Optional upload metadata
-   * @returns Promise resolving to collage from IDs response
-   */
-  static async createCollageFromIds(publicIds: string[], metadata?: UploadMeta): Promise<CollageFromIdsResponse> {
-    console.log('🚀 CollageService.createCollageFromIds() called');
-    console.log('  Public IDs count:', publicIds.length);
-    console.log('  Metadata:', metadata);
-    
-    if (publicIds.length === 0) {
-      throw new Error('No public IDs provided');
-    }
-    
-    const requestData = {
-      publicIds,
-      metadata: metadata ? validateSchema(UploadMetaSchema, metadata, 'upload metadata') : undefined
-    };
-    
-    try {
-      const rawResponse = await apiClient.post<unknown>('/collage-from-ids', requestData, {
-        timeout: 30000,
-        retryAttempts: 2
-      });
-      
-      return validateSchema(CollageFromIdsResponseSchema, rawResponse, 'collage from IDs');
-      
-    } catch (error) {
-      console.error('💥 Collage from IDs creation error:', error);
-      throw error;
-    }
-  }
   
   /**
    * Resizes an image file before upload to reduce file size

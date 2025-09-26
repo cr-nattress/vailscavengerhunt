@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import serverSettingsService from '../services/ServerSettingsService'
+import ConsolidatedDataService from '../services/ConsolidatedDataService'
 
 interface AppState {
   locationName: string
@@ -55,20 +56,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
   // Actions
   setLocationName: async (locationName: string) => {
     set({ locationName })
-    // Auto-save to server after change
-    const store = get()
-    if (store.organizationId && (store.teamId || store.teamName) && store.huntId) {
-      await store.saveSettingsToServer()
-    }
+    // Don't auto-save - let user explicitly save if needed
   },
 
   setTeamName: async (teamName: string) => {
     set({ teamName })
-    // Auto-save to server after change
-    const store = get()
-    if (store.organizationId && (store.teamId || teamName) && store.huntId) {
-      await store.saveSettingsToServer()
-    }
+    // Don't auto-save - let user explicitly save if needed
   },
 
   setTeamId: (teamId: string) => set({ teamId }),
@@ -77,11 +70,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   setEventName: async (eventName: string) => {
     set({ eventName })
-    // Auto-save to server after change
-    const store = get()
-    if (store.organizationId && (store.teamId || store.teamName) && store.huntId) {
-      await store.saveSettingsToServer()
-    }
+    // Don't auto-save - let user explicitly save if needed
   },
 
   setLockedByQuery: (locked: boolean) => set({ lockedByQuery: locked }),
@@ -90,36 +79,54 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   setHuntId: (huntId: string) => set({ huntId }),
 
-  // Initialize settings from server
+  // Initialize settings from consolidated data
   initializeSettings: async (orgId: string, teamId: string, huntId: string, teamName?: string) => {
     set({ isLoading: true, error: null })
 
     try {
       const { sessionId } = get()
-      // If teamName is provided, temporarily set it so it gets saved correctly
-      if (teamName) {
-        set({ teamName })
+
+      // Try to get settings from consolidated data first
+      try {
+        const consolidatedData = await ConsolidatedDataService.getActiveData(orgId, teamId, huntId)
+
+        if (consolidatedData?.settings) {
+          // Use settings from consolidated data
+          const settings = consolidatedData.settings
+          set({
+            locationName: settings.locationName || 'BHHS',
+            teamName: settings.teamName || teamName || teamId,
+            teamId: teamId,
+            eventName: settings.eventName || '',
+            organizationId: orgId,
+            huntId,
+            isLoading: false
+          })
+          console.log('[AppStore] Initialized settings from consolidated data')
+          return
+        }
+      } catch (error) {
+        console.log('[AppStore] Could not get consolidated data, will create new settings:', error)
       }
 
-      const settings = await serverSettingsService.initializeSettings(
-        orgId,
-        teamId,
-        huntId,
+      // If no existing settings, just use defaults locally
+      // Don't save to server - let the consolidated endpoint handle that
+      const defaultSettings = {
+        locationName: 'BHHS',
+        teamName: teamName || teamId,
         sessionId,
-        teamName // Pass teamName to service
-      )
-
-      if (settings) {
-        set({
-          locationName: settings.locationName || 'BHHS',
-          teamName: settings.teamName || teamName || teamId,  // Use provided teamName, then settings, then teamId
-          teamId: teamId,  // Always set the actual team ID
-          eventName: settings.eventName || '',
-          organizationId: orgId,
-          huntId,
-          isLoading: false
-        })
+        eventName: '',
+        organizationId: orgId,
+        huntId
       }
+
+      set({
+        ...defaultSettings,
+        teamId: teamId,
+        isLoading: false
+      })
+      console.log('[AppStore] Using default settings (no server save needed)')
+
     } catch (error) {
       console.error('[AppStore] Failed to initialize settings:', error)
       set({

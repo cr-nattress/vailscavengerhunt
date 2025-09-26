@@ -14,7 +14,7 @@ function initSentry() {
       release: process.env.SENTRY_RELEASE,
       tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE || '0.1'),
       // Serverless best practices: keep lightweight integrations
-      sendDefaultPii: false,
+      sendDefaultPii: true,
     })
     initialized = true
     if (dsn) console.info('[Sentry] Functions initialized')

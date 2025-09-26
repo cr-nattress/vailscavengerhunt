@@ -7,7 +7,6 @@ import { UploadProvider } from '../upload/UploadContext'
 import { useToastActions } from '../notifications/ToastProvider'
 import { useAppStore } from '../../store/appStore'
 import { useUIStore } from '../../store/uiStore'
-import { getRandomStops } from '../../utils/random'
 import { useProgress } from '../../hooks/useProgress'
 import { usePhotoUpload } from '../../hooks/usePhotoUpload'
 import { useCollage } from '../../hooks/useCollage'
@@ -27,7 +26,7 @@ const ActiveView: React.FC = () => {
     organizationId,
   } = useAppStore()
 
-  const [stops, setStops] = useState(() => getRandomStops(locationName || 'BHHS'))
+  const [stops, setStops] = useState([])
   const { progress, setProgress, completeCount, percent } = useProgress(stops)
   const [fullSizeImageUrl, setFullSizeImageUrl] = useState(null)
 
@@ -104,12 +103,25 @@ const ActiveView: React.FC = () => {
     }
   })
 
-  // Update stops when location changes
+  // Update stops when activeData loads with location data
   useEffect(() => {
-    console.log(`🗺️ Location changed to: ${locationName}, updating stops...`)
-    const newStops = getRandomStops(locationName)
-    setStops(newStops)
-  }, [locationName])
+    if (activeData?.locations?.locations) {
+      console.log(`🗺️ Loaded ${activeData.locations.locations.length} locations from API`)
+      // Shuffle and select random stops from the loaded locations
+      const allLocations = [...activeData.locations.locations]
+
+      // Fisher-Yates shuffle
+      for (let i = allLocations.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allLocations[i], allLocations[j]] = [allLocations[j], allLocations[i]]
+      }
+
+      // Select appropriate number of stops
+      const stopCount = locationName === 'BHHS' ? allLocations.length : Math.min(5, allLocations.length)
+      const selectedStops = allLocations.slice(0, stopCount)
+      setStops(selectedStops)
+    }
+  }, [activeData?.locations, locationName])
 
   // Load progress from consolidated data
   useEffect(() => {

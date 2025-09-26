@@ -44,13 +44,6 @@ export const CollageResponseSchema = z.object({
   }))
 })
 
-// Collage from IDs response schema
-export const CollageFromIdsResponseSchema = z.object({
-  collageUrl: z.string().url('Invalid collage URL'),
-  imageCount: z.number().int().positive('Image count must be positive'),
-  publicIds: z.array(z.string())
-})
-
 // Key-Value storage schemas
 export const KVUpsertSchema = z.object({
   key: z.string().min(1, 'Key required'),
@@ -203,7 +196,6 @@ export type UploadMeta = z.infer<typeof UploadMetaSchema>
 export type UploadResponse = z.infer<typeof UploadResponseSchema>
 export type PhotoRecord = z.infer<typeof PhotoRecordSchema>
 export type CollageResponse = z.infer<typeof CollageResponseSchema>
-export type CollageFromIdsResponse = z.infer<typeof CollageFromIdsResponseSchema>
 export type KVUpsert = z.infer<typeof KVUpsertSchema>
 export type KVGetResponse = z.infer<typeof KVGetResponseSchema>
 export type KVListResponse = z.infer<typeof KVListResponseSchema>

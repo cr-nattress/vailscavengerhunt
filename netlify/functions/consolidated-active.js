@@ -1,13 +1,12 @@
 const { getSupabaseClient } = require('./_lib/supabaseClient')
 const { SupabaseTeamStorage } = require('./_lib/supabaseTeamStorage')
 const { getSettings } = require('./_lib/supabaseSettings')
-const { LockUtils } = require('./_lib/lockUtils')
-const { TeamErrorHandler } = require('./_lib/teamErrors')
+const { getHuntLocations } = require('./_lib/locationsHelper')
 
 exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, X-Team-Lock',
+    'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Content-Type': 'application/json'
   }
@@ -35,41 +34,19 @@ exports.handler = async (event) => {
     }
     const [orgId, teamId, huntId] = pathParts
 
-    // Check for team lock token and get current team if provided
-    let currentTeam = null
-    const lockToken = event.headers['x-team-lock']
-
-    if (lockToken) {
-      try {
-        // Verify lock token
-        const tokenData = LockUtils.verifyLockToken(lockToken)
-
-        if (tokenData && !LockUtils.isTokenExpired(tokenData.exp)) {
-          // Get team data from Supabase
-          const supabaseResult = await SupabaseTeamStorage.getTeamData(tokenData.teamId)
-
-          if (supabaseResult.data) {
-            currentTeam = {
-              teamId: supabaseResult.data.teamId,
-              teamName: supabaseResult.data.name,
-              lockValid: true
-            }
-          }
-        }
-      } catch (error) {
-        console.warn('[consolidated-active] team lock verification failed:', error.message)
-        // Non-fatal - continue without current team info
-      }
-    }
-
     // Gather settings
     const settings = await getSettings(orgId, teamId, huntId)
 
     // Gather progress
     const progress = await SupabaseTeamStorage.getTeamProgress(teamId)
 
-    // Gather sponsors (mirrors sponsors-get.js minimal)
+    // Get Supabase client first
     const supabase = getSupabaseClient()
+
+    // Gather locations
+    const locations = await getHuntLocations(supabase, orgId, huntId)
+
+    // Gather sponsors (mirrors sponsors-get.js minimal)
     let sponsorsResponse = { layout: '1x2', items: [] }
     try {
       const featureEnabled = process.env.ENABLE_SPONSOR_CARD === 'true'
@@ -146,7 +123,7 @@ exports.handler = async (event) => {
         progress,
         sponsors: sponsorsResponse,
         config,
-        currentTeam,
+        locations,
         lastUpdated: new Date().toISOString()
       })
     }

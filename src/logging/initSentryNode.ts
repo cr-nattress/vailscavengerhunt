@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/node'
-import { createSentryPIIRedactor } from './piiRedaction.js'
 
 // Module-level flag to prevent double initialization
 let sentryInitialized = false
@@ -19,7 +18,7 @@ export function maybeInitSentryNode(): boolean {
 
   try {
     Sentry.init({
-      dsn: dsn || false, // false disables sending but keeps API functional
+      dsn: dsn || undefined, // undefined disables sending but keeps API functional
       enabled: !!dsn, // Only enable if DSN is provided
       environment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development',
       release: process.env.SENTRY_RELEASE,
@@ -29,12 +28,8 @@ export function maybeInitSentryNode(): boolean {
         // Automatically capture unhandled exceptions and rejections
         // Note: nodeProfilingIntegration may not be available in all versions
       ],
-
-      // Comprehensive PII redaction (US-004)
-      beforeSend: createSentryPIIRedactor(),
-
-      // Don't send default PII
-      sendDefaultPii: false,
+      // Allow sending default PII
+      sendDefaultPii: true,
     })
 
     sentryInitialized = true

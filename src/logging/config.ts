@@ -12,7 +12,6 @@ export interface LoggingSystemConfig {
   // Feature flags
   features: {
     sentryIntegration: boolean
-    piiRedaction: boolean
     fileLogging: boolean
     consoleLogging: boolean
     monitoring: boolean
@@ -57,7 +56,6 @@ export const DEFAULT_CONFIG: LoggingSystemConfig = {
 
   features: {
     sentryIntegration: true,
-    piiRedaction: true,
     fileLogging: false,
     consoleLogging: true,
     monitoring: true
@@ -98,7 +96,6 @@ export const ENVIRONMENT_CONFIGS: Record<string, Partial<LoggingSystemConfig>> =
     },
     features: {
       sentryIntegration: false,
-      piiRedaction: true,
       fileLogging: true,
       consoleLogging: true,
       monitoring: true
@@ -116,7 +113,6 @@ export const ENVIRONMENT_CONFIGS: Record<string, Partial<LoggingSystemConfig>> =
     },
     features: {
       sentryIntegration: true,
-      piiRedaction: true,
       fileLogging: true,
       consoleLogging: true,
       monitoring: true
@@ -126,7 +122,9 @@ export const ENVIRONMENT_CONFIGS: Record<string, Partial<LoggingSystemConfig>> =
       tracesSampleRate: 0.5
     },
     rollout: {
-      rolloutPercentage: 50
+      enabledComponents: [],
+      rolloutPercentage: 50,
+      canaryUsers: []
     }
   },
 
@@ -137,7 +135,6 @@ export const ENVIRONMENT_CONFIGS: Record<string, Partial<LoggingSystemConfig>> =
     },
     features: {
       sentryIntegration: true,
-      piiRedaction: true,
       fileLogging: true,
       consoleLogging: false,
       monitoring: true
@@ -147,7 +144,9 @@ export const ENVIRONMENT_CONFIGS: Record<string, Partial<LoggingSystemConfig>> =
       tracesSampleRate: 0.1
     },
     rollout: {
-      rolloutPercentage: 100
+      enabledComponents: [],
+      rolloutPercentage: 100,
+      canaryUsers: []
     }
   }
 }
@@ -164,7 +163,7 @@ export function loadConfig(overrides: Partial<LoggingSystemConfig> = {}): Loggin
   // Browser-safe environment detection
   const isBrowser = typeof window !== 'undefined'
   const environment = isBrowser ?
-    (import.meta.env?.MODE || 'development') :
+    ((import.meta as any)?.env?.MODE || 'development') :
     (process?.env?.NODE_ENV || 'development')
   const envConfig = ENVIRONMENT_CONFIGS[environment] || {}
 
@@ -193,13 +192,13 @@ export function loadConfig(overrides: Partial<LoggingSystemConfig> = {}): Loggin
       ...envConfig.sentry,
       ...overrides.sentry,
       dsn: isBrowser ?
-        import.meta.env?.VITE_SENTRY_DSN :
+        (/** @type {any} */(import.meta))?.env?.VITE_SENTRY_DSN :
         process?.env?.SENTRY_DSN,
       environment: isBrowser ?
-        (import.meta.env?.VITE_SENTRY_ENVIRONMENT || environment) :
+        ((/** @type {any} */(import.meta))?.env?.VITE_SENTRY_ENVIRONMENT || environment) :
         (process?.env?.SENTRY_ENVIRONMENT || environment),
       release: isBrowser ?
-        (import.meta.env?.VITE_SENTRY_RELEASE || '1.0.0') :
+        ((/** @type {any} */(import.meta))?.env?.VITE_SENTRY_RELEASE || '1.0.0') :
         (process?.env?.SENTRY_RELEASE || '1.0.0')
     },
 
@@ -315,7 +314,6 @@ Validation: ${validation.length === 0 ? 'VALID' : 'ERRORS: ' + validation.join('
 
 Features:
 - Sentry Integration: ${config.features.sentryIntegration ? 'ENABLED' : 'DISABLED'}
-- PII Redaction: ${config.features.piiRedaction ? 'ENABLED' : 'DISABLED'}
 - File Logging: ${config.features.fileLogging ? 'ENABLED' : 'DISABLED'}
 - Console Logging: ${config.features.consoleLogging ? 'ENABLED' : 'DISABLED'}
 - Monitoring: ${config.features.monitoring ? 'ENABLED' : 'DISABLED'}

@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/node'
 import { LogSink, LogEntry, LogLevel } from '../types'
-import { redactPII } from '../piiRedaction.js'
 
 export class SentryNodeSink implements LogSink {
   private isEnabled: boolean
@@ -44,12 +43,12 @@ export class SentryNodeSink implements LogSink {
         )
       }
 
-      // Add context data
+      // Add context data (no redaction)
       const contextData = {
         component,
         action,
-        ...(data && { data: this.sanitizeData(data) }),
-        ...(context && { context: this.sanitizeData(context) }),
+        ...(data && { data }),
+        ...(context && { context }),
         timestamp: timestamp.toISOString(),
       }
 
@@ -107,20 +106,8 @@ export class SentryNodeSink implements LogSink {
     }
   }
 
-  /**
-   * Sanitize data to remove sensitive information and large payloads
-   * Uses comprehensive PII redaction (US-004)
-   */
-  private sanitizeData(data: any): any {
-    if (!data) return data
-
-    try {
-      return redactPII(data)
-    } catch (error) {
-      console.warn('[SentryNodeSink] Failed to sanitize data:', error)
-      return '[SANITIZATION_ERROR]'
-    }
-  }
+  // No-op: previously used for redaction
+  private sanitizeData(data: any): any { return data }
 
   async flush(): Promise<void> {
     if (!this.isEnabled) {

@@ -1,5 +1,4 @@
 import React, {useState, useEffect} from 'react'
-import { ServerStorageService } from './services/ServerStorageService'
 import Header from './features/app/Header'
 import { BottomNavigation } from './features/navigation/BottomNavigation'
 import { TabContainer } from './features/navigation/TabContainer'
@@ -118,19 +117,9 @@ export default function App() {
         // Settings will be initialized after team verification in TeamLockWrapper
         console.log('🚀 Org and hunt set, settings will be initialized after team verification')
 
-        // Initialize session tracking (audit only)
-        const sessionData = {
-          id: sessionId,
-          location: locationName,
-          startTime: new Date().toISOString(),
-          userAgent: navigator.userAgent
-        }
-
-        console.log('📊 Session initialized for tracking:', sessionId)
-
-        // Use ServerStorageService for session tracking
-        const result = await ServerStorageService.createSession(sessionId, sessionData)
-        console.log('✅ Session tracking started:', result)
+        // Don't track sessions until after team verification to avoid hardcoded data
+        // Session tracking can be done later if needed
+        console.log('📊 Session ID generated:', sessionId)
 
         // Verify Sentry integration is working
         try {

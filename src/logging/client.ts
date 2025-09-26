@@ -17,7 +17,6 @@ export * from './factories/clientLoggerFactory'
 export * from './initSentryClient'
 
 // Utilities and adapters (client-safe)
-export * from './piiRedaction'
 export * from './adapters/consoleAdapter'
 
 // Configuration (shared)

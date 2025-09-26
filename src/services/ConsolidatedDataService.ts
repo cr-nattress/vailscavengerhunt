@@ -66,7 +66,8 @@ class ConsolidatedDataService {
       console.log('[ConsolidatedDataService] Active data fetched successfully:', {
         hasSettings: !!data.settings,
         progressCount: Object.keys(data.progress || {}).length,
-        sponsorCount: data.sponsors?.items?.length || 0
+        sponsorCount: data.sponsors?.items?.length || 0,
+        locationCount: data.locations?.locations?.length || 0
       })
 
       return data
@@ -89,4 +90,5 @@ class ConsolidatedDataService {
   }
 }
 
+export { ConsolidatedDataService }
 export default ConsolidatedDataService

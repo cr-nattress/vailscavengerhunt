@@ -21,7 +21,6 @@ export * from './initSentryClient'
 export * from './initSentryNode'
 
 // Utilities and adapters
-export * from './piiRedaction'
 export * from './adapters/legacyLogger'
 export * from './adapters/consoleAdapter'
 

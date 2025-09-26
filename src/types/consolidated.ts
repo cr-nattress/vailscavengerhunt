@@ -5,6 +5,7 @@
 
 import { ProgressData } from './schemas'
 import { SponsorsResponse } from './sponsors'
+import { HuntConfig } from './config'
 
 /**
  * Public configuration data
@@ -61,6 +62,7 @@ export interface ConsolidatedActiveResponse {
   progress: ProgressData
   sponsors: SponsorsResponse
   config: PublicConfig
+  locations: HuntConfig | null
   currentTeam: CurrentTeamInfo | null
   lastUpdated: string
 }

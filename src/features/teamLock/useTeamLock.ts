@@ -4,7 +4,6 @@
  */
 import { useState, useEffect } from 'react'
 import { TeamLockService } from '../../services/TeamLockService'
-import { TeamService } from '../../services/TeamService'
 
 export interface TeamLockState {
   showSplash: boolean
@@ -30,13 +29,13 @@ export function useTeamLock(): TeamLockState & {
     try {
       const lock = TeamLockService.getLock()
       if (lock) {
-        // Get team name from server if needed
-        const team = await TeamService.getCurrentTeam()
+        // Don't call getCurrentTeam - we'll get team info from login-initialize
+        // Use teamId as fallback for teamName temporarily
         setState({
           showSplash: false,
           hasLock: true,
           teamId: lock.teamId,
-          teamName: team?.teamName || 'Unknown Team',
+          teamName: lock.teamId, // Will be updated by TeamLockWrapper
           isLoading: false
         })
       } else {

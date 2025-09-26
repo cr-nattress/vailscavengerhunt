@@ -14,6 +14,10 @@ export interface LogEntry {
   tags?: string[]
   userId?: string
   sessionId?: string
+  // Added to support Sentry sinks usage
+  component?: string
+  action?: string
+  data?: any
 }
 
 export interface LogSink {

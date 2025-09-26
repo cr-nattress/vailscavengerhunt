@@ -21,8 +21,8 @@ export function addApiRequestBreadcrumb(data: ApiRequestData): void {
   try {
     if (!isSentryAvailable()) return
 
-    // Redact sensitive information from URL
-    const sanitizedUrl = sanitizeUrl(data.url)
+    // Use raw URL without sanitization
+    const sanitizedUrl = data.url
 
     Sentry.addBreadcrumb({
       category: 'http',
@@ -80,24 +80,4 @@ function isSentryAvailable(): boolean {
   }
 }
 
-/**
- * Sanitize URL for logging - remove sensitive query parameters and large payloads
- */
-function sanitizeUrl(url: string): string {
-  try {
-    const urlObj = new URL(url, window.location.origin)
-
-    // Keep only the pathname, remove query parameters for privacy
-    const sanitized = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`
-
-    // Add indicator if query params were present
-    if (urlObj.search) {
-      return `${sanitized}?[REDACTED]`
-    }
-
-    return sanitized
-  } catch {
-    // If URL parsing fails, return just the path part
-    return url.split('?')[0] || url
-  }
-}
+// Note: previously sanitized URLs; now intentionally left as-is

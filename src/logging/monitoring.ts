@@ -27,7 +27,6 @@ interface LoggingMetrics {
   lastLogTime: Date | null
   averageLogSize: number
   sentryEventsCount: number
-  piiRedactionCount: number
 }
 
 interface HealthCheckResult {
@@ -50,7 +49,6 @@ class LoggingMonitor {
     lastLogTime: null,
     averageLogSize: 0,
     sentryEventsCount: 0,
-    piiRedactionCount: 0
   }
 
   private logSizes: number[] = []
@@ -76,10 +74,6 @@ class LoggingMonitor {
     const errorCount = this.metrics.logsByLevel[LogLevel.ERROR]
     this.metrics.errorRate = this.metrics.totalLogs > 0 ? (errorCount / this.metrics.totalLogs) * 100 : 0
 
-    // Track PII redaction
-    if (containsPII) {
-      this.metrics.piiRedactionCount++
-    }
   }
 
   /**
@@ -156,8 +150,7 @@ class LoggingMonitor {
       errorRate: 0,
       lastLogTime: null,
       averageLogSize: 0,
-      sentryEventsCount: 0,
-      piiRedactionCount: 0
+      sentryEventsCount: 0
     }
     this.logSizes = []
   }
@@ -188,7 +181,6 @@ Performance:
 - Last Log: ${metrics.lastLogTime ? metrics.lastLogTime.toISOString() : 'Never'}
 
 Privacy & Security:
-- PII Redactions: ${metrics.piiRedactionCount}
 - Sentry Events: ${metrics.sentryEventsCount}
 
 Recommendations:
@@ -205,10 +197,6 @@ ${this.generateRecommendations(metrics)}
 
     if (metrics.averageLogSize > 5000) {
       recommendations.push('- Review log content size - consider reducing verbosity')
-    }
-
-    if (metrics.piiRedactionCount === 0 && metrics.totalLogs > 100) {
-      recommendations.push('- Verify PII redaction is working correctly')
     }
 
     if (metrics.sentryEventsCount === 0 && metrics.logsByLevel[LogLevel.ERROR] > 0) {

@@ -7,6 +7,7 @@
 import { SponsorsRequest, SponsorsResponse, SponsorServiceCache } from '../types/sponsors'
 import { createClient } from '@supabase/supabase-js'
 import { createLegacyLogger } from '../logging/client'
+import { LoginService } from './LoginService'
 
 export class SponsorsService {
   private static cache = new Map<string, SponsorServiceCache>()
@@ -215,14 +216,16 @@ export class SponsorsService {
    * Used when Netlify functions are not available in dev mode
    */
   private static async fetchSponsorsFromSupabase(request: SponsorsRequest): Promise<SponsorsResponse> {
-    const { getPublicConfig } = await import('./PublicConfig')
-    const cfg = await getPublicConfig()
+    const cachedCfg = LoginService.getCachedConfig()
+    const env: any = (import.meta as any)?.env || {}
+    const SUPABASE_URL = cachedCfg?.SUPABASE_URL || env.VITE_SUPABASE_URL
+    const SUPABASE_ANON_KEY = cachedCfg?.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY
 
-    if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       throw new Error('Supabase configuration missing')
     }
 
-    const supabase = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY)
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
     // Query sponsor assets
     const { data: sponsors, error } = await supabase

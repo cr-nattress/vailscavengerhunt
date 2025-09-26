@@ -160,68 +160,6 @@ describe('CollageService', () => {
     })
   })
 
-  describe('createCollageFromIds', () => {
-    it('should create collage from public IDs', async () => {
-      const mockPublicIds = ['id1', 'id2', 'id3']
-      const mockResponse = {
-        collageUrl: 'https://cloudinary.com/collage-from-ids.jpg',
-        publicIds: mockPublicIds
-      }
-
-      vi.mocked(apiClient.post).mockResolvedValue(mockResponse)
-
-      const result = await CollageService.createCollageFromIds(mockPublicIds)
-
-      expect(result).toEqual(mockResponse)
-      expect(apiClient.post).toHaveBeenCalledWith('/collage-from-ids', {
-        publicIds: mockPublicIds,
-        metadata: undefined
-      }, {
-        timeout: 30000,
-        retryAttempts: 2
-      })
-    })
-
-    it('should include metadata when provided', async () => {
-      const mockPublicIds = ['id1', 'id2']
-      const mockMetadata = {
-        dateISO: '2023-01-01T00:00:00Z',
-        locationSlug: 'vail-village',
-        teamSlug: 'team-alpha',
-        sessionId: 'session-123'
-      }
-      const mockResponse = { collageUrl: 'https://cloudinary.com/collage.jpg', publicIds: mockPublicIds }
-
-      vi.mocked(apiClient.post).mockResolvedValue(mockResponse)
-
-      await CollageService.createCollageFromIds(mockPublicIds, mockMetadata)
-
-      expect(apiClient.post).toHaveBeenCalledWith('/collage-from-ids', {
-        publicIds: mockPublicIds,
-        metadata: mockMetadata
-      }, {
-        timeout: 30000,
-        retryAttempts: 2
-      })
-    })
-
-    it('should throw error for empty public IDs array', async () => {
-      await expect(
-        CollageService.createCollageFromIds([])
-      ).rejects.toThrow('No public IDs provided')
-    })
-
-    it('should handle API errors', async () => {
-      const mockPublicIds = ['id1']
-      const apiError = new Error('Failed to create collage from IDs')
-
-      vi.mocked(apiClient.post).mockRejectedValue(apiError)
-
-      await expect(
-        CollageService.createCollageFromIds(mockPublicIds)
-      ).rejects.toThrow('Failed to create collage from IDs')
-    })
-  })
 
   describe('resizeImage', () => {
     it('should return original file when already small enough', async () => {

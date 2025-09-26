@@ -1,5 +1,6 @@
 import { apiClient } from '../services/apiClient'
 import { ServerStorageService } from '../services/ServerStorageService'
+import { LoginService } from '../services/LoginService'
 import {
   UploadResponseSchema,
   PhotoRecordSchema,
@@ -34,10 +35,10 @@ export class PhotoUploadService {
   ): Promise<PhotoUploadResponse> {
     console.log('📸 PhotoUploadService.uploadPhotoUnsigned() called');
 
-    const { getPublicConfig } = await import('../services/PublicConfig')
-    const cfg = await getPublicConfig()
-    const cloudName = cfg.CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = cfg.CLOUDINARY_UNSIGNED_PRESET;
+    const cachedCfg = LoginService.getCachedConfig()
+    const env: any = (import.meta as any)?.env || {}
+    const cloudName = cachedCfg?.CLOUDINARY_CLOUD_NAME || env.VITE_CLOUDINARY_CLOUD_NAME
+    const uploadPreset = cachedCfg?.CLOUDINARY_UNSIGNED_PRESET || env.VITE_CLOUDINARY_UNSIGNED_PRESET
 
     if (!cloudName || !uploadPreset) {
       throw new Error('Cloudinary unsigned upload not configured. Missing CLOUDINARY_CLOUD_NAME or CLOUDINARY_UNSIGNED_PRESET');
@@ -104,7 +105,7 @@ export class PhotoUploadService {
     formData.append('public_id', publicId);
 
     // Add folder
-    const folder = cfg.CLOUDINARY_UPLOAD_FOLDER || 'scavenger/entries';
+    const folder = (cachedCfg?.CLOUDINARY_UPLOAD_FOLDER || env.VITE_CLOUDINARY_UPLOAD_FOLDER) || 'scavenger/entries';
     formData.append('folder', folder);
 
     console.log('📦 FormData created for unsigned upload');

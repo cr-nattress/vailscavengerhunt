@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/react'
 import { LogSink, LogEntry, LogLevel } from '../types'
-import { redactPII } from '../piiRedaction.js'
 
 export class SentryBrowserSink implements LogSink {
   private isEnabled: boolean
@@ -48,8 +47,8 @@ export class SentryBrowserSink implements LogSink {
       const contextData = {
         component,
         action,
-        ...(data && { data: redactPII(data) }),
-        ...(context && { context: redactPII(context) }),
+        ...(data && { data }),
+        ...(context && { context }),
         timestamp,
       }
 
