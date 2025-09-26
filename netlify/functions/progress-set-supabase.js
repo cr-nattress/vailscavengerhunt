@@ -3,22 +3,9 @@
  * Handles updating progress data in Supabase hunt_progress table
  */
 
-import { createClient } from '@supabase/supabase-js'
-import { z } from 'zod'
+const { getSupabaseClient } = require('./_lib/supabaseClient')
 
-// Zod schemas for validation
-const DateISOSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/, 'Invalid ISO date format')
-const StopProgressSchema = z.object({
-  done: z.boolean(),
-  notes: z.string().optional(),
-  photo: z.string().url().nullable().optional(),
-  revealedHints: z.number().int().nonnegative().optional(),
-  completedAt: DateISOSchema.optional(),
-  lastModifiedBy: z.string().optional(),
-})
-const ProgressDataSchema = z.record(z.string(), StopProgressSchema)
-
-export default async (req, context) => {
+exports.handler = async (event, context) => {
   // Handle CORS
   const headers = {
     'Content-Type': 'application/json',
@@ -27,52 +14,37 @@ export default async (req, context) => {
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   }
 
-  if (req.method === 'OPTIONS') {
-    return new Response('', { status: 200, headers })
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' }
   }
 
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers
-    })
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    }
   }
 
   try {
-    const body = await req.json()
+    const body = JSON.parse(event.body || '{}')
     const { orgId, teamId, huntId, progress, sessionId, timestamp } = body
 
     if (!orgId || !teamId || !huntId || !progress) {
-      return new Response(JSON.stringify({
-        error: 'Missing required parameters',
-        required: ['orgId', 'teamId', 'huntId', 'progress']
-      }), {
-        status: 400,
-        headers
-      })
-    }
-
-    // Validate progress payload shape
-    const parsedProgress = ProgressDataSchema.safeParse(progress)
-    if (!parsedProgress.success) {
-      const details = parsedProgress.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')
-      return new Response(JSON.stringify({ error: 'Invalid progress payload', details }), {
-        status: 400,
-        headers
-      })
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Missing required parameters',
+          required: ['orgId', 'teamId', 'huntId', 'progress']
+        })
+      }
     }
 
     console.log('Updating Supabase progress for:', { orgId, teamId, huntId, stopCount: Object.keys(progress).length })
 
-    // Initialize Supabase client with service role for write operations
-    const supabaseUrl = process.env.SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase configuration missing')
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // Initialize Supabase client
+    const supabase = getSupabaseClient()
 
     // Get team UUID from team_id
     const { data: teamData, error: teamError } = await supabase
@@ -85,13 +57,14 @@ export default async (req, context) => {
 
     if (teamError) {
       console.error('Team lookup error:', teamError)
-      return new Response(JSON.stringify({
-        error: 'Team not found',
-        details: teamError.message
-      }), {
-        status: 404,
-        headers
-      })
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({
+          error: 'Team not found',
+          details: teamError.message
+        })
+      }
     }
 
     // Convert progress data to hunt_progress records
@@ -118,33 +91,36 @@ export default async (req, context) => {
 
     if (upsertError) {
       console.error('Progress update error:', upsertError)
-      return new Response(JSON.stringify({
-        error: 'Failed to update progress',
-        details: upsertError.message
-      }), {
-        status: 500,
-        headers
-      })
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'Failed to update progress',
+          details: upsertError.message
+        })
+      }
     }
 
     console.log(`✅ Updated progress for team ${teamId}: ${updates.length} stops`)
 
-    return new Response(JSON.stringify({
-      success: true,
-      updatedStops: updates.length,
-      timestamp: new Date().toISOString()
-    }), {
-      status: 200,
-      headers
-    })
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        updatedStops: updates.length,
+        timestamp: new Date().toISOString()
+      })
+    }
   } catch (error) {
     console.error('Error updating Supabase progress:', error)
-    return new Response(JSON.stringify({
-      error: 'Failed to update progress',
-      details: error.message
-    }), {
-      status: 500,
-      headers
-    })
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: 'Failed to update progress',
+        details: error.message
+      })
+    }
   }
 }

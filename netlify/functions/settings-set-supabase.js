@@ -89,10 +89,7 @@ exports.handler = async (event, context) => {
     if (!success) {
       return {
         statusCode: 500,
-        headers: {
-          
-          headers
-        },
+        headers,
         body: JSON.stringify({ error: 'Failed to save settings' })
       }
     }
