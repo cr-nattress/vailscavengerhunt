@@ -158,7 +158,14 @@
   to = "/favicon.svg"
   status = 200
 
-# Consolidated endpoints
+# Consolidated endpoints - MUST be before SPA fallback
+# Match the specific path pattern with parameters
+[[redirects]]
+  from = "/api/consolidated/active/:orgId/:teamId/:huntId"
+  to = "/.netlify/functions/consolidated-active/:orgId/:teamId/:huntId"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/api/consolidated/active/*"
   to = "/.netlify/functions/consolidated-active/:splat"
