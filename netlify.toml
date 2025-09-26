@@ -97,6 +97,14 @@
   conditions = {method = ["GET"]}
   force = true
 
+# Login endpoint
+[[redirects]]
+  from = "/.netlify/functions/login-initialize"
+  to = "/.netlify/functions/login-initialize"
+  status = 200
+  conditions = {method = ["POST", "OPTIONS"]}
+  force = true
+
 # Team endpoints
 [[redirects]]
   from = "/api/team-verify"
