@@ -68,8 +68,8 @@ exports.handler = async (event, context) => {
 
     // Fetch existing metadata to increment counters
     const { data: existing, error: fetchErr } = await supabase
-      .from('team_settings')
-      .select('id, total_updates, contributors')
+      .from('hunt_settings')
+      .select('id, total_updates, metadata')
       .eq('org_id', orgId)
       .eq('team_id', teamId)
       .eq('hunt_id', huntId)
@@ -79,8 +79,9 @@ exports.handler = async (event, context) => {
       throw fetchErr
     }
 
-    // Update contributor tracking
-    const contributors = Array.isArray(existing?.contributors) ? [...existing.contributors] : []
+    // Update contributor tracking in metadata
+    const metadata = existing?.metadata || { contributors: [] }
+    const contributors = Array.isArray(metadata.contributors) ? [...metadata.contributors] : []
     const idx = contributors.findIndex(c => c.sessionId === sessionId)
     const nowIso = new Date().toISOString()
     if (idx >= 0) {
@@ -88,6 +89,7 @@ exports.handler = async (event, context) => {
     } else {
       contributors.push({ sessionId, firstActive: nowIso, lastActive: nowIso })
     }
+    metadata.contributors = contributors
 
     const totalUpdates = (existing?.total_updates || 0) + 1
 
@@ -97,14 +99,14 @@ exports.handler = async (event, context) => {
       team_id: teamId,
       hunt_id: huntId,
       settings: settingsToSave,
-      contributors,
+      metadata,
       last_modified_by: sessionId || null,
-      last_modified_at: nowIso,
-      total_updates: totalUpdates
+      total_updates: totalUpdates,
+      updated_at: nowIso
     }
 
     const { error: upsertErr } = await supabase
-      .from('team_settings')
+      .from('hunt_settings')
       .upsert(upsertPayload, { onConflict: 'org_id,team_id,hunt_id', returning: 'minimal' })
 
     if (upsertErr) {

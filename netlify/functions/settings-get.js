@@ -34,7 +34,7 @@ exports.handler = async (event, context) => {
   try {
     const supabase = getSupabaseClient()
     const { data, error } = await supabase
-      .from('team_settings')
+      .from('hunt_settings')
       .select('settings')
       .eq('org_id', orgId)
       .eq('team_id', teamId)

@@ -23,7 +23,7 @@ exports.handler = withSentry(async (event, context) => {
 
   try {
     // Check feature flag first
-    const featureEnabled = process.env.SPONSOR_CARD_ENABLED === 'true'
+    const featureEnabled = process.env.ENABLE_SPONSOR_CARD === 'true'
 
     if (!featureEnabled) {
       console.log('[sponsors-get] Sponsor card feature is disabled')
