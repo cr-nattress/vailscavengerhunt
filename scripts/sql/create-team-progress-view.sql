@@ -13,34 +13,25 @@ WITH team_codes AS (
         tm.created_at as code_created_at
     FROM team_mappings tm
 ),
-team_progress AS (
-    -- Get team progress from teams table
+team_progress_data AS (
+    -- Get team progress from team_progress table
     SELECT
-        t.team_id,
-        t.name as team_display_name,
-        t.score,
-        t.hunt_progress,
-        t.org_id,
-        t.hunt_id,
-        t.updated_at as progress_updated_at,
-        -- Calculate completed stops
-        COALESCE(
-            (SELECT COUNT(*)::int
-             FROM jsonb_each(t.hunt_progress) AS stop(key, value)
-             WHERE (stop.value->>'done')::boolean = true
-            ), 0
-        ) as completed_stops,
-        -- Calculate total stops
-        COALESCE(
-            jsonb_array_length(jsonb_object_keys(t.hunt_progress)),
-            0
-        ) as total_stops
-    FROM teams t
+        tp.team_id,
+        tp.org_id,
+        tp.hunt_id,
+        tp.score,
+        tp.progress as hunt_progress,
+        tp.completed_stops,
+        tp.total_stops,
+        tp.percent_complete,
+        tp.latest_activity,
+        tp.updated_at as progress_updated_at
+    FROM team_progress tp
 ),
 team_images AS (
-    -- Extract image URLs from hunt_progress JSON
+    -- Extract image URLs from progress JSON
     SELECT
-        t.team_id,
+        tp.team_id,
         jsonb_agg(
             jsonb_build_object(
                 'stop_name', stop.key,
@@ -52,9 +43,9 @@ team_images AS (
             ) ORDER BY stop.key
         ) FILTER (WHERE stop.value->>'photoUrl' IS NOT NULL) as images,
         COUNT(*) FILTER (WHERE stop.value->>'photoUrl' IS NOT NULL)::int as total_images
-    FROM teams t,
-         LATERAL jsonb_each(t.hunt_progress) AS stop(key, value)
-    GROUP BY t.team_id
+    FROM team_progress tp,
+         LATERAL jsonb_each(tp.progress) AS stop(key, value)
+    GROUP BY tp.team_id
 ),
 team_settings AS (
     -- Get team settings if they exist
@@ -70,25 +61,20 @@ team_settings AS (
 -- Combine all data
 SELECT
     -- Team identification
-    COALESCE(tc.team_id, tp.team_id) as team_id,
+    COALESCE(tc.team_id, tpd.team_id) as team_id,
     tc.team_code,
-    COALESCE(tc.team_name, tp.team_display_name) as team_name,
-    tp.team_display_name,
+    tc.team_name,
     tc.is_active as code_is_active,
 
     -- Organization and hunt
-    tp.org_id,
-    tp.hunt_id,
+    tpd.org_id,
+    tpd.hunt_id,
 
     -- Progress metrics
-    tp.score,
-    tp.completed_stops,
-    tp.total_stops,
-    CASE
-        WHEN tp.total_stops > 0
-        THEN ROUND((tp.completed_stops::numeric / tp.total_stops::numeric * 100), 2)
-        ELSE 0
-    END as completion_percentage,
+    tpd.score,
+    tpd.completed_stops,
+    tpd.total_stops,
+    COALESCE(tpd.percent_complete, 0) as completion_percentage,
 
     -- Settings
     ts.location_name,
@@ -100,30 +86,30 @@ SELECT
     ti.images as stop_images,
 
     -- Raw hunt progress (for detailed analysis)
-    tp.hunt_progress,
+    tpd.hunt_progress,
 
     -- Timestamps
     tc.code_created_at,
-    tp.progress_updated_at,
+    tpd.progress_updated_at,
     ts.settings_updated_at,
-    GREATEST(
+    COALESCE(tpd.latest_activity, GREATEST(
         tc.code_created_at,
-        tp.progress_updated_at,
+        tpd.progress_updated_at,
         ts.settings_updated_at
-    ) as last_activity
+    )) as last_activity
 FROM team_codes tc
-FULL OUTER JOIN team_progress tp ON tc.team_id = tp.team_id
-LEFT JOIN team_images ti ON COALESCE(tc.team_id, tp.team_id) = ti.team_id
-LEFT JOIN team_settings ts ON COALESCE(tc.team_id, tp.team_id) = ts.team_id
+FULL OUTER JOIN team_progress_data tpd ON tc.team_id = tpd.team_id
+LEFT JOIN team_images ti ON COALESCE(tc.team_id, tpd.team_id) = ti.team_id
+LEFT JOIN team_settings ts ON COALESCE(tc.team_id, tpd.team_id) = ts.team_id
 ORDER BY
     completion_percentage DESC,
     completed_stops DESC,
     last_activity DESC NULLS LAST;
 
 -- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_teams_hunt_progress ON teams USING gin(hunt_progress);
+CREATE INDEX IF NOT EXISTS idx_team_progress_progress ON team_progress USING gin(progress);
 CREATE INDEX IF NOT EXISTS idx_team_mappings_team_id ON team_mappings(team_id);
-CREATE INDEX IF NOT EXISTS idx_teams_org_hunt ON teams(org_id, hunt_id);
+CREATE INDEX IF NOT EXISTS idx_team_progress_org_hunt ON team_progress(org_id, hunt_id);
 
 -- Grant permissions for the view
 GRANT SELECT ON team_progress_overview TO authenticated;

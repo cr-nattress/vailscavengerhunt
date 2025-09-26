@@ -5,57 +5,31 @@ DROP MATERIALIZED VIEW IF EXISTS team_leaderboard CASCADE;
 CREATE MATERIALIZED VIEW team_leaderboard AS
 SELECT
     -- Team identification
-    t.team_id,
-    t.name as team_name,
+    tp.team_id,
+    tm.team_name,
     tm.team_code,
 
     -- Organization and hunt
-    t.org_id,
-    t.hunt_id,
+    tp.org_id,
+    tp.hunt_id,
 
     -- Progress summary
-    t.score,
-
-    -- Extract completed stops count
-    (
-        SELECT COUNT(*)::int
-        FROM jsonb_each(t.hunt_progress) AS stop(key, value)
-        WHERE (stop.value->>'done')::boolean = true
-    ) as completed_stops,
-
-    -- Extract total stops count
-    (
-        SELECT COUNT(*)::int
-        FROM jsonb_each(t.hunt_progress)
-    ) as total_stops,
+    tp.score,
+    tp.completed_stops,
+    tp.total_stops,
 
     -- Extract uploaded photos count
     (
         SELECT COUNT(*)::int
-        FROM jsonb_each(t.hunt_progress) AS stop(key, value)
+        FROM jsonb_each(tp.progress) AS stop(key, value)
         WHERE stop.value->>'photoUrl' IS NOT NULL
     ) as photos_uploaded,
 
-    -- Calculate completion percentage
-    CASE
-        WHEN COUNT(*) FILTER (WHERE t.hunt_progress IS NOT NULL) > 0
-        THEN ROUND(
-            (COUNT(*) FILTER (WHERE (j.value->>'done')::boolean = true)::numeric /
-             NULLIF(COUNT(*) FILTER (WHERE t.hunt_progress IS NOT NULL), 0)::numeric * 100),
-            2
-        )
-        ELSE 0
-    END as completion_percentage,
+    -- Completion percentage
+    COALESCE(tp.percent_complete, 0) as completion_percentage,
 
     -- Latest activity timestamp
-    COALESCE(
-        (
-            SELECT MAX((stop.value->>'completedAt')::timestamp)
-            FROM jsonb_each(t.hunt_progress) AS stop(key, value)
-            WHERE stop.value->>'completedAt' IS NOT NULL
-        ),
-        t.updated_at
-    ) as last_activity,
+    COALESCE(tp.latest_activity, tp.updated_at) as last_activity,
 
     -- List of completed stop names
     ARRAY_AGG(
@@ -72,26 +46,30 @@ SELECT
     ts.settings->>'eventName' as event_name,
 
     -- Timestamps
-    t.created_at,
-    t.updated_at
+    tp.created_at,
+    tp.updated_at
 
-FROM teams t
-LEFT JOIN team_mappings tm ON t.team_id = tm.team_id
-LEFT JOIN team_settings ts ON t.team_id = ts.team_id
-    AND t.org_id = ts.org_id
-    AND t.hunt_id = ts.hunt_id
-LEFT JOIN LATERAL jsonb_each(t.hunt_progress) AS j(key, value) ON true
+FROM team_progress tp
+LEFT JOIN team_mappings tm ON tp.team_id = tm.team_id
+LEFT JOIN team_settings ts ON tp.team_id = ts.team_id
+    AND tp.org_id = ts.org_id
+    AND tp.hunt_id = ts.hunt_id
+LEFT JOIN LATERAL jsonb_each(tp.progress) AS j(key, value) ON true
 GROUP BY
-    t.team_id,
-    t.name,
+    tp.team_id,
+    tm.team_name,
     tm.team_code,
-    t.org_id,
-    t.hunt_id,
-    t.score,
-    t.hunt_progress,
+    tp.org_id,
+    tp.hunt_id,
+    tp.score,
+    tp.completed_stops,
+    tp.total_stops,
+    tp.percent_complete,
+    tp.progress,
+    tp.latest_activity,
     ts.settings,
-    t.created_at,
-    t.updated_at
+    tp.created_at,
+    tp.updated_at
 ORDER BY
     completion_percentage DESC,
     completed_stops DESC,
