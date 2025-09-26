@@ -1,14 +1,24 @@
 const { saveSettings } = require('./_lib/supabaseSettings')
 
 exports.handler = async (event, context) => {
+  // Set CORS headers
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json'
+  }
+
+  // Handle preflight OPTIONS request
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' }
+  }
+
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
+      headers,
       body: JSON.stringify({ error: 'Method not allowed' })
     }
   }
@@ -34,10 +44,7 @@ exports.handler = async (event, context) => {
     console.error('Missing parameters. Path parts:', pathParts, 'URL:', url.pathname)
     return {
       statusCode: 400,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
+      headers,
       body: JSON.stringify({ error: 'Missing required parameters' })
     }
   }
@@ -51,10 +58,7 @@ exports.handler = async (event, context) => {
   } catch (error) {
     return {
       statusCode: 400,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
+      headers,
       body: JSON.stringify({ error: 'Invalid JSON in request body' })
     }
   }
@@ -64,10 +68,7 @@ exports.handler = async (event, context) => {
   if (!settings) {
     return {
       statusCode: 400,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
+      headers,
       body: JSON.stringify({ error: 'Settings data required' })
     }
   }
@@ -89,8 +90,8 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 500,
         headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          
+          headers
         },
         body: JSON.stringify({ error: 'Failed to save settings' })
       }
@@ -98,20 +99,14 @@ exports.handler = async (event, context) => {
 
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
+      headers,
       body: JSON.stringify({ success: true })
     }
   } catch (error) {
     console.error('Error saving settings to Supabase:', error)
     return {
       statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
+      headers,
       body: JSON.stringify({ error: 'Failed to save settings' })
     }
   }
