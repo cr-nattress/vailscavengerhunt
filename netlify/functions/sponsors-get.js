@@ -4,10 +4,9 @@
  * Returns sponsors with signed URLs for images and inline SVG content
  */
 
-const { createClient } = require('@supabase/supabase-js')
-const { withSentry } = require('./_lib/sentry')
+const { getSupabaseClient } = require('./_lib/supabaseClient')
 
-exports.handler = withSentry(async (event, context) => {
+exports.handler = async (event, context) => {
   // Set CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -38,19 +37,7 @@ exports.handler = withSentry(async (event, context) => {
     }
 
     // Initialize Supabase client
-    const supabaseUrl = process.env.SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing Supabase configuration')
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
+    const supabase = getSupabaseClient()
 
     // Parse request parameters
     let organizationId, huntId, teamName
@@ -183,7 +170,7 @@ exports.handler = withSentry(async (event, context) => {
       })
     }
   }
-})
+}
 
 /**
  * Get layout configuration from settings system
