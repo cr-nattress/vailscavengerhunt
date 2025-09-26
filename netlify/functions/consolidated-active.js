@@ -20,17 +20,29 @@ exports.handler = async (event) => {
   }
 
   try {
-    // Extract orgId, teamId, huntId from URL
-    const url = new URL(event.rawUrl || `https://example.com${event.path}`)
-    let pathToProcess = url.pathname
+    // Extract orgId, teamId, huntId from URL path
+    // In production, event.path is the most reliable way to get the path
+    console.log('[consolidated-active] Raw path:', event.path)
+
+    let pathToProcess = event.path || ''
+
+    // Remove the function prefix to get just the parameters
     if (pathToProcess.includes('/.netlify/functions/consolidated-active/')) {
       pathToProcess = pathToProcess.split('/.netlify/functions/consolidated-active/')[1]
+    } else if (pathToProcess.includes('/consolidated-active/')) {
+      // Sometimes the path might be shortened
+      pathToProcess = pathToProcess.split('/consolidated-active/')[1]
     } else if (pathToProcess.includes('/api/consolidated/active/')) {
+      // Handle the redirected path
       pathToProcess = pathToProcess.split('/api/consolidated/active/')[1]
     }
+
     const pathParts = pathToProcess ? pathToProcess.split('/').filter(Boolean) : []
+    console.log('[consolidated-active] Parsed path parts:', pathParts)
+
     if (pathParts.length < 3) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing required parameters' }) }
+      console.error('[consolidated-active] Missing parameters. Path:', event.path, 'Parts:', pathParts)
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing required parameters: orgId, teamId, huntId' }) }
     }
     const [orgId, teamId, huntId] = pathParts
 
@@ -128,7 +140,17 @@ exports.handler = async (event) => {
       })
     }
   } catch (error) {
-    console.error('[consolidated-active] error', error)
-    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Failed to fetch active data' }) }
+    console.error('[consolidated-active] error:', error)
+    console.error('[consolidated-active] Stack trace:', error.stack)
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: 'Failed to fetch active data',
+        message: error.message,
+        path: event.path,
+        method: event.httpMethod
+      })
+    }
   }
 }
