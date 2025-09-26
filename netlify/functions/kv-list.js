@@ -8,7 +8,14 @@
 require('dotenv').config();
 
 const { getSupabaseClient } = require('./_lib/supabaseClient');
-const { getStore } = require("@netlify/blobs");
+// Conditionally load @netlify/blobs to avoid ESM issues
+let getStore;
+try {
+  getStore = require("@netlify/blobs").getStore;
+} catch (error) {
+  console.log("Could not load @netlify/blobs:", error.message);
+  getStore = null;
+}
 
 // Feature flag for gradual rollout - default to Supabase in production
 const USE_SUPABASE_KV = process.env.USE_SUPABASE_KV !== 'false'; // Default to true for production
@@ -143,6 +150,21 @@ exports.handler = async (event, context) => {
       // ========================================
       // BLOB STORAGE MODE (Original)
       // ========================================
+      if (!getStore) {
+        console.error("@netlify/blobs not available, cannot list blobs");
+        return {
+          statusCode: 500,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            error: "@netlify/blobs module not available",
+            ok: false
+          }),
+        };
+      }
+
       const store = getStore("kv");
 
       console.log(`📋 Listing blobs with prefix: ${prefix || '(all)'}`);

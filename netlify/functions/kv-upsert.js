@@ -8,7 +8,14 @@
 require('dotenv').config();
 
 const { getSupabaseClient } = require('./_lib/supabaseClient');
-const { getStore } = require("@netlify/blobs");
+// Conditionally load @netlify/blobs to avoid ESM issues
+let getStore;
+try {
+  getStore = require("@netlify/blobs").getStore;
+} catch (error) {
+  console.log("Could not load @netlify/blobs:", error.message);
+  getStore = null;
+}
 
 // Feature flag for gradual rollout - default to Supabase in production
 const USE_SUPABASE_KV = process.env.USE_SUPABASE_KV !== 'false'; // Default to true for production
@@ -19,6 +26,11 @@ let localIndexes = new Map();
 
 const getKVStore = () => {
   try {
+    // Check if getStore is available
+    if (!getStore) {
+      console.log("@netlify/blobs not available, using local fallback");
+      return null;
+    }
     // Check if we're in Netlify environment
     if (!process.env.NETLIFY) {
       console.log("Not in Netlify environment, using local fallback");
