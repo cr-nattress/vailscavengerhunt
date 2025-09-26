@@ -133,9 +133,19 @@ export default defineConfig({
         secure: false
       },
       '/api/leaderboard': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:8889',
         changeOrigin: true,
-        secure: false
+        secure: false,
+        rewrite: (path) => {
+          // Support both /api/leaderboard and /api/leaderboard/:orgId/:huntId
+          const m = path.match(/^\/api\/leaderboard\/([^\/]+)\/([^\/]+)/)
+          if (m) {
+            const orgId = encodeURIComponent(m[1])
+            const huntId = encodeURIComponent(m[2])
+            return `/.netlify/functions/leaderboard-get?orgId=${orgId}&huntId=${huntId}`
+          }
+          return '/.netlify/functions/leaderboard-get'
+        }
       },
       '/api/export': {
         target: 'http://localhost:3001',
