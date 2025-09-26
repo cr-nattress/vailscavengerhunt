@@ -5,9 +5,6 @@
 
 const { getSupabaseClient } = require('./_lib/supabaseClient');
 
-// Feature flag for gradual rollout
-const USE_SUPABASE = process.env.USE_SUPABASE_KV !== 'false'; // Default to true once tested
-
 exports.handler = async (event, context) => {
   try {
     // Handle CORS preflight
@@ -45,69 +42,62 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`📝 Storing KV pair: ${key} (Supabase: ${USE_SUPABASE})`);
+    console.log(`📝 Storing KV pair: ${key} in Supabase`);
 
-    if (USE_SUPABASE) {
-      // Use Supabase
-      const supabase = getSupabaseClient();
+    // Use Supabase
+    const supabase = getSupabaseClient();
 
-      // Prepare the data for upsert
-      const kvData = {
-        key: key,
-        value: value,
-        indexes: indexes && Array.isArray(indexes)
-          ? indexes.filter(ix => ix.key && ix.member).map(ix => `${ix.key}:${ix.member}`)
-          : [],
-        updated_at: new Date().toISOString()
-      };
+    // Prepare the data for upsert
+    const kvData = {
+      key: key,
+      value: value,
+      indexes: indexes && Array.isArray(indexes)
+        ? indexes.filter(ix => ix.key && ix.member).map(ix => `${ix.key}:${ix.member}`)
+        : [],
+      updated_at: new Date().toISOString()
+    };
 
-      // Perform upsert (insert or update based on key)
-      const { data, error } = await supabase
-        .from('kv_store')
-        .upsert(kvData, {
-          onConflict: 'key',
-          returning: 'minimal' // Don't return the full record for performance
-        });
+    // Perform upsert (insert or update based on key)
+    const { data, error } = await supabase
+      .from('kv_store')
+      .upsert(kvData, {
+        onConflict: 'key',
+        returning: 'minimal' // Don't return the full record for performance
+      });
 
-      if (error) {
-        console.error(`❌ Supabase error:`, error);
-        throw new Error(`Database error: ${error.message}`);
-      }
+    if (error) {
+      console.error(`❌ Supabase error:`, error);
+      throw new Error(`Database error: ${error.message}`);
+    }
 
-      // Handle additional index operations if needed
-      if (indexes && Array.isArray(indexes)) {
-        console.log(`🔍 Processed ${indexes.length} indexes in Supabase`);
+    // Handle additional index operations if needed
+    if (indexes && Array.isArray(indexes)) {
+      console.log(`🔍 Processed ${indexes.length} indexes in Supabase`);
 
-        // Log index information for debugging
-        for (const ix of indexes) {
-          if (ix.key && ix.member) {
-            console.log(`✅ Index stored: ${ix.key}:${ix.member}`);
-          }
+      // Log index information for debugging
+      for (const ix of indexes) {
+        if (ix.key && ix.member) {
+          console.log(`✅ Index stored: ${ix.key}:${ix.member}`);
         }
       }
-
-      console.log(`✅ Successfully stored in Supabase: ${key}`);
-
-      // Return same format as original for backward compatibility
-      return {
-        statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ok: true,
-          key,
-          timestamp: new Date().toISOString(),
-          storage: 'supabase' // Add indicator for debugging
-        }),
-      };
-
-    } else {
-      // Fallback to original blob implementation
-      const originalHandler = require('./kv-upsert-blob');
-      return originalHandler.handler(event, context);
     }
+
+    console.log(`✅ Successfully stored in Supabase: ${key}`);
+
+    // Return same format as original for backward compatibility
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ok: true,
+        key,
+        timestamp: new Date().toISOString(),
+        storage: 'supabase' // Add indicator for debugging
+      }),
+    };
 
   } catch (err) {
     console.error(`❌ Error in kv-upsert:`, err);
