@@ -152,6 +152,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false
       },
+      '/api/write-log': {
+        target: 'http://localhost:3001/.netlify/functions/write-log',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => ''
+      },
       '/api': {
         target: 'http://localhost:8889/.netlify/functions',
         changeOrigin: true,
