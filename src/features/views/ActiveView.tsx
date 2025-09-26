@@ -54,6 +54,9 @@ const ActiveView: React.FC = () => {
     locationName,
     eventName,
     onSuccess: (stopId, photoUrl) => {
+      console.log(`[PHOTO-FLOW] Step 1: Photo uploaded to Cloudinary for stop ${stopId}`)
+      console.log(`[PHOTO-FLOW] Step 2: Photo URL received:`, photoUrl?.substring(0, 100) + '...')
+
       const newProgressState = {
         ...progress,
         [stopId]: {
@@ -64,6 +67,14 @@ const ActiveView: React.FC = () => {
         }
       }
 
+      console.log(`[PHOTO-FLOW] Step 3: Creating new progress state with photo for stop ${stopId}`)
+      console.log(`[PHOTO-FLOW] Step 3.1: Stop progress data:`, {
+        stopId,
+        done: newProgressState[stopId].done,
+        hasPhoto: !!newProgressState[stopId].photo,
+        completedAt: newProgressState[stopId].completedAt
+      })
+
       photoFlowLogger.info('ActiveView', 'progress_updated_with_photo', {
         stopId,
         photoUrl: photoUrl?.substring(0, 100) + '...',
@@ -71,8 +82,10 @@ const ActiveView: React.FC = () => {
         totalStopsWithPhotos: Object.values(newProgressState).filter((s: any) => s.photo).length
       })
 
+      console.log(`[PHOTO-FLOW] Step 4: Updating local progress state (will trigger auto-save in 1 second)`)
       // Update progress with photo URL
       setProgress(newProgressState)
+      console.log(`[PHOTO-FLOW] Step 5: Local state updated. Auto-save will trigger in 1 second...`)
 
       // Trigger transition animation
       setTransitioning(stopId, true)
@@ -129,11 +142,31 @@ const ActiveView: React.FC = () => {
 
     const saveProgressToServer = async () => {
       try {
+        console.log(`[PHOTO-FLOW] Step 6: Auto-save triggered (1 second debounce elapsed)`)
+
         const orgId = organizationId || 'bhhs'
         const teamId = teamName || 'berrypicker'
         const hunt = huntId || 'fall-2025'
 
         const progressWithPhotos = Object.entries(progress).filter(([_, data]: [string, any]) => data.photo)
+
+        console.log(`[PHOTO-FLOW] Step 7: Preparing to save progress to Supabase:`, {
+          orgId,
+          teamId,
+          hunt,
+          totalStops: Object.keys(progress).length,
+          stopsWithPhotos: progressWithPhotos.length
+        })
+
+        console.log(`[PHOTO-FLOW] Step 8: Progress data with photos:`,
+          progressWithPhotos.map(([stopId, data]: [string, any]) => ({
+            stopId,
+            hasPhoto: !!data.photo,
+            photoUrl: data.photo?.substring(0, 50) + '...',
+            done: data.done,
+            completedAt: data.completedAt
+          }))
+        )
 
         photoFlowLogger.info('ActiveView', 'auto_save_triggered', {
           orgId,
@@ -148,7 +181,9 @@ const ActiveView: React.FC = () => {
           }))
         })
 
+        console.log(`[PHOTO-FLOW] Step 9: Calling progressService.saveProgress()...`)
         await progressService.saveProgress(orgId, teamId, hunt, progress, sessionId)
+        console.log(`[PHOTO-FLOW] Step 10: ✅ Progress successfully saved to Supabase!`)
         console.log('✅ Progress saved to server')
 
         photoFlowLogger.info('ActiveView', 'auto_save_success', {

@@ -66,19 +66,30 @@ class ProgressService {
     }
 
     try {
+      console.log(`[PHOTO-FLOW] Step 9.1: Inside ProgressService.saveProgress()`)
+
       // Validate payload before sending
       validateSchema(ProgressDataSchema, progress, 'progress payload')
 
       // Log the progress data being sent (with photo URLs)
       const progressWithPhotos = Object.entries(progress).filter(([_, data]) => (data as any).photo)
+      console.log(`[PHOTO-FLOW] Step 9.2: Validating progress data...`)
       console.log(`[ProgressService] Sending progress with ${progressWithPhotos.length} photo URLs:`,
-        progressWithPhotos.map(([stopId, data]) => ({ stopId, photo: (data as any).photo?.substring(0, 50) + '...' })))
+        progressWithPhotos.map(([stopId, data]) => ({
+          stopId,
+          photo: (data as any).photo?.substring(0, 50) + '...',
+          done: (data as any).done,
+          completedAt: (data as any).completedAt
+        })))
 
       const requestBody = {
         progress,
         sessionId, // For audit trail only
         timestamp: new Date().toISOString()
       }
+
+      console.log(`[PHOTO-FLOW] Step 9.3: Preparing POST request to: ${this.baseUrl}/progress/${orgId}/${teamId}/${huntId}`)
+      console.log(`[PHOTO-FLOW] Step 9.4: Request body contains ${Object.keys(progress).length} stops, ${progressWithPhotos.length} with photos`)
 
       photoFlowLogger.info('ProgressService', 'save_progress_request', {
         url: `${this.baseUrl}/progress/${orgId}/${teamId}/${huntId}`,
@@ -99,6 +110,7 @@ class ProgressService {
         }
       })
 
+      console.log(`[PHOTO-FLOW] Step 9.5: Sending POST request to backend...`)
       const response = await fetch(
         `${this.baseUrl}/progress/${orgId}/${teamId}/${huntId}`,
         {
@@ -112,6 +124,11 @@ class ProgressService {
 
       if (!response.ok) {
         const errorText = await response.text()
+        console.error(`[PHOTO-FLOW] Step 9.6: ERROR - Failed to save to Supabase:`, {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        })
         photoFlowLogger.error('ProgressService', 'save_progress_response_error', {
           status: response.status,
           statusText: response.statusText,
@@ -120,12 +137,16 @@ class ProgressService {
         throw new Error(`Failed to save progress: ${response.statusText}`)
       }
 
+      console.log(`[PHOTO-FLOW] Step 9.6: Backend responded with status ${response.status}`)
       const responseData = await response.json()
+      console.log(`[PHOTO-FLOW] Step 9.7: Backend response data:`, responseData)
+
       photoFlowLogger.info('ProgressService', 'save_progress_response_success', {
         status: response.status,
         responseData
       })
 
+      console.log(`[PHOTO-FLOW] Step 9.8: Progress saved to Supabase successfully!`)
       console.log('[ProgressService] Progress saved successfully')
       return true
     } catch (error) {

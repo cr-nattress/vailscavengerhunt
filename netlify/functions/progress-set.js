@@ -98,12 +98,15 @@ export default async (req, context) => {
     }
 
     // Log progress data received with photo URLs
+    console.log(`[PHOTO-FLOW] Backend Step 1: Received progress save request from client`)
     const progressWithPhotos = Object.entries(progress).filter(([_, data]) => data?.photo)
+    console.log(`[PHOTO-FLOW] Backend Step 2: Processing ${Object.keys(progress).length} stops, ${progressWithPhotos.length} with photos`)
     console.log(`[progress-set] Received progress data with ${progressWithPhotos.length} photo URLs:`,
       progressWithPhotos.map(([stopId, data]) => ({
         stopId,
         photo: data.photo?.substring(0, 50) + '...',
-        done: data.done
+        done: data.done,
+        completedAt: data.completedAt
       })))
 
     serverLogger.info('progress-set', 'request_received', {
@@ -157,6 +160,7 @@ export default async (req, context) => {
     }
 
     // Validate team exists in Supabase
+    console.log(`[PHOTO-FLOW] Backend Step 3: Validating team exists in Supabase: ${orgId}/${teamId}/${huntId}`)
     console.log(`[progress-set] Validating team exists: ${orgId}/${teamId}/${huntId}`)
     const teamExists = await SupabaseTeamStorage.validateTeamExists(orgId, teamId, huntId)
 
@@ -174,12 +178,15 @@ export default async (req, context) => {
       })
     }
 
+    console.log(`[PHOTO-FLOW] Backend Step 4: Team validated successfully`)
     console.log(`[progress-set] Team validated successfully: ${orgId}/${teamId}/${huntId}`)
 
     // Get existing progress from Supabase
+    console.log(`[PHOTO-FLOW] Backend Step 5: Fetching existing progress from Supabase`)
     const existingProgress = await SupabaseTeamStorage.getTeamProgress(teamId) || {}
 
     // Merge with new progress
+    console.log(`[PHOTO-FLOW] Backend Step 6: Merging new progress with existing progress`)
     const mergedProgress = {
       ...existingProgress,
       ...parsedProgress.data,
@@ -192,10 +199,12 @@ export default async (req, context) => {
     delete cleanedProgress.lastModifiedBy
     delete cleanedProgress.lastModifiedAt
 
+    console.log(`[PHOTO-FLOW] Backend Step 7: Preparing cleaned data for Supabase`)
     console.log(`[progress-set] Cleaned progress data before Supabase:`, Object.keys(cleanedProgress))
     const cleanedProgressWithPhotos = Object.entries(cleanedProgress).filter(([_, data]) => data?.photo)
+    console.log(`[PHOTO-FLOW] Backend Step 8: Data contains ${cleanedProgressWithPhotos.length} stops with photo URLs`)
     console.log(`[progress-set] Cleaned progress with photos (${cleanedProgressWithPhotos.length}):`,
-      cleanedProgressWithPhotos.map(([k, v]) => ({ [k]: { done: v.done, hasPhoto: !!v.photo, photoUrl: v.photo?.substring(0, 50) + '...' } })))
+      cleanedProgressWithPhotos.map(([k, v]) => ({ [k]: { done: v.done, hasPhoto: !!v.photo, photoUrl: v.photo?.substring(0, 50) + '...', completedAt: v.completedAt } })))
 
     serverLogger.info('progress-set', 'supabase_save_attempt', {
       orgId,
@@ -214,11 +223,14 @@ export default async (req, context) => {
       }, {})
     })
 
+    console.log(`[PHOTO-FLOW] Backend Step 9: Calling SupabaseTeamStorage.updateTeamProgress()...`)
     console.log(`[progress-set] About to call SupabaseTeamStorage.updateTeamProgress...`)
     const supabaseResult = await SupabaseTeamStorage.updateTeamProgress(orgId, teamId, huntId, cleanedProgress)
+    console.log(`[PHOTO-FLOW] Backend Step 10: Supabase update completed with result:`, supabaseResult.success ? 'SUCCESS' : 'FAILURE')
     console.log(`[progress-set] Supabase call result:`, supabaseResult)
 
     if (!supabaseResult.success) {
+      console.error(`[PHOTO-FLOW] Backend ERROR: Failed to save progress to Supabase`)
       console.error('[progress-set] Failed to save progress to Supabase')
       return new Response(JSON.stringify({
         error: 'Failed to save progress',
@@ -232,6 +244,9 @@ export default async (req, context) => {
       })
     }
 
+    console.log(`[PHOTO-FLOW] Backend Step 11: ✅ Progress successfully saved to Supabase!`)
+    console.log(`[PHOTO-FLOW] Backend Step 12: Summary - Saved ${Object.keys(cleanedProgress).length} stops (${cleanedProgressWithPhotos.length} with photos) for team ${teamId}`)
+
     serverLogger.info('progress-set', 'supabase_save_success', {
       orgId,
       teamId,
@@ -241,6 +256,7 @@ export default async (req, context) => {
 
     // Metadata for audit trail is now handled in Supabase
 
+    console.log(`[PHOTO-FLOW] Backend Step 13: Sending success response back to client`)
     return new Response(JSON.stringify({ success: true, progress: mergedProgress }), {
       status: 200,
       headers: {
