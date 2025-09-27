@@ -118,7 +118,7 @@ export default function StopCard({
             <>
               {/* Display the main clue if it exists - always show for incomplete stops */}
               {!state.photo && stop.clue && (
-                <div className='mt-3'>
+                <div>
                   <div
                     className='border-l-3 p-3 rounded-r-lg transition-all duration-300'
                     style={{
@@ -140,7 +140,7 @@ export default function StopCard({
 
               {/* Display revealed hints */}
               {!state.photo && (
-                <div className='mt-3 space-y-2'>
+                <div className='mt-1 space-y-2'>
                   {stop.hints && stop.hints.slice(0, state.revealedHints).map((hint: string, hintIndex: number) => {
                     const hintConfig = {
                       0: { bg: 'var(--color-surface)', border: 'var(--color-accent)', text: 'var(--color-accent)', icon: '🎯' },
