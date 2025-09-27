@@ -8,7 +8,7 @@ const { withSentry } = require('./_lib/sentry')
  * Consolidated login/initialization endpoint
  * Handles complete initialization flow in a single request
  */
-exports.handler = withSentry(async (event, ) => {
+exports.handler = withSentry(async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, X-Team-Lock',
