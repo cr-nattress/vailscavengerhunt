@@ -1,62 +1,71 @@
 /**
- * Helper module for fetching hunt locations from Supabase
+ * Helper module for fetching hunt locations from Supabase kv_store
+ * NO HARDCODED DATA - ALL DATA MUST COME FROM DATABASE
  */
 
 /**
- * Get locations for a specific organization and hunt
+ * Get locations for a specific organization and hunt from Supabase kv_store
  */
 async function getHuntLocations(supabase, orgId, huntId) {
   try {
-    // Try to fetch from hunt_locations table
-    const { data: locations, error } = await supabase
-      .from('hunt_locations')
-      .select('*')
-      .eq('organization_id', orgId)
-      .eq('hunt_id', huntId)
-      .eq('is_active', true)
-      .order('order_index', { ascending: true })
+    console.log(`[locationsHelper] Fetching locations for ${orgId}/${huntId} from kv_store`);
 
-    if (error) {
-      console.warn('[locationsHelper] Error fetching locations:', error)
-      // Return empty locations array instead of defaults
+    // Fetch from kv_store - this is the PRIMARY data source
+    const { data: stopData, error: kvError } = await supabase
+      .from('kv_store')
+      .select('key, value')
+      .like('key', `${orgId}/${huntId}/stops/%`)
+      .not('key', 'like', '%/index');
+
+    if (kvError) {
+      console.error('[locationsHelper] Critical Error fetching from kv_store:', kvError);
+      throw new Error(`Database error: Unable to fetch locations from kv_store - ${kvError.message}`);
+    }
+
+    if (!stopData || stopData.length === 0) {
+      console.warn(`[locationsHelper] No stops found in kv_store for ${orgId}/${huntId}`);
+      // Return empty array - no mock data!
       return {
         name: `${orgId} - ${huntId}`,
         locations: []
-      }
+      };
     }
 
-    if (!locations || locations.length === 0) {
-      console.log('[locationsHelper] No locations found in Supabase')
-      // Return empty locations array instead of defaults
+    console.log(`[locationsHelper] Found ${stopData.length} stops in kv_store`);
+
+    // Transform kv_store data to match expected format
+    const locations = stopData.map(item => {
+      const stop = item.value;
+      if (!stop) {
+        console.error('[locationsHelper] Invalid stop data:', item);
+        return null;
+      }
+
       return {
-        name: `${orgId} - ${huntId}`,
-        locations: []
-      }
-    }
-
-    // Transform to match the expected format
-    return {
-      name: `${orgId} - ${huntId}`,
-      locations: locations.map(loc => ({
-        id: loc.id,
-        title: loc.title || loc.name,
-        clue: loc.clue || loc.description,
-        hints: loc.hints ? (Array.isArray(loc.hints) ? loc.hints : [loc.hints]) : [],
-        position: loc.latitude && loc.longitude ? {
-          lat: loc.latitude,
-          lng: loc.longitude
+        id: stop.stop_id || stop.id,
+        title: stop.title || 'Untitled Location',
+        clue: stop.clue || '',
+        hints: Array.isArray(stop.hints) ? stop.hints : [],
+        position: (stop.position_lat && stop.position_lng) ? {
+          lat: stop.position_lat,
+          lng: stop.position_lng
         } : undefined,
-        description: loc.description,
-        address: loc.address
-      }))
-    }
-  } catch (error) {
-    console.error('[locationsHelper] Error:', error)
-    // Return empty locations array instead of defaults
+        description: stop.description || '',
+        address: stop.address || ''
+      };
+    }).filter(loc => loc !== null); // Remove any invalid entries
+
     return {
       name: `${orgId} - ${huntId}`,
-      locations: []
-    }
+      locations: locations
+    };
+
+  } catch (error) {
+    console.error('[locationsHelper] CRITICAL ERROR:', error);
+    console.error('[locationsHelper] Stack trace:', error.stack);
+
+    // Re-throw the error so it can be handled by the calling function
+    throw error;
   }
 }
 

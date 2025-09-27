@@ -56,8 +56,21 @@ exports.handler = withSentry(async (event) => {
     // Get Supabase client first
     const supabase = getSupabaseClient()
 
-    // Gather locations
-    const locations = await getHuntLocations(supabase, orgId, huntId)
+    // Gather locations - CRITICAL for app functionality
+    let locations = { name: `${orgId} - ${huntId}`, locations: [] }
+    try {
+      locations = await getHuntLocations(supabase, orgId, huntId)
+      console.log(`[consolidated-active] Successfully fetched ${locations.locations.length} locations`)
+    } catch (locationError) {
+      console.error('[consolidated-active] CRITICAL: Failed to fetch locations:', locationError)
+      // Don't fail the entire request, but log the error
+      // Return empty locations so the app can still function partially
+      locations = {
+        name: `${orgId} - ${huntId}`,
+        locations: [],
+        error: 'Failed to fetch locations from database'
+      }
+    }
 
     // Gather sponsors (mirrors sponsors-get.js minimal)
     let sponsorsResponse = { layout: '1x2', items: [] }

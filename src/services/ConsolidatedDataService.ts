@@ -4,6 +4,7 @@
  */
 
 import { ConsolidatedActiveResponse } from '../types/consolidated'
+import * as Sentry from '@sentry/react'
 
 interface CachedData {
   data: ConsolidatedActiveResponse
@@ -52,7 +53,27 @@ class ConsolidatedDataService {
       })
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch active data: ${response.statusText}`)
+        const errorMessage = `Failed to fetch active data: ${response.status} ${response.statusText}`
+
+        // Report to Sentry for 500 errors
+        if (response.status >= 500) {
+          Sentry.captureMessage(errorMessage, {
+            level: 'error',
+            tags: {
+              component: 'ConsolidatedDataService',
+              http_status: response.status,
+              endpoint: 'consolidated_active'
+            },
+            extra: {
+              orgId,
+              teamId,
+              huntId,
+              url: `/api/consolidated/active/${orgId}/${teamId}/${huntId}`
+            }
+          })
+        }
+
+        throw new Error(errorMessage)
       }
 
       const data: ConsolidatedActiveResponse = await response.json()
@@ -72,7 +93,24 @@ class ConsolidatedDataService {
 
       return data
     } catch (error) {
-      console.error('[ConsolidatedDataService] Failed to fetch active data:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('[ConsolidatedDataService] Failed to fetch active data:', errorMessage)
+
+      // Report non-HTTP errors to Sentry (HTTP errors already reported above)
+      if (error instanceof Error && !error.message.includes('Failed to fetch active data:')) {
+        Sentry.captureException(error, {
+          tags: {
+            component: 'ConsolidatedDataService',
+            error_type: 'network_or_parse'
+          },
+          extra: {
+            orgId,
+            teamId,
+            huntId
+          }
+        })
+      }
+
       throw error
     }
   }

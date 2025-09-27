@@ -4,6 +4,7 @@
  */
 
 import { TeamLockService } from './TeamLockService'
+import * as Sentry from '@sentry/react'
 
 // Types
 export interface LoginInitializeRequest {
@@ -141,7 +142,28 @@ class LoginServiceClass {
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-        throw new Error(error.error || `Initialization failed: ${response.statusText}`)
+        const errorMessage = error.error || `Initialization failed: ${response.statusText}`
+
+        // Report server errors to Sentry
+        if (response.status >= 500) {
+          Sentry.captureMessage(`LoginService initialization failed: ${errorMessage}`, {
+            level: 'error',
+            tags: {
+              component: 'LoginService',
+              http_status: response.status,
+              endpoint: 'login_initialize',
+              has_team_code: !!request.teamCode
+            },
+            extra: {
+              orgId: request.orgId,
+              huntId: request.huntId,
+              sessionId: request.sessionId,
+              hasLockToken: !!request.lockToken
+            }
+          })
+        }
+
+        throw new Error(errorMessage)
       }
 
       const data = await response.json() as LoginInitializeResponse
@@ -168,6 +190,23 @@ class LoginServiceClass {
       return data
     } catch (error) {
       console.error('[LoginService] Initialization failed:', error)
+
+      // Report non-HTTP errors to Sentry
+      if (error instanceof Error && !error.message.includes('Initialization failed:')) {
+        Sentry.captureException(error, {
+          tags: {
+            component: 'LoginService',
+            error_type: 'network_or_parse',
+            has_team_code: !!request.teamCode
+          },
+          extra: {
+            orgId: request.orgId,
+            huntId: request.huntId,
+            sessionId: request.sessionId
+          }
+        })
+      }
+
       throw error
     }
   }
@@ -176,7 +215,8 @@ class LoginServiceClass {
    * Quick initialization using existing lock token
    */
   async quickInit(orgId: string, huntId: string, sessionId: string): Promise<LoginInitializeResponse> {
-    const lockToken = TeamLockService.getLockToken()
+    // Normalize null to undefined so it matches the optional string type
+    const lockToken = TeamLockService.getLockToken() ?? undefined
 
     return this.initialize({
       orgId,
@@ -211,7 +251,7 @@ class LoginServiceClass {
    * Check if initialization is needed
    */
   needsInitialization(): boolean {
-    return !TeamLockService.hasLockToken() || !this.cache || !this.isCacheValid()
+    return !TeamLockService.hasValidLock() || !this.cache || !this.isCacheValid()
   }
 
   /**
