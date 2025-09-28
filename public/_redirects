@@ -6,6 +6,7 @@
 /api/kv/list /.netlify/functions/kv-list 200
 /api/photo-upload /.netlify/functions/photo-upload 200
 /api/photo-upload-orchestrated /.netlify/functions/photo-upload-orchestrated 200
+/api/photo-upload-complete /.netlify/functions/photo-upload-complete 200
 /api/write-log /.netlify/functions/write-log 200
 /api/test-supabase /.netlify/functions/test-supabase 200
 /api/settings/* /.netlify/functions/settings-get/:splat 200
