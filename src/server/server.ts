@@ -163,45 +163,94 @@ app.all('/.netlify/functions/:functionName*', async (req, res) => {
 
     console.log(`Executing Netlify function: ${functionFile} (path: ${functionPath})`);
 
-    // Import and execute the Netlify function locally
-    const netlifyFunction = await import(`../../netlify/functions/${functionFile}.js`);
+    // Import the Netlify function module
+    const netlifyFunction: any = await import(`../../netlify/functions/${functionFile}.js`);
 
-    // Prepare event object similar to Netlify's
-    // Special handling for multipart form data
-    let body = null;
+    // Prepare common request body state
+    let eventBody: string | null = null;
     let isBase64Encoded = false;
 
     if (functionFile === 'photo-upload-orchestrated' && (req as any).rawBody) {
       // For photo upload, use raw body and encode as base64
-      body = (req as any).rawBody.toString('base64');
+      eventBody = (req as any).rawBody.toString('base64');
       isBase64Encoded = true;
       console.log('[Photo Upload] Using raw body, size:', (req as any).rawBody.length, 'bytes');
     } else if (req.body) {
-      body = JSON.stringify(req.body);
+      // If body is already a string (e.g., raw), use it; otherwise stringify
+      eventBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
     }
 
-    const event = {
-      path: req.path,
-      httpMethod: req.method,
-      headers: req.headers,
-      queryStringParameters: req.query,
-      body: body,
-      isBase64Encoded: isBase64Encoded,
-      // Add path parameters for functions like settings-get
-      pathParameters: {
-        proxy: functionPath.substring(functionFile.length + 1) // Remove function name and slash
+    // Determine function style: v1 (exports.handler) or v2 (export default)
+    const hasV1Handler = typeof netlifyFunction?.handler === 'function';
+    const hasV2Default = typeof netlifyFunction?.default === 'function';
+
+    if (hasV1Handler) {
+      // v1 style (AWS Lambda-style) - use event object
+      const event = {
+        path: req.path,
+        httpMethod: req.method,
+        headers: req.headers,
+        queryStringParameters: req.query,
+        body: eventBody,
+        isBase64Encoded,
+        // Add path parameters for functions like settings-get
+        pathParameters: {
+          proxy: functionPath.substring(functionFile.length + 1) // Remove function name and slash
+        }
+      };
+
+      const result = await netlifyFunction.handler(event);
+
+      // Set headers from the function response
+      Object.entries(result.headers || {}).forEach(([key, value]) => {
+        res.setHeader(key, value as string);
+      });
+
+      // Send the response
+      res.status(result.statusCode || 200).send(result.body);
+      return;
+    }
+
+    if (hasV2Default) {
+      // v2 style (Request/Response) - construct a Fetch API Request
+      const origin = `${req.protocol}://${req.get('host')}`;
+      const fullUrl = new URL(req.originalUrl || req.url, origin).toString();
+
+      const requestInit: any = {
+        method: req.method,
+        headers: req.headers as any
+      };
+
+      // Attach raw body when available and method allows a body
+      if (!['GET', 'HEAD'].includes(req.method.toUpperCase())) {
+        if ((req as any).rawBody) {
+          requestInit.body = (req as any).rawBody; // Buffer
+        } else if (typeof eventBody === 'string') {
+          requestInit.body = eventBody; // JSON string or raw
+        }
       }
-    };
 
-    const result = await netlifyFunction.handler(event);
+      const RequestCtor: any = (global as any).Request;
+      const v2Request = new RequestCtor(fullUrl, requestInit);
 
-    // Set headers from the function response
-    Object.entries(result.headers || {}).forEach(([key, value]) => {
-      res.setHeader(key, value as string);
-    });
+      const v2Response: any = await netlifyFunction.default(v2Request, {});
 
-    // Send the response
-    res.status(result.statusCode || 200).send(result.body);
+      // Copy headers from Response
+      if (v2Response?.headers) {
+        for (const [key, value] of v2Response.headers.entries()) {
+          res.setHeader(key, value as string);
+        }
+      }
+
+      // Stream/Buffer the body back to Express
+      const arrayBuffer = await v2Response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      res.status(v2Response.status || 200).send(buffer);
+      return;
+    }
+
+    // If neither format is detected, throw informative error
+    throw new Error(`Unsupported Netlify function format for ${functionFile}. Expected exports.handler or default export.`);
   } catch (error) {
     console.error('Error executing Netlify function:', error);
     res.status(500).json({ error: 'Internal server error', details: error.message });

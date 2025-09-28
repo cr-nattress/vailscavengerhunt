@@ -4,7 +4,11 @@ import fetch from 'node-fetch'
 const router = Router()
 
 // Proxy configuration for Netlify functions
-const FUNCTIONS_BASE_URL = process.env.NETLIFY_DEV_URL || 'http://localhost:8888'
+// Prefer local Express runner at :3001 by default to eliminate dependency on Netlify Dev (:8888)
+const FUNCTIONS_BASE_URL =
+  process.env.NETLIFY_FUNCTIONS_URL ||
+  process.env.NETLIFY_DEV_URL ||
+  'http://localhost:3001'
 
 /**
  * STORY-025: Express Dev Progress Proxy

@@ -1,0 +1,24 @@
+# API Redirects - MUST come before SPA fallback
+/api/login-initialize /.netlify/functions/login-initialize 200
+/api/kv/upsert /.netlify/functions/kv-upsert 200
+/api/health /.netlify/functions/health 200
+/api/kv/get /.netlify/functions/kv-get 200
+/api/kv/list /.netlify/functions/kv-list 200
+/api/photo-upload /.netlify/functions/photo-upload 200
+/api/photo-upload-orchestrated /.netlify/functions/photo-upload-orchestrated 200
+/api/write-log /.netlify/functions/write-log 200
+/api/test-supabase /.netlify/functions/test-supabase 200
+/api/settings/* /.netlify/functions/settings-get/:splat 200
+/api/progress/* /.netlify/functions/progress-get/:splat 200
+/api/sponsors /.netlify/functions/sponsors-get 200
+/api/leaderboard/* /.netlify/functions/leaderboard-get/:splat 200
+/api/team-verify /.netlify/functions/team-verify 200
+/api/team-current /.netlify/functions/team-current 200
+/api/team-setup /.netlify/functions/team-setup 200
+/api/consolidated/active/* /.netlify/functions/consolidated-active/:splat 200
+/api/consolidated/history/* /.netlify/functions/consolidated-history/:splat 200
+/api/consolidated/updates/* /.netlify/functions/consolidated-updates/:splat 200
+/api/consolidated/rankings /.netlify/functions/consolidated-rankings 200
+
+# SPA fallback - MUST be last
+/* /index.html 200
