@@ -46,6 +46,13 @@
   conditions = {method = ["POST", "OPTIONS"]}
   force = true
 
+[[redirects]]
+  from = "/api/photo-upload-complete"
+  to = "/.netlify/functions/photo-upload-complete"
+  status = 200
+  conditions = {method = ["POST", "OPTIONS"]}
+  force = true
+
 # Log writing endpoint
 [[redirects]]
   from = "/api/write-log"
