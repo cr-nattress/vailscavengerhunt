@@ -85,33 +85,66 @@ export default async (req, context) => {
       throw teamError
     }
 
-    // Get progress data including photo_url
+    // Get progress data including photo_url - ONLY completed stops
     const { data: progressData, error: progressError } = await supabase
       .from('hunt_progress')
       .select('location_id, done, revealed_hints, completed_at, notes, photo_url')
       .eq('team_id', teamData.id)
+      .eq('done', true)  // Only return completed stops
 
     if (progressError) {
       throw progressError
     }
 
-    // Convert to blob storage format for compatibility
+    // Get location details from kv_store for the hunt (individual stops)
+    const { data: stopData, error: kvError } = await supabase
+      .from('kv_store')
+      .select('key, value')
+      .like('key', `${orgId}/${huntId}/stops/%`)
+      .not('key', 'like', '%/index')
+
+    if (kvError && kvError.code !== 'PGRST116') {
+      console.error('Error fetching locations from kv_store:', kvError)
+    }
+
+    // Parse locations data into a map
+    let locationsMap = {}
+    if (stopData && stopData.length > 0) {
+      for (const item of stopData) {
+        const stop = item.value
+        if (stop && (stop.stop_id || stop.id)) {
+          const stopId = stop.stop_id || stop.id
+          locationsMap[stopId] = {
+            title: stop.title || 'Untitled Location',
+            description: stop.description || stop.clue || ''
+          }
+        }
+      }
+    }
+
+    console.log(`Found ${Object.keys(locationsMap).length} location definitions in kv_store`)
+
+    // Build response with only completed stops, including title and description
     const progress = {}
     for (const record of progressData || []) {
-      // Log the date format we're receiving from the database
-      if (record.completed_at) {
-        console.log(`Date from DB for ${record.location_id}: ${record.completed_at}`)
-      }
-      // Include photo_url in the response if it exists
-      progress[record.location_id] = {
-        done: record.done,
-        revealedHints: record.revealed_hints,
-        completedAt: record.completed_at,
-        notes: record.notes,
-        ...(record.photo_url && { photo: record.photo_url })
-      }
-      if (record.photo_url) {
-        console.log(`Photo URL for ${record.location_id}: ${record.photo_url}`)
+      const locationId = record.location_id
+      const locationInfo = locationsMap[locationId] || {}
+
+      // Only include if done is true (redundant check since we filtered in query)
+      if (record.done) {
+        progress[locationId] = {
+          title: locationInfo.title || locationId,
+          description: locationInfo.description || '',
+          done: record.done,
+          completedAt: record.completed_at,
+          photo: record.photo_url || null,
+          revealedHints: record.revealed_hints || 0,
+          notes: record.notes || null
+        }
+
+        if (record.photo_url) {
+          console.log(`Photo URL for ${locationId}: ${record.photo_url}`)
+        }
       }
     }
 
