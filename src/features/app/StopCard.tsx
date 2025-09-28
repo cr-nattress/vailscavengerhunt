@@ -13,6 +13,8 @@ interface StopCardProps {
   transitioningStops: Set<string>
   revealNextHint: () => void
   index: number
+  previewImage?: string
+  isSaving?: boolean
 }
 
 export default function StopCard({
@@ -24,10 +26,12 @@ export default function StopCard({
   uploadingStops,
   transitioningStops,
   revealNextHint,
-  index
+  index,
+  previewImage,
+  isSaving
 }: StopCardProps) {
   const state = progress[stop.id] || { done: false, notes: '', photo: null, revealedHints: 0 }
-  const displayImage = state.photo || PLACEHOLDER
+  const displayImage = previewImage || state.photo || PLACEHOLDER
   const isTransitioning = transitioningStops.has(stop.id)
   const isUploading = uploadingStops.has(stop.id)
 
@@ -185,7 +189,7 @@ export default function StopCard({
         <>
           <div className='mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3'>
             <div className='rounded-xl p-3' style={{ border: '1px solid var(--color-border)' }}>
-              {state.photo && (
+              {(state.photo || previewImage) && (
                 <div className={`text-xs uppercase tracking-wide`} style={{ color: 'var(--color-success)' }}>
                   ✅ Photo Complete
                 </div>
@@ -193,7 +197,7 @@ export default function StopCard({
               {/* If this image fails to load, confirm the path root (see PHOTO_GUIDES note). */}
               {displayImage && <img src={displayImage} alt='Selfie' className='mt-2 rounded-md object-cover w-full h-40' onError={(e) => {(e.target as HTMLElement).style.display='none'}} />}
               <div className='mt-2 flex items-center gap-2 text-xs' style={{ color: 'var(--color-text-secondary)' }}>
-                {state.photo ? '✨ Your photo' : '📷 Capture a creative selfie together at this location.'}
+                {state.photo || previewImage ? '✨ Your selected photo' : '📷 Capture a creative selfie together at this location.'}
               </div>
             </div>
           </div>
@@ -210,13 +214,13 @@ export default function StopCard({
               <label 
                 htmlFor={`file-${stop.id}`}
                 className={`w-full px-4 py-3 text-white font-medium rounded-lg cursor-pointer flex items-center justify-center gap-2 transition-all duration-200 transform ${
-                  isUploading 
+                  (isUploading || isSaving) 
                     ? 'cursor-wait hover:scale-[1.02] active:scale-[0.98]' 
                     : 'hover:scale-[1.02] active:scale-[0.98]'
                 }`} 
-                style={{ backgroundColor: isUploading ? 'var(--color-warm-grey)' : 'var(--color-accent)' }}
-                onMouseEnter={(e) => { if (!isUploading) (e.target as HTMLElement).style.backgroundColor = 'var(--color-accent)' }}
-                onMouseLeave={(e) => { if (!isUploading) (e.target as HTMLElement).style.backgroundColor = 'var(--color-accent)' }}
+                style={{ backgroundColor: (isUploading || isSaving) ? 'var(--color-warm-grey)' : 'var(--color-accent)' }}
+                onMouseEnter={(e) => { if (!isUploading && !isSaving) (e.target as HTMLElement).style.backgroundColor = 'var(--color-accent)' }}
+                onMouseLeave={(e) => { if (!isUploading && !isSaving) (e.target as HTMLElement).style.backgroundColor = 'var(--color-accent)' }}
                 onClick={(e) => e.stopPropagation()}
               >
                 {isUploading ? (
@@ -226,6 +230,14 @@ export default function StopCard({
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
                     Processing...
+                  </>
+                ) : isSaving ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Saving...
                   </>
                 ) : (
                   <>📸 Upload Photo</>

@@ -55,11 +55,11 @@ exports.handler = withSentry(async (event) => {
     // Get settings
     const settings = await getSettings(orgId, teamId, huntId)
 
-    // Get team UUID from team_id
+    // Get team UUID from team_id (case-insensitive)
     const { data: teamData, error: teamError } = await supabase
       .from('teams')
       .select('id')
-      .eq('team_id', teamId)
+      .ilike('team_id', teamId)
       .eq('organization_id', orgId)
       .eq('hunt_id', huntId)
       .single()

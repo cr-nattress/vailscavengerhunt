@@ -34,6 +34,14 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
+
+// Add connection keep-alive headers for better connection management
+app.use((req, res, next) => {
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Keep-Alive', 'timeout=30');
+  next();
+});
+
 // Setup Sentry Express handlers (works across SDK versions)
 try {
   // v8-style helper adds request + error handlers
@@ -47,12 +55,29 @@ try {
   }
 } catch {}
 
-// Raw body capture for multipart requests
+// Parse JSON and URL-encoded bodies, but skip photo-upload endpoints
+app.use((req, res, next) => {
+  // Skip JSON parsing for photo upload endpoints
+  if (req.path.includes('/photo-upload')) {
+    return next();
+  }
+  return express.json()(req, res, next);
+});
+
+app.use((req, res, next) => {
+  // Skip URL-encoded parsing for photo upload endpoints
+  if (req.path.includes('/photo-upload')) {
+    return next();
+  }
+  return express.urlencoded({ extended: true })(req, res, next);
+});
+
+// Raw body capture for multipart requests (must be AFTER body parsers)
 app.use((req, res, next) => {
   const contentType = req.headers['content-type'] || '';
 
-  // If it's multipart, capture raw body
-  if (contentType.includes('multipart/form-data')) {
+  // Only capture raw body for photo-upload-orchestrated with multipart
+  if (req.path.includes('/photo-upload-orchestrated') && contentType.includes('multipart/form-data')) {
     let data = Buffer.alloc(0);
 
     req.on('data', (chunk) => {
@@ -61,15 +86,13 @@ app.use((req, res, next) => {
 
     req.on('end', () => {
       (req as any).rawBody = data;
+      console.log('[Raw Body Capture] Captured', data.length, 'bytes for photo-upload-orchestrated');
       next();
     });
   } else {
     next();
   }
 });
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from public directory
 const publicPath = path.join(__dirname, '../../public');

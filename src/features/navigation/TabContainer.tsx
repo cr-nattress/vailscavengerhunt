@@ -5,7 +5,6 @@ import { useNavigationStore } from './navigationStore'
 const ActiveView = lazy(() => import('../views/ActiveView'))
 const HistoryView = lazy(() => import('../views/HistoryView'))
 const RankingsView = lazy(() => import('../views/RankingsView'))
-const UpdatesView = lazy(() => import('../views/UpdatesView'))
 const HealthView = lazy(() => import('../views/HealthView'))
 const DiagnosticsView = lazy(() => import('../views/DiagnosticsView'))
 
@@ -40,7 +39,6 @@ export const TabContainer: React.FC = () => {
         {activeTab === 'active' && <ActiveView />}
         {activeTab === 'history' && <HistoryView />}
         {activeTab === 'rankings' && <RankingsView />}
-        {activeTab === 'updates' && <UpdatesView />}
         {activeTab === 'health' && <HealthView />}
         {activeTab === 'diagnostics' && <DiagnosticsView />}
       </Suspense>

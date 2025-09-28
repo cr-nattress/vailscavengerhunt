@@ -3,10 +3,16 @@
  *
  * Usage:
  *   node scripts/js/clear-all-team-progress.js <orgId> <huntId> --yes [--dry-run]
+ *   node scripts/js/clear-all-team-progress.js --org <orgId> --hunt <huntId> --yes [--dry-run]
  *
  * Examples:
  *   node scripts/js/clear-all-team-progress.js bhhs fall-2025 --yes
  *   node scripts/js/clear-all-team-progress.js bhhs fall-2025 --yes --dry-run
+ *   node scripts/js/clear-all-team-progress.js --org bhhs --hunt fall-2025 --yes
+ *
+ * NPM script usage:
+ *   npm run clear:all -- <orgId> <huntId> --yes [--dry-run]
+ *   npm run clear:all -- --org <orgId> --hunt <huntId> --yes [--dry-run]
  *
  * Requirements:
  *   - .env with SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
@@ -20,9 +26,13 @@ dotenv.config()
 function printUsageAndExit() {
   console.log('\nUsage:')
   console.log('  node scripts/js/clear-all-team-progress.js <orgId> <huntId> --yes [--dry-run]')
+  console.log('  node scripts/js/clear-all-team-progress.js --org <orgId> --hunt <huntId> --yes [--dry-run]')
+  console.log('  npm run clear:all -- <orgId> <huntId> --yes [--dry-run]')
+  console.log('  npm run clear:all -- --org <orgId> --hunt <huntId> --yes [--dry-run]')
   console.log('\nExamples:')
   console.log('  node scripts/js/clear-all-team-progress.js bhhs fall-2025 --yes')
   console.log('  node scripts/js/clear-all-team-progress.js bhhs fall-2025 --yes --dry-run')
+  console.log('  node scripts/js/clear-all-team-progress.js --org bhhs --hunt fall-2025 --yes')
   console.log('\nNotes:')
   console.log('  --yes is required to confirm deletion.')
   console.log('  --dry-run will not delete anything and only reports counts.')
@@ -31,9 +41,43 @@ function printUsageAndExit() {
 
 function parseArgs() {
   const args = process.argv.slice(2)
-  const [orgId, huntId, ...flags] = args
-  const options = new Set(flags)
-  return { orgId, huntId, yes: options.has('--yes'), dryRun: options.has('--dry-run') }
+  let orgId
+  let huntId
+  let yes = false
+  let dryRun = false
+
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i]
+    if (a === '--yes') {
+      yes = true
+      continue
+    }
+    if (a === '--dry-run') {
+      dryRun = true
+      continue
+    }
+    if (a === '--org' || a === '--organization' || a === '--organizationId') {
+      orgId = args[i + 1]
+      i++
+      continue
+    }
+    if (a === '--hunt' || a === '--huntId') {
+      huntId = args[i + 1]
+      i++
+      continue
+    }
+    // Positional args fallback: first non-flag is orgId, second is huntId
+    if (!a.startsWith('-')) {
+      if (!orgId) {
+        orgId = a
+      } else if (!huntId) {
+        huntId = a
+      }
+      continue
+    }
+  }
+
+  return { orgId, huntId, yes, dryRun }
 }
 
 async function main() {

@@ -10,6 +10,8 @@ interface StopsListProps {
   uploadingStops: Set<string>
   onPhotoUpload: (stopId: string, file: File) => Promise<void>
   setProgress: (updateFn: any) => void
+  previewUrls: Record<string, string>
+  savingStops: Set<string>
 }
 
 export default function StopsList({
@@ -20,7 +22,9 @@ export default function StopsList({
   onToggleExpanded,
   uploadingStops,
   onPhotoUpload,
-  setProgress
+  setProgress,
+  previewUrls,
+  savingStops
 }: StopsListProps) {
   // Get completed stops sorted by completion timestamp (earliest first)
   const completedStops = stops
@@ -34,7 +38,7 @@ export default function StopsList({
   const completedCount = completedStops.length
   
   // Create a completion order lookup
-  const completionOrder = {}
+  const completionOrder: Record<string, number> = {}
   completedStops.forEach((stop, index) => {
     completionOrder[stop.id] = index + 1
   })
@@ -102,6 +106,8 @@ export default function StopsList({
           transitioningStops={transitioningStops}
           revealNextHint={() => revealNextHint(s.id)}
           index={i}
+          previewImage={previewUrls[s.id]}
+          isSaving={savingStops.has(s.id)}
         />
       ))}
 

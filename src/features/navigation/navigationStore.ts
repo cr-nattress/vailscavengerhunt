@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
-export type TabId = 'active' | 'history' | 'rankings' | 'updates'
+export type TabId = 'active' | 'history' | 'rankings'
 
 interface NavigationState {
   activeTab: TabId
@@ -19,7 +19,6 @@ export const useNavigationStore = create<NavigationState>()(
         active: 0,
         history: 0,
         rankings: 0,
-        updates: 0,
       },
 
       setActiveTab: (tab) => {

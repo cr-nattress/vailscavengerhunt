@@ -43,11 +43,35 @@ const HistoryView: React.FC = () => {
       const hunt = huntId || 'fall-2025'
 
       try {
-        const response = await apiClient.get(`/consolidated/history/${orgId}/${teamId}/${hunt}`)
-        return response.data
+        const response = await apiClient.get<ConsolidatedHistoryResponse>(`/consolidated/history/${orgId}/${teamId}/${hunt}`)
+
+        // Ensure we always return a valid response object
+        if (!response) {
+          return {
+            orgId,
+            teamId,
+            huntId,
+            settings: {},
+            history: [],
+            config: {},
+            lastUpdated: new Date().toISOString()
+          }
+        }
+
+        // The apiClient.get already returns the parsed body, not a Response object with .data
+        return response
       } catch (err) {
         console.error('Failed to fetch history:', err)
-        throw err
+        // Return empty history on error rather than throwing to prevent React Query error
+        return {
+          orgId,
+          teamId,
+          huntId,
+          settings: {},
+          history: [],
+          config: {},
+          lastUpdated: new Date().toISOString()
+        }
       }
     },
     enabled: !!teamName && !!organizationId && !!huntId,

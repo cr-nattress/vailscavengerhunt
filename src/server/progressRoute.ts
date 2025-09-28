@@ -27,6 +27,16 @@ function getFunctionUrl(path: string): string {
   return `${FUNCTIONS_BASE_URL}/.netlify/functions${path}`
 }
 
+// Type-safe error message extractor for unknown catch variables
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message
+  try {
+    return JSON.stringify(err)
+  } catch {
+    return String(err)
+  }
+}
+
 // Log warning on startup
 console.warn('⚠️  [Progress Route] Now proxying to Supabase-backed Netlify functions')
 console.warn('⚠️  [Progress Route] In-memory storage has been removed - DB is the single source of truth')
@@ -81,7 +91,7 @@ router.get('/progress/:orgId/:teamId/:huntId', async (req, res) => {
     console.error('[Progress Proxy] Error fetching progress:', error)
     res.status(500).json({
       error: 'Failed to fetch progress from database',
-      details: error.message
+      details: getErrorMessage(error)
     })
   }
 })
@@ -147,7 +157,7 @@ router.post('/progress/:orgId/:teamId/:huntId', async (req, res) => {
     console.error('[Progress Proxy] Error saving progress:', error)
     res.status(500).json({
       error: 'Failed to save progress to database',
-      details: error.message
+      details: getErrorMessage(error)
     })
   }
 })
@@ -179,9 +189,9 @@ router.patch('/progress/:orgId/:teamId/:huntId/stop/:stopId', async (req, res) =
       headers: { 'Content-Type': 'application/json' }
     })
 
-    let currentProgress = {}
+    let currentProgress: Record<string, any> = {}
     if (getResponse.ok) {
-      currentProgress = await getResponse.json()
+      currentProgress = (await getResponse.json()) as Record<string, any>
     }
 
     // Update the specific stop
@@ -201,6 +211,9 @@ router.patch('/progress/:orgId/:teamId/:huntId/stop/:stopId', async (req, res) =
         'Cache-Control': 'no-store, no-cache, must-revalidate'
       },
       body: JSON.stringify({
+        orgId: decodedOrgId,
+        teamId: decodedTeamId,
+        huntId: decodedHuntId,
         progress: currentProgress,
         sessionId,
         timestamp
@@ -228,7 +241,7 @@ router.patch('/progress/:orgId/:teamId/:huntId/stop/:stopId', async (req, res) =
     console.error('[Progress Proxy] Error updating stop progress:', error)
     res.status(500).json({
       error: 'Failed to update stop progress in database',
-      details: error.message
+      details: getErrorMessage(error)
     })
   }
 })

@@ -32,7 +32,11 @@
     "test:e2e:watch": "vitest --config tests/e2e/test-runner.js",
     "test:e2e:log": "node scripts/run-e2e-with-logging.js",
     "test:all": "npm run test && npm run test:e2e",
-    "clear:all": "node scripts/js/clear-all-team-progress.js"
+    "clear:all": "node scripts/js/clear-all-team-progress.js",
+    "clear:all:dry": "node scripts/js/clear-all-team-progress.js --yes --dry-run",
+    "clear:all:run": "node scripts/js/clear-all-team-progress.js --yes",
+    "clear:all:dry:default": "node scripts/js/clear-all-team-progress.js --org bhhs --hunt fall-2025 --yes --dry-run",
+    "clear:all:run:default": "node scripts/js/clear-all-team-progress.js --org bhhs --hunt fall-2025 --yes"
   },
   "dependencies": {
     "@azure/cosmos": "^4.5.1",
@@ -68,6 +72,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^1.4.11",
     "@types/node": "^20.11.24",
+    "@types/node-fetch": "^2.6.13",
     "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^5.0.2",

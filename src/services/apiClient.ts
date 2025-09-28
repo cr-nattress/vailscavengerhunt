@@ -87,6 +87,16 @@ class ApiClient {
   }
 
   /**
+   * Calculate retry delay with exponential backoff and jitter
+   */
+  private getRetryDelay(attempt: number): number {
+    const baseDelays = [500, 1500, 3000]
+    const baseDelay = baseDelays[Math.min(attempt, baseDelays.length - 1)]
+    const jitter = Math.random() * 500
+    return baseDelay + jitter
+  }
+
+  /**
    * Create a structured API error
    */
   private createApiError(response: Response, body?: any): ApiError {
@@ -131,12 +141,14 @@ class ApiClient {
     
     for (let attempt = 0; attempt < retryAttempts; attempt++) {
       if (attempt > 0) {
+        const delay = this.getRetryDelay(attempt - 1)
         this.logger.warn('Request retry', {
           message: `🔄 Retry attempt ${attempt}/${retryAttempts - 1}`,
           attempt,
-          maxAttempts: retryAttempts - 1
+          maxAttempts: retryAttempts - 1,
+          delayMs: Math.round(delay)
         })
-        await this.sleep(retryDelay)
+        await this.sleep(delay)
       }
 
       const controller = this.createAbortController(timeout)

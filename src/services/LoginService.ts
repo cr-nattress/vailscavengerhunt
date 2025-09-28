@@ -113,6 +113,7 @@ class LoginServiceClass {
   private cache: LoginInitializeResponse | null = null
   private cacheTimestamp = 0
   private readonly CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+  private initPromise: Promise<LoginInitializeResponse> | null = null
 
   /**
    * Initialize the application with a single API call
@@ -126,6 +127,13 @@ class LoginServiceClass {
         return this.cache
       }
 
+      // If already initializing with the same request, return existing promise
+      // This prevents duplicate requests during rapid refreshes
+      if (this.initPromise && !request.teamCode) {
+        console.log('[LoginService] Returning existing initialization promise')
+        return await this.initPromise
+      }
+
       console.log('[LoginService] Initializing with:', {
         orgId: request.orgId,
         huntId: request.huntId,
@@ -133,8 +141,8 @@ class LoginServiceClass {
         hasLockToken: !!request.lockToken
       })
 
-      // Use apiClient for better error handling and retry logic
-      const data = await apiClient.post<LoginInitializeResponse>(
+      // Create the initialization promise
+      this.initPromise = apiClient.post<LoginInitializeResponse>(
         this.baseUrl,
         request,
         {
@@ -143,6 +151,12 @@ class LoginServiceClass {
           retryDelay: 1000
         }
       )
+
+      // Wait for the result
+      const data = await this.initPromise
+
+      // Clear the promise after completion
+      this.initPromise = null
 
       // Cache the response if successful
       if (!request.teamCode) {
@@ -153,18 +167,28 @@ class LoginServiceClass {
       // Handle successful team verification
       if (data.teamVerification?.success && data.teamVerification.lockToken) {
         console.log('[LoginService] Team verified successfully:', data.teamVerification.teamId)
-        // Create and save the lock
-        const lock = {
-          teamId: data.teamVerification.teamId,
-          issuedAt: Date.now(),
-          expiresAt: Date.now() + (data.teamVerification.ttlSeconds || 86400) * 1000,
-          lockToken: data.teamVerification.lockToken
+        // Resolve teamId from available sources and create/save the lock
+        const resolvedTeamId = data.teamVerification.teamId
+          || data.currentTeam?.teamId
+          || data.activeData?.settings?.teamId
+
+        if (!resolvedTeamId) {
+          console.warn('[LoginService] Missing teamId on successful verification, skipping lock store')
+        } else {
+          const lock = {
+            teamId: resolvedTeamId,
+            issuedAt: Date.now(),
+            expiresAt: Date.now() + (data.teamVerification.ttlSeconds || 86400) * 1000,
+            lockToken: data.teamVerification.lockToken
+          }
+          TeamLockService.storeLock(lock)
         }
-        TeamLockService.storeLock(lock)
       }
 
       return data
     } catch (error: any) {
+      // Clear the promise on error so retries can happen
+      this.initPromise = null
       console.error('[LoginService] Initialization failed:', error)
 
       // Report errors to Sentry with more context
