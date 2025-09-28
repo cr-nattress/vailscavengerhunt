@@ -142,7 +142,11 @@ app.options('/api/photo-upload-orchestrated', (req, res) => {
 // Handle Netlify Functions locally in development
 app.all('/.netlify/functions/:functionName*', async (req, res) => {
   try {
-    const functionPath = req.params.functionName + (req.params[0] || '');
+    // Safely access params that include a splat (*)
+    const paramsAny: any = req.params as any;
+    const functionNameParam: string = paramsAny.functionName ?? paramsAny['functionName*'] ?? '';
+    const splatParam: string = paramsAny[0] ?? '';
+    const functionPath = functionNameParam + (splatParam || '');
     let functionFile = functionPath.split('/')[0];
 
     // Use Supabase versions for functions that use Netlify Blobs
@@ -251,9 +255,9 @@ app.all('/.netlify/functions/:functionName*', async (req, res) => {
 
     // If neither format is detected, throw informative error
     throw new Error(`Unsupported Netlify function format for ${functionFile}. Expected exports.handler or default export.`);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error executing Netlify function:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    res.status(500).json({ error: 'Internal server error', details: error?.message || String(error) });
   }
 });
 
