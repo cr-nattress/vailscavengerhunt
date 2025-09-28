@@ -1,17 +1,31 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { progressService } from '../../services/ProgressService'
 import { useAppStore } from '../../store/appStore'
 import { useToastActions } from '../notifications/ToastProvider'
-import { getRandomStops } from '../../utils/random'
 import { useNavigationStore } from '../navigation/navigationStore'
+import { apiClient } from '../../services/apiClient'
 
 interface HistoryEntry {
-  stopId: string
-  stopTitle: string
-  photo: string
-  timestamp: string
+  locationId: string
+  title: string
+  description: string
+  address: string
+  position: { lat: number; lng: number } | null
+  photo: string | null
+  completedAt: string
   done: boolean
+  notes: string | null
+  revealedHints: number
+}
+
+interface ConsolidatedHistoryResponse {
+  orgId: string
+  teamId: string
+  huntId: string
+  settings: Record<string, any>
+  history: HistoryEntry[]
+  config: Record<string, any>
+  lastUpdated: string
 }
 
 const HistoryView: React.FC = () => {
@@ -20,25 +34,28 @@ const HistoryView: React.FC = () => {
   const { activeTab } = useNavigationStore()
   const [expandedPhotos, setExpandedPhotos] = useState<Set<string>>(new Set())
 
-  // Fetch progress data from server with auto-refresh
-  const { data: progress, isLoading, error, refetch } = useQuery({
-    queryKey: ['history', organizationId, teamName, huntId],
+  // Fetch history data from consolidated endpoint
+  const { data, isLoading, error, refetch } = useQuery<ConsolidatedHistoryResponse>({
+    queryKey: ['consolidated-history', organizationId, teamName, huntId],
     queryFn: async () => {
       const orgId = organizationId || 'bhhs'
       const teamId = teamName || 'berrypicker'
       const hunt = huntId || 'fall-2025'
 
       try {
-        return await progressService.getProgress(orgId, teamId, hunt)
+        const response = await apiClient.get(`/consolidated/history/${orgId}/${teamId}/${hunt}`)
+        return response.data
       } catch (err) {
         console.error('Failed to fetch history:', err)
-        return {}
+        throw err
       }
     },
     enabled: !!teamName && !!organizationId && !!huntId,
-    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchInterval: 30000, // Refresh every 30 seconds (less frequent than before)
     refetchOnWindowFocus: true, // Refresh when window regains focus
     refetchOnMount: 'always', // Always fetch fresh data on mount
+    staleTime: 0, // Consider data stale immediately
+    gcTime: 0, // Don't cache (previously cacheTime)
   })
 
   // Refetch when tab becomes active
@@ -48,44 +65,13 @@ const HistoryView: React.FC = () => {
     }
   }, [activeTab, refetch])
 
-  // Get stops information
-  const stops = getRandomStops(locationName || 'BHHS')
-
-  // Transform progress data into history entries
-  const historyEntries: HistoryEntry[] = stops
-    .filter(stop => progress?.[stop.id]?.done)
-    .map(stop => {
-      // Try multiple timestamp fields for backward compatibility
-      const stopProgress = progress[stop.id]
-      const timestamp = stopProgress.completedAt || stopProgress.timestamp || new Date().toISOString()
-
-      return {
-        stopId: stop.id,
-        stopTitle: stop.title,
-        photo: stopProgress.photo,
-        timestamp,
-        done: true,
-      }
-    })
-    .sort((a, b) => {
-      // Safely handle date sorting with fallback
-      const dateA = new Date(a.timestamp)
-      const dateB = new Date(b.timestamp)
-
-      // If either date is invalid, use current time as fallback
-      const timeA = isNaN(dateA.getTime()) ? new Date().getTime() : dateA.getTime()
-      const timeB = isNaN(dateB.getTime()) ? new Date().getTime() : dateB.getTime()
-
-      return timeB - timeA
-    })
-
-  const togglePhotoExpanded = (stopId: string) => {
+  const togglePhotoExpanded = (locationId: string) => {
     setExpandedPhotos(prev => {
       const next = new Set(prev)
-      if (next.has(stopId)) {
-        next.delete(stopId)
+      if (next.has(locationId)) {
+        next.delete(locationId)
       } else {
-        next.add(stopId)
+        next.add(locationId)
       }
       return next
     })
@@ -129,6 +115,8 @@ const HistoryView: React.FC = () => {
     )
   }
 
+  const historyEntries = data?.history || []
+
   return (
     <div className="max-w-screen-sm mx-auto px-4 py-4">
 
@@ -156,17 +144,22 @@ const HistoryView: React.FC = () => {
         <div className="space-y-4">
           {historyEntries.map((entry) => (
             <div
-              key={entry.stopId}
+              key={entry.locationId}
               className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm"
             >
               <div className="p-4">
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900">
-                      {entry.stopTitle}
+                      {entry.title}
                     </h3>
+                    {entry.description && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        {entry.description}
+                      </p>
+                    )}
                     <p className="text-sm text-gray-500 mt-1">
-                      {formatDate(entry.timestamp)}
+                      {formatDate(entry.completedAt)}
                     </p>
                   </div>
                   <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
@@ -177,16 +170,33 @@ const HistoryView: React.FC = () => {
                 {entry.photo && (
                   <div
                     className="relative cursor-pointer"
-                    onClick={() => togglePhotoExpanded(entry.stopId)}
+                    onClick={() => togglePhotoExpanded(entry.locationId)}
                   >
                     <img
                       src={entry.photo}
-                      alt={entry.stopTitle}
+                      alt={entry.title}
                       className={`
                         w-full rounded-lg object-cover transition-all duration-300
-                        ${expandedPhotos.has(entry.stopId) ? 'max-h-none' : 'max-h-48'}
+                        ${expandedPhotos.has(entry.locationId) ? 'max-h-none' : 'max-h-48'}
                       `}
                     />
+                    {!expandedPhotos.has(entry.locationId) && (
+                      <div className="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
+                        Tap to expand
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {entry.notes && (
+                  <div className="mt-3 p-2 bg-gray-50 rounded text-sm text-gray-700">
+                    <span className="font-medium">Notes:</span> {entry.notes}
+                  </div>
+                )}
+
+                {entry.revealedHints > 0 && (
+                  <div className="mt-2 text-xs text-gray-500">
+                    {entry.revealedHints} hint{entry.revealedHints !== 1 ? 's' : ''} revealed
                   </div>
                 )}
               </div>

@@ -31,7 +31,8 @@
     "test:e2e": "vitest run --config tests/e2e/test-runner.js",
     "test:e2e:watch": "vitest --config tests/e2e/test-runner.js",
     "test:e2e:log": "node scripts/run-e2e-with-logging.js",
-    "test:all": "npm run test && npm run test:e2e"
+    "test:all": "npm run test && npm run test:e2e",
+    "clear:all": "node scripts/js/clear-all-team-progress.js"
   },
   "dependencies": {
     "@azure/cosmos": "^4.5.1",
