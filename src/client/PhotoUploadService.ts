@@ -52,7 +52,8 @@ export class PhotoUploadService {
   }
 
   /**
-   * Upload a photo using the orchestrated endpoint (with saga/compensation)
+   * Upload a photo using the complete endpoint (uploads and updates progress atomically)
+   * This is the new preferred method that handles both photo upload and progress update
    * @param file The image file to upload
    * @param locationTitle The title of the location
    * @param sessionId The current session ID
@@ -63,9 +64,11 @@ export class PhotoUploadService {
    * @param teamName The team name for tagging (optional)
    * @param locationName The location name for tagging (optional)
    * @param eventName The event name for tagging (optional)
-   * @returns Promise resolving to photo upload response
+   * @param notes Optional notes about the stop
+   * @param revealedHints Number of hints revealed (optional)
+   * @returns Promise resolving to photo upload response with progress update status
    */
-  static async uploadPhotoOrchestrated(
+  static async uploadPhotoComplete(
     file: File,
     locationTitle: string,
     sessionId: string,
@@ -75,9 +78,11 @@ export class PhotoUploadService {
     huntId: string,
     teamName?: string,
     locationName?: string,
-    eventName?: string
-  ): Promise<PhotoUploadResponse> {
-    console.log('📸 PhotoUploadService.uploadPhotoOrchestrated() called')
+    eventName?: string,
+    notes?: string,
+    revealedHints?: number
+  ): Promise<PhotoUploadResponse & { progressUpdated?: boolean; stopProgress?: any }> {
+    console.log('📸 PhotoUploadService.uploadPhotoComplete() called - NEW CONSOLIDATED ENDPOINT')
 
     // Validate inputs
     if (!file) {
@@ -109,29 +114,83 @@ export class PhotoUploadService {
     if (teamName) formData.append('teamName', teamName)
     if (locationName) formData.append('locationName', locationName)
     if (eventName) formData.append('eventName', eventName)
+    if (notes) formData.append('notes', notes)
+    if (revealedHints !== undefined) formData.append('revealedHints', String(revealedHints))
 
-    console.log('📦 FormData created for orchestrated upload')
+    console.log('📦 FormData created for complete upload (photo + progress)')
 
     try {
-      console.log('🌐 Making orchestrated API request...')
+      console.log('🌐 Making complete upload API request (single atomic operation)...')
 
-      const rawResponse = await apiClient.requestFormData<unknown>('/photo-upload-orchestrated', formData, {
+      const rawResponse = await apiClient.requestFormData<any>('/photo-upload-complete', formData, {
         timeout: 60000, // 60 second timeout
         retryAttempts: 2
       })
 
-      console.log('🔍 Orchestrated response received:', rawResponse)
+      console.log('🔍 Complete upload response received:', rawResponse)
+      console.log(`✅ Photo uploaded: ${rawResponse.photoUrl}`)
+      console.log(`✅ Progress updated: ${rawResponse.progressUpdated ? 'YES' : 'NO'}`)
 
-      // Validate response with schema
-      const response = validateSchema(UploadResponseSchema, rawResponse, 'orchestrated photo upload')
-
-      console.log('📊 Orchestrated upload successful:', response)
-
-      return response
+      // Return the full response including progress update status
+      return rawResponse
 
     } catch (error: unknown) {
-      console.error('💥 Orchestrated upload error:', error)
+      console.error('💥 Complete upload error:', error)
       throw error
+    }
+  }
+
+  /**
+   * Upload a photo using the orchestrated endpoint (with saga/compensation)
+   * @deprecated Use uploadPhotoComplete instead for atomic photo upload + progress update
+   * @param file The image file to upload
+   * @param locationTitle The title of the location
+   * @param sessionId The current session ID
+   * @param locationId The canonical location ID
+   * @param teamId The team ID
+   * @param orgId The organization ID
+   * @param huntId The hunt ID
+   * @param teamName The team name for tagging (optional)
+   * @param locationName The location name for tagging (optional)
+   * @param eventName The event name for tagging (optional)
+   * @returns Promise resolving to photo upload response
+   */
+  static async uploadPhotoOrchestrated(
+    file: File,
+    locationTitle: string,
+    sessionId: string,
+    locationId: string,
+    teamId: string,
+    orgId: string,
+    huntId: string,
+    teamName?: string,
+    locationName?: string,
+    eventName?: string
+  ): Promise<PhotoUploadResponse> {
+    console.log('📸 PhotoUploadService.uploadPhotoOrchestrated() called')
+    console.log('⚠️ DEPRECATED: Consider using uploadPhotoComplete for atomic operation')
+
+    // For backward compatibility, call the new complete endpoint
+    const response = await this.uploadPhotoComplete(
+      file,
+      locationTitle,
+      sessionId,
+      locationId,
+      teamId,
+      orgId,
+      huntId,
+      teamName,
+      locationName,
+      eventName
+    )
+
+    // Return only the photo upload part for backward compatibility
+    return {
+      photoUrl: response.photoUrl,
+      publicId: response.publicId,
+      locationSlug: response.locationSlug,
+      title: response.title,
+      uploadedAt: response.uploadedAt
     }
   }
 

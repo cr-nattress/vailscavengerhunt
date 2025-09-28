@@ -14,7 +14,7 @@ interface UsePhotoUploadOptions {
   orgId?: string
   huntId?: string
   useOrchestrated?: boolean
-  onSuccess?: (stopId: string, photoUrl: string) => void
+  onSuccess?: (stopId: string, photoUrl: string, progressUpdated?: boolean) => void
   onError?: (stopId: string, error: Error) => void
 }
 
@@ -95,10 +95,10 @@ export function usePhotoUpload({
 
       let response: Awaited<ReturnType<typeof PhotoUploadService.uploadPhoto>>
 
-      // Use orchestrated endpoint if we have all required context
+      // Use complete endpoint if we have all required context (NEW: handles both upload + progress)
       if (useOrchestrated && teamId && orgId && huntId) {
-        console.log('Using orchestrated upload endpoint (with saga/compensation)')
-        response = await PhotoUploadService.uploadPhotoOrchestrated(
+        console.log('Using complete upload endpoint (atomic photo + progress update)')
+        response = await PhotoUploadService.uploadPhotoComplete(
           file,
           stopTitle,
           sessionId,
@@ -135,10 +135,12 @@ export function usePhotoUpload({
       }
 
       const photoUrl = response.photoUrl
+      const progressUpdated = (response as any).progressUpdated
 
       photoFlowLogger.info('usePhotoUpload', 'upload_success', {
         stopId,
         photoUrl: photoUrl?.substring(0, 100) + '...',
+        progressUpdated,
         responseData: response
       })
 
@@ -149,8 +151,8 @@ export function usePhotoUpload({
         return newSet
       })
 
-      // Call success callback
-      onSuccess?.(stopId, photoUrl)
+      // Call success callback with progress update status
+      onSuccess?.(stopId, photoUrl, progressUpdated)
 
       return photoUrl
 

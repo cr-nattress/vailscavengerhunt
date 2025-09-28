@@ -67,78 +67,50 @@ const ActiveView: React.FC = () => {
     teamId,
     orgId: organizationId,
     huntId,
-    useOrchestrated: Boolean((serverConfig as any)?.ENABLE_ORCHESTRATED_UPLOAD) || import.meta.env.VITE_ENABLE_ORCHESTRATED_UPLOAD === 'true', // Enable orchestrated uploads with saga/compensation
-    onSuccess: async (stopId, photoUrl) => {
-      console.log(`[PHOTO-FLOW] Step 1: Photo uploaded to Cloudinary for stop ${stopId}`)
-      console.log(`[PHOTO-FLOW] Step 2: Photo URL received:`, photoUrl?.substring(0, 100) + '...')
+    useOrchestrated: true, // Always use the complete endpoint now
+    onSuccess: async (stopId, photoUrl, progressUpdated) => {
+      console.log(`[PHOTO-FLOW] ✅ Complete upload successful for stop ${stopId}`)
+      console.log(`[PHOTO-FLOW] Photo URL:`, photoUrl?.substring(0, 100) + '...')
+      console.log(`[PHOTO-FLOW] Progress updated:`, progressUpdated ? 'YES' : 'NO')
 
-      // Enter saving state while persisting to server
-      setSavingStops(prev => new Set(prev).add(stopId))
+      const completedAt = new Date().toISOString()
 
-      try {
-        console.log(`[PHOTO-FLOW] Step 3: Persisting stop ${stopId} to server via updateStopProgress`)
-        const orgId = organizationId || 'bhhs'
-        const team = teamId || 'berrypicker'
-        const hunt = huntId || 'fall-2025'
-        const completedAt = new Date().toISOString()
-
-        const ok = await progressService.updateStopProgress(orgId, team, hunt, stopId, {
+      // Update local progress immediately (server already updated)
+      setProgress((prev: any) => ({
+        ...prev,
+        [stopId]: {
+          ...prev[stopId],
           photo: photoUrl,
           done: true,
           completedAt
-        } as any, sessionId)
-
-        if (!ok) {
-          throw new Error('Failed to save progress to server')
         }
+      }))
 
-        console.log(`[PHOTO-FLOW] Step 4: ✅ Server confirmed save for stop ${stopId}`)
+      // Clear preview
+      setPreviewUrls(prev => {
+        const url = prev[stopId]
+        if (url) URL.revokeObjectURL(url)
+        const { [stopId]: _omit, ...rest } = prev
+        return rest
+      })
 
-        // Update local progress after server confirms
-        setProgress((prev: any) => ({
-          ...prev,
-          [stopId]: {
-            ...prev[stopId],
-            photo: photoUrl,
-            done: true,
-            completedAt
-          }
-        }))
+      // Invalidate history so the new photo appears promptly when switching tabs
+      const queryClient = useQueryClient()
+      queryClient.invalidateQueries({
+        queryKey: ['consolidated-history', organizationId, teamName, huntId]
+      })
 
-        // Clear preview and saving state
-        setSavingStops(prev => {
-          const next = new Set(prev)
-          next.delete(stopId)
-          return next
-        })
-        setPreviewUrls(prev => {
-          const url = prev[stopId]
-          if (url) URL.revokeObjectURL(url)
-          const { [stopId]: _omit, ...rest } = prev
-          return rest
-        })
+      // Trigger transition animation
+      setTransitioning(stopId, true)
+      setTimeout(() => {
+        setTransitioning(stopId, false)
+      }, 600)
 
-        // Invalidate history so the new photo appears promptly when switching tabs
-        const queryClient = useQueryClient()
-        queryClient.invalidateQueries({
-          queryKey: ['consolidated-history', organizationId, teamName, huntId]
-        })
+      success(`📸 Photo uploaded for ${stops.find(s => s.id === stopId)?.title || 'stop'}`)
 
-        // Trigger transition animation
-        setTransitioning(stopId, true)
-        setTimeout(() => {
-          setTransitioning(stopId, false)
-        }, 600)
-
-        success(`📸 Photo uploaded for ${stops.find(s => s.id === stopId)?.title || 'stop'}`)
-      } catch (err) {
-        console.error(`[PHOTO-FLOW] Save to server failed for stop ${stopId}:`, err)
-        setSavingStops(prev => {
-          const next = new Set(prev)
-          next.delete(stopId)
-          return next
-        })
-        showError('Failed to save progress. Please try again.')
+      // Note: No need to save progress separately - the new endpoint handles it atomically!
+      if (!progressUpdated) {
+        console.warn(`[PHOTO-FLOW] ⚠️ Photo uploaded but progress update failed for stop ${stopId}`)
       }
     },
     onError: (stopId, error) => {

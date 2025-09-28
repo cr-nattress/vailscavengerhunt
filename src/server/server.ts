@@ -76,8 +76,9 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   const contentType = req.headers['content-type'] || '';
 
-  // Only capture raw body for photo-upload-orchestrated with multipart
-  if (req.path.includes('/photo-upload-orchestrated') && contentType.includes('multipart/form-data')) {
+  // Capture raw body for photo upload endpoints with multipart
+  if ((req.path.includes('/photo-upload-orchestrated') || req.path.includes('/photo-upload-complete'))
+      && contentType.includes('multipart/form-data')) {
     let data = Buffer.alloc(0);
 
     req.on('data', (chunk) => {
@@ -115,6 +116,64 @@ app.all('/api/login-initialize', async (req, res, next) => {
   req.url = '/.netlify/functions/login-initialize';
   req.params = { functionName: 'login-initialize', '0': '' };
   next();
+});
+
+// Handle complete photo upload (photo + progress in single atomic operation)
+app.all('/api/photo-upload-complete', async (req, res, next) => {
+  console.log('[Photo Upload Complete] Request received');
+  console.log('[Photo Upload Complete] Headers:', req.headers['content-type']);
+  console.log('[Photo Upload Complete] Body size:', req.headers['content-length']);
+
+  // Set up the request to look like it's going to the Netlify function
+  const originalUrl = req.url;
+  req.url = '/.netlify/functions/photo-upload-complete';
+  req.params = { functionName: 'photo-upload-complete', '0': '' };
+
+  // Call the Netlify function handler directly
+  try {
+    // Import and execute the Netlify function
+    const netlifyFunction: any = await import('../../netlify/functions/photo-upload-complete.js');
+
+    // Prepare the event object for the function
+    let eventBody: string | null = null;
+    let isBase64Encoded = false;
+
+    if ((req as any).rawBody) {
+      eventBody = (req as any).rawBody.toString('base64');
+      isBase64Encoded = true;
+      console.log('[Photo Upload Complete] Using raw body, size:', (req as any).rawBody.length, 'bytes');
+    } else if (req.body) {
+      eventBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    }
+
+    const event = {
+      path: originalUrl,
+      httpMethod: req.method,
+      headers: req.headers as any,
+      queryStringParameters: req.query as any,
+      body: eventBody,
+      isBase64Encoded,
+      pathParameters: {}
+    };
+
+    const handlerFn = netlifyFunction.handler;
+    if (handlerFn) {
+      const result = await handlerFn(event);
+
+      // Set headers from the function response
+      Object.entries(result.headers || {}).forEach(([key, value]) => {
+        res.setHeader(key, value as string);
+      });
+
+      // Send the response
+      res.status(result.statusCode || 200).send(result.body);
+    } else {
+      throw new Error('Handler function not found');
+    }
+  } catch (error) {
+    console.error('[Photo Upload Complete] Error executing function:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Handle photo upload - DON'T parse multipart, pass raw data through
@@ -174,6 +233,14 @@ app.all('/api/photo-upload-orchestrated', async (req, res, next) => {
     console.error('[Photo Upload] Error executing function:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Handle OPTIONS for CORS preflight
+app.options('/api/photo-upload-complete', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.status(204).send();
 });
 
 // Handle OPTIONS for CORS preflight
