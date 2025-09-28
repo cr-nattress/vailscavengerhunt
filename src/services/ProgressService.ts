@@ -149,7 +149,7 @@ class ProgressService {
       console.log(`[PHOTO-FLOW] Step 9.8: Progress saved to Supabase successfully!`)
       console.log('[ProgressService] Progress saved successfully')
       return true
-    } catch (error) {
+    } catch (error: any) {
       console.error('[ProgressService] Failed to save progress:', error)
       photoFlowLogger.error('ProgressService', 'save_progress_error', {
         error: error.message
@@ -196,12 +196,18 @@ class ProgressService {
       )
 
       if (!response.ok) {
-        throw new Error(`Failed to update stop progress: ${response.statusText}`)
+        const errorText = await response.text().catch(() => '')
+        console.error('[ProgressService] PATCH failed', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText?.substring(0, 500)
+        })
+        throw new Error(`Failed to update stop progress: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ''}`)
       }
 
       console.log(`[ProgressService] Stop ${stopId} updated successfully`)
       return true
-    } catch (error) {
+    } catch (error: any) {
       console.error('[ProgressService] Failed to update stop:', error)
       return false
     }

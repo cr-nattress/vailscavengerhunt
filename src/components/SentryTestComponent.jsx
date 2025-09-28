@@ -1,3 +1,37 @@
+/**
+ * @file components/SentryTestComponent.jsx
+ * @component SentryTestComponent
+ * @category Testing/Debugging
+ *
+ * @description
+ * Development component for testing Sentry error monitoring integration.
+ * Features:
+ * - Verifies Sentry initialization
+ * - Tests error capture, messages, and breadcrumbs
+ * - Validates user context and transactions
+ * - Provides visual feedback for debugging
+ * - Tests both direct Sentry API and logger wrapper
+ *
+ * @purpose
+ * - Verify Sentry is properly configured
+ * - Test error reporting pipeline
+ * - Debug production issues locally
+ * - Validate monitoring setup before deployment
+ *
+ * @usage
+ * This component should only be rendered in development/staging
+ * Typically accessible via a debug route or admin panel
+ *
+ * @security
+ * - Should NEVER be exposed in production builds
+ * - Contains sensitive debugging information
+ * - Can generate test errors that pollute monitoring
+ *
+ * @relatedComponents
+ * - clientLoggerFactory: Logger abstraction over Sentry
+ * - Error boundaries: Production error handling
+ */
+
 import React, { useState } from 'react'
 import * as Sentry from '@sentry/react'
 import { createUILogger } from '../logging/factories/clientLoggerFactory'
@@ -12,6 +46,11 @@ export const SentryTestComponent = () => {
 
   const testSentryInitialization = () => {
     try {
+      /**
+       * VERIFICATION: Check Sentry client exists
+       * getDsn() confirms proper initialization
+       * Host shown for privacy (not full DSN)
+       */
       const client = Sentry.getClient()
       const dsn = client?.getDsn()
       if (dsn) {
@@ -43,12 +82,18 @@ export const SentryTestComponent = () => {
 
   const testCaptureException = () => {
     try {
+      /**
+       * TEST ERROR: Create identifiable test exception
+       * - Timestamp ensures uniqueness
+       * - Custom name helps filtering in Sentry
+       * - Tags and contexts aid debugging
+       */
       const testError = new Error(`Test error from SentryTestComponent at ${new Date().toISOString()}`)
       testError.name = 'TestError'
 
       Sentry.captureException(testError, {
         tags: {
-          test: true,
+          test: true, // FILTER: Allows excluding test errors from alerts
           component: 'SentryTestComponent'
         },
         contexts: {
@@ -61,7 +106,7 @@ export const SentryTestComponent = () => {
 
       addStatus(`📤 Sent test error: "${testError.message}"`, 'warning')
 
-      // Also test through logger
+      // DUAL TEST: Verify logger wrapper also works
       logger.error('sentry-test', 'capture-exception', testError)
       addStatus('📤 Sent test error through logger', 'warning')
     } catch (error) {
@@ -105,6 +150,11 @@ export const SentryTestComponent = () => {
 
   const testTransaction = () => {
     try {
+      /**
+       * PERFORMANCE: Test transaction/span tracking
+       * Transactions measure performance of operations
+       * Spans break down transactions into steps
+       */
       const transaction = Sentry.startTransaction({
         name: 'test-transaction',
         op: 'test'
@@ -115,6 +165,7 @@ export const SentryTestComponent = () => {
         description: 'Testing span creation'
       })
 
+      // ASYNC: Simulate real operation timing
       setTimeout(() => {
         span.finish()
         transaction.finish()
@@ -130,6 +181,12 @@ export const SentryTestComponent = () => {
   const testFlush = async () => {
     try {
       addStatus('⏳ Flushing Sentry client...', 'info')
+      /**
+       * FLUSH: Force send all buffered events
+       * - 2000ms timeout prevents hanging
+       * - Returns false if timeout exceeded
+       * - Critical before app shutdown
+       */
       const flushed = await Sentry.flush(2000)
       if (flushed) {
         addStatus('✅ Successfully flushed all events to Sentry', 'success')
@@ -145,24 +202,35 @@ export const SentryTestComponent = () => {
     setTestStatus([])
     addStatus('🚀 Starting Sentry tests...', 'info')
 
-    // Check initialization
+    /**
+     * PREREQUISITE: Verify Sentry is ready
+     * Without initialization, all tests will fail
+     */
     const isInitialized = testSentryInitialization()
 
     if (!isInitialized) {
+      // TROUBLESHOOTING: Common initialization issues
       addStatus('⚠️ Sentry initialization failed. Please check:', 'warning')
       addStatus('1. VITE_SENTRY_DSN is set correctly in .env (optional but recommended)', 'warning')
       addStatus('2. Application has been restarted after env changes', 'warning')
       return
     }
 
-    // Run tests
+    /**
+     * TEST SEQUENCE: Order matters
+     * 1. Breadcrumbs - context for later errors
+     * 2. User context - identifies test session
+     * 3. Messages - simplest event type
+     * 4. Exceptions - error tracking
+     * 5. Transactions - performance monitoring
+     */
     testBreadcrumbs()
     testUserContext()
     testCaptureMessage()
     testCaptureException()
     testTransaction()
 
-    // Wait a bit then flush
+    // TIMING: Allow async operations to complete
     setTimeout(async () => {
       await testFlush()
       addStatus('✅ All tests completed! Check your Sentry dashboard for events.', 'success')

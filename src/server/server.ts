@@ -118,17 +118,62 @@ app.all('/api/login-initialize', async (req, res, next) => {
 });
 
 // Handle photo upload - DON'T parse multipart, pass raw data through
-app.post('/api/photo-upload-orchestrated', async (req, res, next) => {
+// Forward directly to Netlify function handler
+app.all('/api/photo-upload-orchestrated', async (req, res, next) => {
   console.log('[Photo Upload] Request received');
   console.log('[Photo Upload] Headers:', req.headers['content-type']);
   console.log('[Photo Upload] Body size:', req.headers['content-length']);
 
-  // Rewrite the URL to match Netlify function pattern
+  // Set up the request to look like it's going to the Netlify function
+  const originalUrl = req.url;
   req.url = '/.netlify/functions/photo-upload-orchestrated';
   req.params = { functionName: 'photo-upload-orchestrated', '0': '' };
 
-  // Don't parse multipart - let the Netlify function handle it
-  next();
+  // Call the Netlify function handler directly
+  try {
+    // Import and execute the Netlify function
+    const netlifyFunction: any = await import('../../netlify/functions/photo-upload-orchestrated.js');
+
+    // Prepare the event object for the function
+    let eventBody: string | null = null;
+    let isBase64Encoded = false;
+
+    if ((req as any).rawBody) {
+      eventBody = (req as any).rawBody.toString('base64');
+      isBase64Encoded = true;
+      console.log('[Photo Upload] Using raw body, size:', (req as any).rawBody.length, 'bytes');
+    } else if (req.body) {
+      eventBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    }
+
+    const event = {
+      path: originalUrl,
+      httpMethod: req.method,
+      headers: req.headers as any,
+      queryStringParameters: req.query as any,
+      body: eventBody,
+      isBase64Encoded,
+      pathParameters: {}
+    };
+
+    const handlerFn = netlifyFunction.handler;
+    if (handlerFn) {
+      const result = await handlerFn(event);
+
+      // Set headers from the function response
+      Object.entries(result.headers || {}).forEach(([key, value]) => {
+        res.setHeader(key, value as string);
+      });
+
+      // Send the response
+      res.status(result.statusCode || 200).send(result.body);
+    } else {
+      throw new Error('Handler function not found');
+    }
+  } catch (error) {
+    console.error('[Photo Upload] Error executing function:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Handle OPTIONS for CORS preflight
@@ -185,10 +230,15 @@ app.all('/.netlify/functions/:functionName*', async (req, res) => {
     }
 
     // Determine function style: v1 (exports.handler) or v2 (export default)
-    const hasV1Handler = typeof netlifyFunction?.handler === 'function';
+    const cjsDefault = netlifyFunction?.default && typeof netlifyFunction.default === 'object' ? netlifyFunction.default : null;
+    const handlerFn: any = (typeof netlifyFunction?.handler === 'function')
+      ? netlifyFunction.handler
+      : (cjsDefault && typeof cjsDefault.handler === 'function')
+        ? cjsDefault.handler
+        : undefined;
     const hasV2Default = typeof netlifyFunction?.default === 'function';
 
-    if (hasV1Handler) {
+    if (handlerFn) {
       // v1 style (AWS Lambda-style) - use event object
       const event = {
         path: req.path,
@@ -203,7 +253,7 @@ app.all('/.netlify/functions/:functionName*', async (req, res) => {
         }
       };
 
-      const result = await netlifyFunction.handler(event);
+      const result = await handlerFn(event);
 
       // Set headers from the function response
       Object.entries(result.headers || {}).forEach(([key, value]) => {

@@ -185,53 +185,29 @@ router.patch('/progress/:orgId/:teamId/:huntId/stop/:stopId', async (req, res) =
       return res.status(400).json({ error: 'Update data required' })
     }
 
-    // For stop updates, we need to get current progress, update it, and save back
-    // First get current progress
-    const getUrl = `${FUNCTIONS_BASE_URL}/.netlify/functions/progress-get-supabase/${decodedOrgId}/${decodedTeamId}/${decodedHuntId}`
-    const getResponse = await fetch(getUrl, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    })
+    // Call dedicated patch function
+    const functionUrl = `${FUNCTIONS_BASE_URL}/.netlify/functions/progress-patch-supabase/${decodedOrgId}/${decodedTeamId}/${decodedHuntId}/stop/${decodedStopId}`
+    console.log(`[Progress Proxy] Forwarding to: ${functionUrl}`)
 
-    let currentProgress: Record<string, any> = {}
-    if (getResponse.ok) {
-      currentProgress = (await getResponse.json()) as Record<string, any>
-    }
-
-    // Update the specific stop
-    currentProgress[decodedStopId] = {
-      ...currentProgress[decodedStopId],
-      ...update,
-      lastModifiedBy: sessionId,
-      lastModifiedAt: timestamp || new Date().toISOString()
-    }
-
-    // Save the updated progress
-    const setUrl = `${FUNCTIONS_BASE_URL}/.netlify/functions/progress-set-supabase/${decodedOrgId}/${decodedTeamId}/${decodedHuntId}`
-    const setResponse = await fetch(setUrl, {
-      method: 'POST',
+    const fnResponse = await fetch(functionUrl, {
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-store, no-cache, must-revalidate'
       },
-      body: JSON.stringify({
-        orgId: decodedOrgId,
-        teamId: decodedTeamId,
-        huntId: decodedHuntId,
-        progress: currentProgress,
-        sessionId,
-        timestamp
-      })
+      body: JSON.stringify({ update, sessionId, timestamp })
     })
 
-    if (!setResponse.ok) {
-      const error = await setResponse.text()
-      console.error(`[Progress Proxy] Function error: ${setResponse.status} - ${error}`)
-      return res.status(setResponse.status).json({
+    if (!fnResponse.ok) {
+      const error = await fnResponse.text()
+      console.error(`[Progress Proxy] Function error: ${fnResponse.status} - ${error}`)
+      return res.status(fnResponse.status).json({
         error: 'Failed to update stop progress in database',
         details: error
       })
     }
+
+    const data = await fnResponse.json()
 
     // Add no-store headers to response
     res.set({
@@ -240,7 +216,7 @@ router.patch('/progress/:orgId/:teamId/:huntId/stop/:stopId', async (req, res) =
       'Expires': '0'
     })
 
-    res.json({ success: true })
+    res.json(data)
   } catch (error) {
     console.error('[Progress Proxy] Error updating stop progress:', error)
     res.status(500).json({

@@ -14,6 +14,8 @@
     "start": "concurrently --prefix-colors \"cyan,magenta\" --prefix \"[UI],[API]\" \"npm run dev\" \"npm run server:dev\"",
     "start:full": "concurrently --prefix-colors \"cyan,magenta,yellow\" --prefix \"[UI],[API],[STATE]\" \"npm run dev\" \"npm run server:dev\" \"npm run state-server:dev\"",
     "start:netlify": "netlify dev",
+    "start:all": "node scripts/start-all.cjs",
+    "start:all:netlify": "node scripts/start-all.cjs --netlify",
     "setup:cosmos": "node scripts/setup-cosmos-db.js",
     "validate:cosmos": "node scripts/validate-setup.js",
     "validate:supabase": "node scripts/validate-supabase.js",

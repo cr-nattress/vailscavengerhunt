@@ -142,6 +142,43 @@ exports.handler = withSentry(async (event) => {
       CLOUDINARY_UPLOAD_FOLDER: process.env.CLOUDINARY_UPLOAD_FOLDER || 'scavenger/entries'
     }
 
+    // Build detailed progress to match standalone progress endpoint
+    // - Include only completed stops (done === true)
+    // - Enrich with title and description from locations
+    let detailedProgress = {}
+    try {
+      // Create a quick lookup for location metadata
+      const locMap = {}
+      for (const loc of (locations?.locations || [])) {
+        if (!loc?.id) continue
+        locMap[loc.id] = {
+          title: loc.title || String(loc.id),
+          description: (loc.description || loc.clue || '')
+        }
+      }
+
+      if (progress && typeof progress === 'object') {
+        for (const [locationId, rec] of Object.entries(progress)) {
+          const p = rec || {}
+          if (p.done) { // include only completed
+            const meta = locMap[locationId] || {}
+            detailedProgress[locationId] = {
+              title: meta.title || locationId,
+              description: meta.description || '',
+              done: !!p.done,
+              completedAt: p.completedAt || null,
+              photo: p.photo || null,
+              revealedHints: p.revealedHints || 0,
+              notes: (p.notes !== undefined ? p.notes : null)
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[consolidated-active] Failed to construct detailed progress, falling back to raw progress', e?.message)
+      detailedProgress = progress || {}
+    }
+
     return {
       statusCode: 200,
       headers,
@@ -150,7 +187,7 @@ exports.handler = withSentry(async (event) => {
         teamId,
         huntId,
         settings,
-        progress,
+        progress: detailedProgress,
         sponsors: sponsorsResponse,
         config,
         locations,

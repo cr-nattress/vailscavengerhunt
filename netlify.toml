@@ -74,26 +74,25 @@
   conditions = {method = ["POST"]}
   force = true
 
-# Progress endpoints
 [[redirects]]
   from = "/api/progress/*"
-  to = "/.netlify/functions/progress-get/:splat"
+  to = "/.netlify/functions/progress-get-supabase/:splat"
   status = 200
   conditions = {method = ["GET"]}
   force = true
 
 [[redirects]]
   from = "/api/progress/*"
-  to = "/.netlify/functions/progress-set/:splat"
+  to = "/.netlify/functions/progress-set-supabase/:splat"
   status = 200
   conditions = {method = ["POST"]}
   force = true
 
-# Sponsors endpoint
 [[redirects]]
-  from = "/api/sponsors"
-  to = "/.netlify/functions/sponsors-get"
+  from = "/api/progress/*"
+  to = "/.netlify/functions/progress-patch-supabase/:splat"
   status = 200
+  conditions = {method = ["PATCH"]}
   force = true
 
 # Leaderboard endpoint
@@ -201,7 +200,7 @@
   [headers.values]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Headers = "Content-Type"
-    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Methods = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
 
 # Netlify Blobs configuration
 [[blobs]]

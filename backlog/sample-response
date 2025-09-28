@@ -1,0 +1,75 @@
+current endpoint that returns completed locations:
+
+Request URL
+http://localhost:5173/api/progress/bhhs/berrypicker/fall-2025
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[::1]:5173
+Referrer Policy
+strict-origin-when-cross-origin
+
+
+{
+    "stop_7": {
+        "title": "Clock Tower",
+        "description": "The signature Vail Village clock tower on Gore Creek Drive.",
+        "done": true,
+        "completedAt": "2025-09-28T05:46:21.835+00:00",
+        "photo": "https://res.cloudinary.com/dwmjbmdgq/image/upload/v1759038380/scavenger/entries/clock-tower_42f064ee-168c-44c7-ae98-c87d1c0309b6_2b676b4f5f06235b.jpg",
+        "revealedHints": 0,
+        "notes": null
+    },
+    "stop_6": {
+        "title": "Skier",
+        "description": "\"Spirit of the Skier\" statue near Golden Peak's base facilities.",
+        "done": true,
+        "completedAt": "2025-09-28T02:41:00+00:00",
+        "photo": "test-photo-url.jpg",
+        "revealedHints": 0,
+        "notes": null
+    },
+    "stop_3": {
+        "title": "The Gore Range",
+        "description": "A classic village vantage to spot the Gore Range from the creekside walk.",
+        "done": true,
+        "completedAt": "2025-09-28T00:48:36.371+00:00",
+        "photo": "https://res.cloudinary.com/dwmjbmdgq/image/upload/v1759020514/scavenger/entries/the-gore-range_77756368-d06c-4e01-b5fd-49cdbb421879_39b8b53eccec3d9a.jpg",
+        "revealedHints": 0,
+        "notes": null
+    },
+    "stop_8": {
+        "title": "Berkshire Hathaway Office",
+        "description": "Berkshire Hathaway HomeServices Colorado Properties office in the Village core.",
+        "done": true,
+        "completedAt": "2025-09-28T00:48:58.68+00:00",
+        "photo": "https://res.cloudinary.com/dwmjbmdgq/image/upload/v1759020536/scavenger/entries/berkshire-hathaway-office_77756368-d06c-4e01-b5fd-49cdbb421879_6bb4fa4cdcbdca73.jpg",
+        "revealedHints": 0,
+        "notes": null
+    },
+    "stop_10": {
+        "title": "Four-Legged Friends",
+        "description": "Dog- and family-friendly hangout by the Children's Fountain on Gore Creek Drive.",
+        "done": true,
+        "completedAt": "2025-09-28T00:49:24.935+00:00",
+        "photo": "https://res.cloudinary.com/dwmjbmdgq/image/upload/v1759020562/scavenger/entries/four-legged-friends_77756368-d06c-4e01-b5fd-49cdbb421879_cdfe8130f67b2fe5.jpg",
+        "revealedHints": 0,
+        "notes": null
+    },
+    "stop_4": {
+        "title": "Public Art / Sculpture",
+        "description": "Village public art near Solaris—part of Vail's Art in Public Places collection.",
+        "done": true,
+        "completedAt": "2025-09-28T03:09:35.994+00:00",
+        "photo": "https://res.cloudinary.com/dwmjbmdgq/image/upload/v1759028974/scavenger/entries/public-art-sculpture_ab90c6ea-dc3f-489c-8079-a3a43478d0e6_71352a5096d875e0.jpg",
+        "revealedHints": 0,
+        "notes": null
+    }
+}
+
+
+the endpoint below should return an additional property called progress
+which includes all of the data from the endpoint above. the endpoint 
+above should be consolidated into this endpoint.
