@@ -80,6 +80,16 @@ export function useProgress(stops: any[]) {
       // Rollback will happen automatically
     }
   }, [progress, mutateProgress, organizationId, teamName, huntId, sessionId])
+
+  // Seed progress locally without persisting to server
+  // Useful for initializing from consolidated endpoint data
+  const seedProgress = useCallback(async (newProgress: ProgressData) => {
+    await mutateProgress(newProgress, {
+      optimisticData: newProgress,
+      rollbackOnError: false,
+      revalidate: false
+    })
+  }, [mutateProgress])
   
   // Derived values for the progress UI
   const completeCount = useMemo(
@@ -95,6 +105,7 @@ export function useProgress(stops: any[]) {
   return {
     progress,
     setProgress,
+    seedProgress,
     completeCount,
     percent,
     isLoading,

@@ -54,8 +54,8 @@ exports.handler = withSentry(async (event) => {
     // Gather settings
     const settings = await getSettings(orgId, teamId, huntId)
 
-    // Gather progress
-    const progress = await SupabaseTeamStorage.getTeamProgress(teamId)
+    // We'll compute progress in this function to exactly match the
+    // standalone progress-get-supabase behavior (done=true + enrich with titles)
 
     // Get Supabase client first
     const supabase = getSupabaseClient()
@@ -142,12 +142,10 @@ exports.handler = withSentry(async (event) => {
       CLOUDINARY_UPLOAD_FOLDER: process.env.CLOUDINARY_UPLOAD_FOLDER || 'scavenger/entries'
     }
 
-    // Build detailed progress to match standalone progress endpoint
-    // - Include only completed stops (done === true)
-    // - Enrich with title and description from locations
+    // Build progress (done=true) enriched with title/description
     let detailedProgress = {}
     try {
-      // Create a quick lookup for location metadata
+      // Build location metadata map from fetched locations
       const locMap = {}
       for (const loc of (locations?.locations || [])) {
         if (!loc?.id) continue
@@ -157,26 +155,42 @@ exports.handler = withSentry(async (event) => {
         }
       }
 
-      if (progress && typeof progress === 'object') {
-        for (const [locationId, rec] of Object.entries(progress)) {
-          const p = rec || {}
-          if (p.done) { // include only completed
+      // Resolve team UUID for this org/hunt/team
+      const { data: teamData, error: teamError } = await supabase
+        .from('teams')
+        .select('id')
+        .ilike('team_id', teamId)
+        .eq('organization_id', orgId)
+        .eq('hunt_id', huntId)
+        .single()
+
+      if (!teamError && teamData?.id) {
+        // Fetch only completed progress rows for the team
+        const { data: progressRows, error: progressError } = await supabase
+          .from('hunt_progress')
+          .select('location_id, done, revealed_hints, completed_at, notes, photo_url')
+          .eq('team_id', teamData.id)
+          .eq('done', true)
+
+        if (!progressError && Array.isArray(progressRows)) {
+          for (const row of progressRows) {
+            const locationId = row.location_id
             const meta = locMap[locationId] || {}
             detailedProgress[locationId] = {
               title: meta.title || locationId,
               description: meta.description || '',
-              done: !!p.done,
-              completedAt: p.completedAt || null,
-              photo: p.photo || null,
-              revealedHints: p.revealedHints || 0,
-              notes: (p.notes !== undefined ? p.notes : null)
+              done: !!row.done,
+              completedAt: row.completed_at || null,
+              photo: row.photo_url || null,
+              revealedHints: row.revealed_hints || 0,
+              notes: row.notes || null
             }
           }
         }
       }
     } catch (e) {
-      console.warn('[consolidated-active] Failed to construct detailed progress, falling back to raw progress', e?.message)
-      detailedProgress = progress || {}
+      console.warn('[consolidated-active] Progress build failed:', e?.message)
+      detailedProgress = {}
     }
 
     return {

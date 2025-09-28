@@ -3,6 +3,7 @@
  * Provides single endpoints that return multiple data types
  */
 import express from 'express'
+import { createRequire } from 'module'
 
 const router = express.Router()
 
@@ -11,8 +12,12 @@ router.get('/consolidated/active/:orgId/:teamId/:huntId', async (req, res) => {
   try {
     const { orgId, teamId, huntId } = req.params
 
-    // Dynamically import the Netlify function
-    const consolidatedActive = await import('../../netlify/functions/consolidated-active.js')
+    // Load the Netlify function with cache-busting (so code updates are picked up without server restarts)
+    const requireFn = createRequire(import.meta.url)
+    const modulePath = '../../netlify/functions/consolidated-active.js'
+    try { delete (requireFn as any).cache[(requireFn as any).resolve(modulePath)] } catch {}
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const consolidatedActive = requireFn(modulePath)
 
     // Simulate Netlify function event, ensuring headers are passed
     const event = {
@@ -50,8 +55,12 @@ router.get('/consolidated/history/:orgId/:teamId/:huntId', async (req, res) => {
   try {
     const { orgId, teamId, huntId } = req.params
 
-    // Dynamically import the Netlify function
-    const consolidatedHistory = await import('../../netlify/functions/consolidated-history.js')
+    // Load the Netlify function with cache-busting
+    const requireFn = createRequire(import.meta.url)
+    const modulePath = '../../netlify/functions/consolidated-history.js'
+    try { delete (requireFn as any).cache[(requireFn as any).resolve(modulePath)] } catch {}
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const consolidatedHistory = requireFn(modulePath)
 
     // Simulate Netlify function event
     const event = {
