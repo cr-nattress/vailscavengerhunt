@@ -101,10 +101,17 @@ export const SettingsSchema = z.object({
 export const StopProgressSchema = z.object({
   done: z.boolean(),
   notes: z.string().nullable().optional(),
-  photo: z.string().url().nullable().optional(),
+  // Allow both valid URLs and legacy filename strings for backward compatibility
+  photo: z.string().nullable().optional().refine(
+    (val) => !val || val.startsWith('http') || val.startsWith('https') || val.includes('.'),
+    { message: 'Invalid photo value' }
+  ),
   revealedHints: z.number().int().nonnegative().optional(),
   completedAt: DateISOSchema.nullable().optional(),
   lastModifiedBy: GuidSchema.optional(),
+  // Additional fields returned by the backend
+  title: z.string().optional(),
+  description: z.string().optional(),
 })
 
 // Use explicit key type for broader Zod compatibility
