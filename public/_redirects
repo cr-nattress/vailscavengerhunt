@@ -10,7 +10,6 @@
 /api/write-log /.netlify/functions/write-log 200
 /api/test-supabase /.netlify/functions/test-supabase 200
 /api/settings/* /.netlify/functions/settings-get/:splat 200
-/api/progress/* /.netlify/functions/progress-get/:splat 200
 /api/sponsors /.netlify/functions/sponsors-get 200
 /api/leaderboard/* /.netlify/functions/leaderboard-get/:splat 200
 /api/team-verify /.netlify/functions/team-verify 200

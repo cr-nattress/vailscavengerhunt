@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { progressService } from '../../services/ProgressService'
 import ProgressGauge from '../../components/ProgressGauge'
 import AlbumViewer from '../../components/AlbumViewer'
 import StopsList from '../app/StopsList'
@@ -154,72 +153,8 @@ const ActiveView: React.FC = () => {
     }
   }, [activeData?.progress])
 
-  // Auto-save progress to server when it changes
-  useEffect(() => {
-    if (Object.keys(progress).length === 0) return
-
-    const saveProgressToServer = async () => {
-      try {
-        console.log(`[PHOTO-FLOW] Step 6: Auto-save triggered (1 second debounce elapsed)`)
-
-        const orgId = organizationId || 'bhhs'
-        const teamId = teamName || 'berrypicker'
-        const hunt = huntId || 'fall-2025'
-
-        const progressWithPhotos = Object.entries(progress).filter(([_, data]: [string, any]) => data.photo)
-
-        console.log(`[PHOTO-FLOW] Step 7: Preparing to save progress to Supabase:`, {
-          orgId,
-          teamId,
-          hunt,
-          totalStops: Object.keys(progress).length,
-          stopsWithPhotos: progressWithPhotos.length
-        })
-
-        console.log(`[PHOTO-FLOW] Step 8: Progress data with photos:`,
-          progressWithPhotos.map(([stopId, data]: [string, any]) => ({
-            stopId,
-            hasPhoto: !!data.photo,
-            photoUrl: data.photo?.substring(0, 50) + '...',
-            done: data.done,
-            completedAt: data.completedAt
-          }))
-        )
-
-        photoFlowLogger.info('ActiveView', 'auto_save_triggered', {
-          orgId,
-          teamId,
-          hunt,
-          totalStops: Object.keys(progress).length,
-          stopsWithPhotos: progressWithPhotos.length,
-          photosData: progressWithPhotos.map(([stopId, data]: [string, any]) => ({
-            stopId,
-            hasPhoto: !!data.photo,
-            done: data.done
-          }))
-        })
-
-        console.log(`[PHOTO-FLOW] Step 9: Calling progressService.saveProgress()...`)
-        await progressService.saveProgress(orgId, teamId, hunt, progress, sessionId)
-        console.log(`[PHOTO-FLOW] Step 10: ✅ Progress successfully saved to Supabase!`)
-        console.log('✅ Progress saved to server')
-
-        photoFlowLogger.info('ActiveView', 'auto_save_success', {
-          orgId,
-          teamId,
-          hunt,
-          stopsWithPhotos: progressWithPhotos.length
-        })
-      } catch (err) {
-        console.error('Failed to save progress to server:', err)
-        const msg = err instanceof Error ? err.message : String(err)
-        photoFlowLogger.error('ActiveView', 'auto_save_failed', { error: msg }, msg)
-      }
-    }
-
-    const debounceTimer = setTimeout(saveProgressToServer, 1000)
-    return () => clearTimeout(debounceTimer)
-  }, [progress, teamName, organizationId, huntId])
+  // Note: Auto-save removed - progress is now saved atomically with photo uploads
+  // via the consolidated photo-upload-complete endpoint
 
   // Simplified photo upload handler using the hook
   const handlePhotoUpload = async (stopId: string, fileOrDataUrl: File | string) => {

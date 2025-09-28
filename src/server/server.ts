@@ -23,7 +23,7 @@ import collageRouter from './collageRoute';
 import kvRouter from './kvRoute';
 import photoRouter from './photoRoute';
 import settingsRouter from './settingsRoute';
-import progressRouter from './progressRoute';
+;
 import leaderboardRouter from './leaderboardRoute';
 import teamRouter from './teamRoute';
 import sponsorsRouter from './sponsorsRoute';
@@ -104,7 +104,6 @@ app.use('/api', collageRouter);
 app.use('/api', kvRouter);
 app.use('/api', photoRouter);
 app.use('/api', settingsRouter);
-app.use('/api', progressRouter);
 app.use('/api', leaderboardRouter);
 app.use('/api', teamRouter);
 app.use('/api', sponsorsRouter);
@@ -268,8 +267,6 @@ app.all('/.netlify/functions/:functionName*', async (req, res) => {
       'kv-get': 'kv-get-supabase',
       'kv-set': 'kv-set-supabase',
       'kv-upsert': 'kv-upsert-supabase',
-      'progress-get': 'progress-get-supabase',
-      'progress-set': 'progress-set-supabase',
       'leaderboard-get': 'leaderboard-get-supabase'
     };
 

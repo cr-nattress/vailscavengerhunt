@@ -81,26 +81,6 @@
   conditions = {method = ["POST"]}
   force = true
 
-[[redirects]]
-  from = "/api/progress/*"
-  to = "/.netlify/functions/progress-get-supabase/:splat"
-  status = 200
-  conditions = {method = ["GET"]}
-  force = true
-
-[[redirects]]
-  from = "/api/progress/*"
-  to = "/.netlify/functions/progress-set-supabase/:splat"
-  status = 200
-  conditions = {method = ["POST"]}
-  force = true
-
-[[redirects]]
-  from = "/api/progress/*"
-  to = "/.netlify/functions/progress-patch-supabase/:splat"
-  status = 200
-  conditions = {method = ["PATCH"]}
-  force = true
 
 # Leaderboard endpoint
 [[redirects]]
