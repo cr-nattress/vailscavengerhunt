@@ -57,7 +57,8 @@ exports.handler = withSentry(async (event, context) => {
         filename,
         data,
         timestamp,
-        ip: event.headers['x-forwarded-for']?.split(',')[0] || 'unknown',
+        // Remove the 'ip' field as it doesn't exist in the debug_logs table
+        // ip: event.headers['x-forwarded-for']?.split(',')[0] || 'unknown',
         headers: event.headers || {},
       }
       const { error } = await supabase.from('debug_logs').insert(payload)

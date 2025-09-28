@@ -4,6 +4,7 @@
  */
 
 import { TeamLockService } from './TeamLockService'
+import { apiClient } from './apiClient'
 import * as Sentry from '@sentry/react'
 
 // Types
@@ -108,7 +109,7 @@ export interface LoginInitializeResponse {
 }
 
 class LoginServiceClass {
-  private baseUrl = '/.netlify/functions/login-initialize'
+  private baseUrl = '/login-initialize'
   private cache: LoginInitializeResponse | null = null
   private cacheTimestamp = 0
   private readonly CACHE_TTL = 5 * 60 * 1000 // 5 minutes
@@ -132,41 +133,16 @@ class LoginServiceClass {
         hasLockToken: !!request.lockToken
       })
 
-      const response = await fetch(this.baseUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(request)
-      })
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-        const errorMessage = error.error || `Initialization failed: ${response.statusText}`
-
-        // Report server errors to Sentry
-        if (response.status >= 500) {
-          Sentry.captureMessage(`LoginService initialization failed: ${errorMessage}`, {
-            level: 'error',
-            tags: {
-              component: 'LoginService',
-              http_status: response.status,
-              endpoint: 'login_initialize',
-              has_team_code: !!request.teamCode
-            },
-            extra: {
-              orgId: request.orgId,
-              huntId: request.huntId,
-              sessionId: request.sessionId,
-              hasLockToken: !!request.lockToken
-            }
-          })
+      // Use apiClient for better error handling and retry logic
+      const data = await apiClient.post<LoginInitializeResponse>(
+        this.baseUrl,
+        request,
+        {
+          timeout: 30000,
+          retryAttempts: 3,
+          retryDelay: 1000
         }
-
-        throw new Error(errorMessage)
-      }
-
-      const data = await response.json() as LoginInitializeResponse
+      )
 
       // Cache the response if successful
       if (!request.teamCode) {
@@ -188,23 +164,39 @@ class LoginServiceClass {
       }
 
       return data
-    } catch (error) {
+    } catch (error: any) {
       console.error('[LoginService] Initialization failed:', error)
 
-      // Report non-HTTP errors to Sentry
-      if (error instanceof Error && !error.message.includes('Initialization failed:')) {
+      // Report errors to Sentry with more context
+      if (error?.status >= 500 || !error?.status) {
         Sentry.captureException(error, {
           tags: {
             component: 'LoginService',
-            error_type: 'network_or_parse',
+            error_type: error?.status ? 'server_error' : 'network_error',
+            http_status: error?.status || 'unknown',
+            endpoint: 'login_initialize',
             has_team_code: !!request.teamCode
           },
           extra: {
             orgId: request.orgId,
             huntId: request.huntId,
-            sessionId: request.sessionId
+            sessionId: request.sessionId,
+            hasLockToken: !!request.lockToken,
+            errorBody: error?.body,
+            errorMessage: error?.message
           }
         })
+      }
+
+      // Provide better error messages
+      if (error?.status === 400) {
+        throw new Error('Invalid request parameters')
+      } else if (error?.status === 401) {
+        throw new Error('Authentication failed')
+      } else if (error?.status === 404) {
+        throw new Error('Hunt or organization not found')
+      } else if (error?.status >= 500) {
+        throw new Error('Server error - please try again later')
       }
 
       throw error
@@ -335,11 +327,13 @@ class LoginServiceClass {
    */
   async checkAvailability(): Promise<boolean> {
     try {
-      const response = await fetch(this.baseUrl, {
-        method: 'OPTIONS',
-        signal: AbortSignal.timeout(5000)
-      })
-      return response.ok
+      // Use HEAD or OPTIONS request to check availability
+      await apiClient.request(
+        this.baseUrl,
+        { method: 'OPTIONS' },
+        { timeout: 5000, retryAttempts: 1 }
+      )
+      return true
     } catch {
       return false
     }

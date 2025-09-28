@@ -13,6 +13,7 @@ import { useCollage } from '../../hooks/useCollage'
 import { photoFlowLogger } from '../../utils/photoFlowLogger'
 import { SponsorCard } from '../sponsors/SponsorCard'
 import { useActiveData } from '../../hooks/useActiveData'
+import { LoginService } from '../../services/LoginService'
 
 const ActiveView: React.FC = () => {
   const { success, error: showError, warning, info } = useToastActions()
@@ -52,11 +53,16 @@ const ActiveView: React.FC = () => {
   )
 
   // Photo upload hook replaces uploadingStops state and handlePhotoUpload function
+  const serverConfig = LoginService.getCachedConfig()
   const { uploadPhoto, uploadingStops } = usePhotoUpload({
     sessionId,
     teamName,
     locationName,
     eventName,
+    teamId,
+    orgId: organizationId,
+    huntId,
+    useOrchestrated: serverConfig?.ENABLE_ORCHESTRATED_UPLOAD || import.meta.env.VITE_ENABLE_ORCHESTRATED_UPLOAD === 'true', // Enable orchestrated uploads with saga/compensation
     onSuccess: (stopId, photoUrl) => {
       console.log(`[PHOTO-FLOW] Step 1: Photo uploaded to Cloudinary for stop ${stopId}`)
       console.log(`[PHOTO-FLOW] Step 2: Photo URL received:`, photoUrl?.substring(0, 100) + '...')

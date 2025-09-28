@@ -10,6 +10,10 @@ interface UsePhotoUploadOptions {
   teamName?: string
   locationName?: string
   eventName?: string
+  teamId?: string
+  orgId?: string
+  huntId?: string
+  useOrchestrated?: boolean
   onSuccess?: (stopId: string, photoUrl: string) => void
   onError?: (stopId: string, error: Error) => void
 }
@@ -19,6 +23,10 @@ export function usePhotoUpload({
   teamName,
   locationName,
   eventName,
+  teamId,
+  orgId,
+  huntId,
+  useOrchestrated = false,
   onSuccess,
   onError
 }: UsePhotoUploadOptions) {
@@ -82,36 +90,28 @@ export function usePhotoUpload({
         return null
       }
 
-      // Check upload configuration
-      const enableUnsignedUploads = Boolean(cfg?.ENABLE_UNSIGNED_UPLOADS ?? env.VITE_ENABLE_UNSIGNED_UPLOADS === 'true')
+      // Decide which upload method to use
       const disableResize = Boolean(cfg?.DISABLE_CLIENT_RESIZE ?? env.VITE_DISABLE_CLIENT_RESIZE === 'true')
 
       let response: Awaited<ReturnType<typeof PhotoUploadService.uploadPhoto>>
 
-      if (enableUnsignedUploads) {
-        // Use unsigned upload (direct to Cloudinary)
-        console.log('Using unsigned upload (direct to Cloudinary)')
-        response = disableResize
-          ? await PhotoUploadService.uploadPhotoUnsigned(
-              file,
-              stopTitle,
-              sessionId,
-              teamName,
-              locationName,
-              eventName
-            )
-          : await PhotoUploadService.uploadPhotoUnsignedWithResize(
-              file,
-              stopTitle,
-              sessionId,
-              1600,  // maxWidth
-              0.8,   // quality
-              teamName,
-              locationName,
-              eventName
-            )
+      // Use orchestrated endpoint if we have all required context
+      if (useOrchestrated && teamId && orgId && huntId) {
+        console.log('Using orchestrated upload endpoint (with saga/compensation)')
+        response = await PhotoUploadService.uploadPhotoOrchestrated(
+          file,
+          stopTitle,
+          sessionId,
+          stopId, // Use stopId as locationId
+          teamId,
+          orgId,
+          huntId,
+          teamName,
+          locationName,
+          eventName
+        )
       } else {
-        // Use signed upload (via Netlify function)
+        // Fallback to regular upload
         console.log('Using signed upload (via Netlify function)')
         response = disableResize
           ? await PhotoUploadService.uploadPhoto(
@@ -171,7 +171,7 @@ export function usePhotoUpload({
 
       return null
     }
-  }, [sessionId, teamName, locationName, eventName, showError, onSuccess, onError])
+  }, [sessionId, teamName, locationName, eventName, teamId, orgId, huntId, useOrchestrated, showError, onSuccess, onError])
 
   const isUploading = useCallback((stopId: string) => {
     return uploadingStops.has(stopId)

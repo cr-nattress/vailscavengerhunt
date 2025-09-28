@@ -4,7 +4,9 @@
 import { z } from 'zod'
 
 // Base schemas for common types
-export const DateISOSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/, 'Invalid ISO date format')
+// Updated to accept PostgreSQL timestamps with microseconds (up to 6 digits) and various ISO 8601 formats
+// Now handles: 2025-09-27T23:30:00+00:00, 2025-09-27T23:07:32.782+00:00, 2025-09-27T23:28:29.318Z, etc.
+export const DateISOSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}:\d{2})?$/, 'Invalid ISO date format')
 export const SlugSchema = z.string().regex(/^[a-z0-9-]+$/, 'Invalid slug format')
 export const GuidSchema = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i, 'Invalid GUID format')
 
@@ -98,19 +100,16 @@ export const SettingsSchema = z.object({
 
 export const StopProgressSchema = z.object({
   done: z.boolean(),
-  notes: z.string().optional(),
+  notes: z.string().nullable().optional(),
   photo: z.string().url().nullable().optional(),
   revealedHints: z.number().int().nonnegative().optional(),
-  completedAt: DateISOSchema.optional(),
+  completedAt: DateISOSchema.nullable().optional(),
   lastModifiedBy: GuidSchema.optional(),
 })
 
 // Use explicit key type for broader Zod compatibility
-// Progress data includes both stop progress objects and metadata fields
-export const ProgressDataSchema = z.record(z.string(), z.union([
-  StopProgressSchema,
-  z.string() // Allow string values for additional metadata fields (non-progress related)
-]))
+// Progress data is a record of stop IDs to stop progress objects
+export const ProgressDataSchema = z.record(z.string(), StopProgressSchema)
 
 // Team lock specific error codes
 export enum TeamLockErrorCode {

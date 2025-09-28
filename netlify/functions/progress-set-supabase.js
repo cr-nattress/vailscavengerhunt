@@ -7,12 +7,16 @@ const { getSupabaseClient } = require('./_lib/supabaseClient')
 const { withSentry } = require('./_lib/sentry')
 
 exports.handler = withSentry(async (event, context) => {
-  // Handle CORS
+  // Handle CORS and prevent caching for fresh data
   const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    // STORY-023: Add no-store headers to prevent stale progress data
+    'Cache-Control': 'no-store, no-cache, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
   }
 
   if (event.httpMethod === 'OPTIONS') {

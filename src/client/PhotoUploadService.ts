@@ -16,6 +16,126 @@ export type { PhotoRecord }
 export class PhotoUploadService {
 
   /**
+   * Generate an idempotency key for deduplication
+   * @param file The image file
+   * @param sessionId The session ID
+   * @param locationTitle The location title
+   * @returns Promise resolving to idempotency key
+   */
+  private static async generateIdempotencyKey(
+    file: File,
+    sessionId: string,
+    locationTitle: string
+  ): Promise<string> {
+    try {
+      // Read file as array buffer
+      const buffer = await file.arrayBuffer()
+      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer)
+
+      // Convert to hex string
+      const hashArray = Array.from(new Uint8Array(hashBuffer))
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+
+      // Combine with session and location for uniqueness
+      const combined = `${hashHex}-${sessionId}-${locationTitle}`
+      const combinedBuffer = new TextEncoder().encode(combined)
+      const finalHash = await crypto.subtle.digest('SHA-256', combinedBuffer)
+
+      // Return first 16 chars of hash
+      const finalArray = Array.from(new Uint8Array(finalHash))
+      return finalArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16)
+    } catch (error) {
+      // Fallback to random UUID if crypto fails
+      console.warn('Failed to generate hash-based idempotency key:', error)
+      return crypto.randomUUID().replace(/-/g, '').substring(0, 16)
+    }
+  }
+
+  /**
+   * Upload a photo using the orchestrated endpoint (with saga/compensation)
+   * @param file The image file to upload
+   * @param locationTitle The title of the location
+   * @param sessionId The current session ID
+   * @param locationId The canonical location ID
+   * @param teamId The team ID
+   * @param orgId The organization ID
+   * @param huntId The hunt ID
+   * @param teamName The team name for tagging (optional)
+   * @param locationName The location name for tagging (optional)
+   * @param eventName The event name for tagging (optional)
+   * @returns Promise resolving to photo upload response
+   */
+  static async uploadPhotoOrchestrated(
+    file: File,
+    locationTitle: string,
+    sessionId: string,
+    locationId: string,
+    teamId: string,
+    orgId: string,
+    huntId: string,
+    teamName?: string,
+    locationName?: string,
+    eventName?: string
+  ): Promise<PhotoUploadResponse> {
+    console.log('📸 PhotoUploadService.uploadPhotoOrchestrated() called')
+
+    // Validate inputs
+    if (!file) {
+      throw new Error('No file provided')
+    }
+
+    if (!file.type.startsWith('image/')) {
+      throw new Error('File must be an image')
+    }
+
+    if (!locationTitle || !sessionId || !locationId || !teamId) {
+      throw new Error('Required fields missing: locationTitle, sessionId, locationId, teamId')
+    }
+
+    // Generate idempotency key
+    const idempotencyKey = await this.generateIdempotencyKey(file, sessionId, locationTitle)
+    console.log('🔑 Generated idempotency key:', idempotencyKey)
+
+    // Create FormData
+    const formData = new FormData()
+    formData.append('photo', file)
+    formData.append('locationTitle', locationTitle)
+    formData.append('locationId', locationId)
+    formData.append('sessionId', sessionId)
+    formData.append('teamId', teamId)
+    formData.append('orgId', orgId)
+    formData.append('huntId', huntId)
+    formData.append('idempotencyKey', idempotencyKey)
+    if (teamName) formData.append('teamName', teamName)
+    if (locationName) formData.append('locationName', locationName)
+    if (eventName) formData.append('eventName', eventName)
+
+    console.log('📦 FormData created for orchestrated upload')
+
+    try {
+      console.log('🌐 Making orchestrated API request...')
+
+      const rawResponse = await apiClient.requestFormData<unknown>('/photo-upload-orchestrated', formData, {
+        timeout: 60000, // 60 second timeout
+        retryAttempts: 2
+      })
+
+      console.log('🔍 Orchestrated response received:', rawResponse)
+
+      // Validate response with schema
+      const response = validateSchema(UploadResponseSchema, rawResponse, 'orchestrated photo upload')
+
+      console.log('📊 Orchestrated upload successful:', response)
+
+      return response
+
+    } catch (error: unknown) {
+      console.error('💥 Orchestrated upload error:', error)
+      throw error
+    }
+  }
+
+  /**
    * Upload a photo directly to Cloudinary using unsigned upload
    * @param file The image file to upload
    * @param locationTitle The title of the location
@@ -234,25 +354,26 @@ export class PhotoUploadService {
 
       return response;
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('💥 Upload error - Full details:', {
         error,
-        errorType: error?.constructor?.name,
-        message: error?.message,
+        errorType: error instanceof Error ? error.constructor?.name : typeof error,
+        message: error instanceof Error ? error.message : String(error),
         status: (error as any)?.status,
         statusText: (error as any)?.statusText,
         response: (error as any)?.response,
-        stack: error?.stack
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       // Log specific error information based on error type
-      if ((error as any)?.status) {
+      if ( (error as any)?.status ) {
         console.error(`❌ HTTP Error ${(error as any).status}: ${(error as any).statusText}`);
       }
-      if (error?.message?.includes('timeout')) {
+      const _msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
+      if (_msg.includes('timeout')) {
         console.error('⏰ Request timed out - photo might be too large or network is slow');
       }
-      if (error?.message?.includes('network')) {
+      if (_msg.includes('network')) {
         console.error('🌐 Network error - check internet connection');
       }
 

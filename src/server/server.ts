@@ -47,6 +47,27 @@ try {
   }
 } catch {}
 
+// Raw body capture for multipart requests
+app.use((req, res, next) => {
+  const contentType = req.headers['content-type'] || '';
+
+  // If it's multipart, capture raw body
+  if (contentType.includes('multipart/form-data')) {
+    let data = Buffer.alloc(0);
+
+    req.on('data', (chunk) => {
+      data = Buffer.concat([data, chunk]);
+    });
+
+    req.on('end', () => {
+      (req as any).rawBody = data;
+      next();
+    });
+  } else {
+    next();
+  }
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -64,6 +85,36 @@ app.use('/api', leaderboardRouter);
 app.use('/api', teamRouter);
 app.use('/api', sponsorsRouter);
 app.use('/api', consolidatedRouter);
+
+// Forward specific Netlify function requests to the handler
+app.all('/api/login-initialize', async (req, res, next) => {
+  // Rewrite the URL to match Netlify function pattern
+  req.url = '/.netlify/functions/login-initialize';
+  req.params = { functionName: 'login-initialize', '0': '' };
+  next();
+});
+
+// Handle photo upload - DON'T parse multipart, pass raw data through
+app.post('/api/photo-upload-orchestrated', async (req, res, next) => {
+  console.log('[Photo Upload] Request received');
+  console.log('[Photo Upload] Headers:', req.headers['content-type']);
+  console.log('[Photo Upload] Body size:', req.headers['content-length']);
+
+  // Rewrite the URL to match Netlify function pattern
+  req.url = '/.netlify/functions/photo-upload-orchestrated';
+  req.params = { functionName: 'photo-upload-orchestrated', '0': '' };
+
+  // Don't parse multipart - let the Netlify function handle it
+  next();
+});
+
+// Handle OPTIONS for CORS preflight
+app.options('/api/photo-upload-orchestrated', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.status(204).send();
+});
 
 // Handle Netlify Functions locally in development
 app.all('/.netlify/functions/:functionName*', async (req, res) => {
@@ -93,13 +144,26 @@ app.all('/.netlify/functions/:functionName*', async (req, res) => {
     const netlifyFunction = await import(`../../netlify/functions/${functionFile}.js`);
 
     // Prepare event object similar to Netlify's
+    // Special handling for multipart form data
+    let body = null;
+    let isBase64Encoded = false;
+
+    if (functionFile === 'photo-upload-orchestrated' && (req as any).rawBody) {
+      // For photo upload, use raw body and encode as base64
+      body = (req as any).rawBody.toString('base64');
+      isBase64Encoded = true;
+      console.log('[Photo Upload] Using raw body, size:', (req as any).rawBody.length, 'bytes');
+    } else if (req.body) {
+      body = JSON.stringify(req.body);
+    }
+
     const event = {
       path: req.path,
       httpMethod: req.method,
       headers: req.headers,
       queryStringParameters: req.query,
-      body: req.body ? JSON.stringify(req.body) : null,
-      isBase64Encoded: false,
+      body: body,
+      isBase64Encoded: isBase64Encoded,
       // Add path parameters for functions like settings-get
       pathParameters: {
         proxy: functionPath.substring(functionFile.length + 1) // Remove function name and slash
@@ -196,3 +260,5 @@ app.listen(PORT, () => {
 export default app;
 
 // trigger restart
+// restart trigger
+// force restart

@@ -41,6 +41,17 @@ class ApiClient {
       return ''
     }
 
+    // Env overrides for flexibility
+    const env: any = (import.meta as any)?.env || {}
+    if (env.VITE_API_BASE) {
+      this.logger.info('🌐 Using VITE_API_BASE override', { base: env.VITE_API_BASE })
+      return env.VITE_API_BASE as string
+    }
+    if (env.VITE_USE_NETLIFY_API === 'true') {
+      this.logger.info('🌐 VITE_USE_NETLIFY_API=true, using /api (Netlify redirects to functions)')
+      return '/api'
+    }
+
     // If running on port 8888 (Netlify dev), use /api for redirects
     if (window.location.port === '8888') {
       this.logger.info('🌐 Detected Netlify dev (port 8888), using /api')
@@ -53,7 +64,7 @@ class ApiClient {
       return '/api'
     }
 
-    // In development, use local Express server
+    // In development, default to local Express server unless overridden above
     const devUrl = 'http://localhost:3001/api'
     this.logger.info('🌐 Development mode, using local server', { devUrl })
     return devUrl

@@ -25,8 +25,12 @@ export function useProgress({ orgId, teamId, huntId }: ProgressQueryKey) {
     queryFn: async () => {
       return await progressService.getProgress(orgId, teamId, huntId)
     },
-    staleTime: 2 * 60 * 1000, // Consider data fresh for 2 minutes (more frequent updates)
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    // STORY-021: Progress must always be fresh from DB
+    staleTime: 0, // Data is immediately stale
+    gcTime: 0, // Don't keep in cache after unmount
+    refetchOnMount: 'always', // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when user returns to tab
+    refetchOnReconnect: true, // Refetch after network reconnection
     retry: 3,
     refetchInterval: 30 * 1000, // Auto-refresh every 30 seconds for real-time updates
     enabled: !!(orgId && teamId && huntId), // Only fetch if all IDs are present

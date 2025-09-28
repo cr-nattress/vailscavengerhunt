@@ -12,8 +12,10 @@ interface CachedData {
 }
 
 class ConsolidatedDataService {
+  // STORY-020: Removed cache for locations/progress to ensure DB is single source of truth
+  // Only keeping transient cache in React Query, not here
   private static cache = new Map<string, CachedData>()
-  private static readonly CACHE_TTL = 30 * 1000 // 30 seconds cache
+  private static readonly CACHE_TTL = 0 // Disabled caching per DB Source of Truth epic
 
   /**
    * Fetch all active hunt data in a single request
@@ -25,14 +27,8 @@ class ConsolidatedDataService {
   ): Promise<ConsolidatedActiveResponse> {
     const cacheKey = `${orgId}/${teamId}/${huntId}`
 
-    // Check cache in development (short TTL)
-    if (import.meta.env.DEV) {
-      const cached = this.cache.get(cacheKey)
-      if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-        console.log('[ConsolidatedDataService] Returning cached data')
-        return cached.data
-      }
-    }
+    // STORY-020: Cache disabled to ensure fresh data from DB
+    // Cache check removed per DB Source of Truth requirements
 
     try {
       console.log(`[ConsolidatedDataService] Fetching active data for ${orgId}/${teamId}/${huntId}`)
@@ -78,11 +74,8 @@ class ConsolidatedDataService {
 
       const data: ConsolidatedActiveResponse = await response.json()
 
-      // Cache the response
-      this.cache.set(cacheKey, {
-        data,
-        timestamp: Date.now()
-      })
+      // STORY-020: Response caching disabled - data always fresh from DB
+      // React Query handles any necessary caching at the component level
 
       console.log('[ConsolidatedDataService] Active data fetched successfully:', {
         hasSettings: !!data.settings,

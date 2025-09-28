@@ -6,12 +6,16 @@
 import { createClient } from '@supabase/supabase-js'
 
 export default async (req, context) => {
-  // Handle CORS
+  // Handle CORS and prevent caching for fresh data
   const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS'
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    // STORY-023: Add no-store headers to prevent stale progress data
+    'Cache-Control': 'no-store, no-cache, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
   }
 
   if (req.method === 'OPTIONS') {
@@ -81,10 +85,10 @@ export default async (req, context) => {
       throw teamError
     }
 
-    // Get progress data
+    // Get progress data including photo_url
     const { data: progressData, error: progressError } = await supabase
       .from('hunt_progress')
-      .select('location_id, done, revealed_hints, completed_at, notes')
+      .select('location_id, done, revealed_hints, completed_at, notes, photo_url')
       .eq('team_id', teamData.id)
 
     if (progressError) {
@@ -94,11 +98,20 @@ export default async (req, context) => {
     // Convert to blob storage format for compatibility
     const progress = {}
     for (const record of progressData || []) {
+      // Log the date format we're receiving from the database
+      if (record.completed_at) {
+        console.log(`Date from DB for ${record.location_id}: ${record.completed_at}`)
+      }
+      // Include photo_url in the response if it exists
       progress[record.location_id] = {
         done: record.done,
         revealedHints: record.revealed_hints,
         completedAt: record.completed_at,
-        notes: record.notes
+        notes: record.notes,
+        ...(record.photo_url && { photo: record.photo_url })
+      }
+      if (record.photo_url) {
+        console.log(`Photo URL for ${record.location_id}: ${record.photo_url}`)
       }
     }
 

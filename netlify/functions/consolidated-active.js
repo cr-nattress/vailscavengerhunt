@@ -9,7 +9,11 @@ exports.handler = withSentry(async (event) => {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    // STORY-023: Add no-store headers to prevent stale locations/progress data
+    'Cache-Control': 'no-store, no-cache, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
   }
 
   if (event.httpMethod === 'OPTIONS') {
