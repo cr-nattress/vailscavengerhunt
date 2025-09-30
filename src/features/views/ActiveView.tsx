@@ -56,10 +56,11 @@ const ActiveView: React.FC = () => {
   const { collageUrl } = useCollage({ stops, progress, teamName })
 
   // Use consolidated data hook for all data in one request
+  // Note: useActiveData has its own enabled guard, but we pass undefined to let it handle the check
   const { data: activeData, isLoading: dataLoading, error: dataError, refetch: refetchData } = useActiveData(
-    organizationId || 'bhhs',
-    teamId || 'berrypicker',  // Use teamId instead of teamName
-    huntId || 'fall-2025'
+    organizationId,
+    teamId,
+    huntId
   )
 
   // ⚠️ CRITICAL: Must call useQueryClient at top level, not inside callbacks
@@ -109,7 +110,7 @@ const ActiveView: React.FC = () => {
 
       // Invalidate history so the new photo appears promptly when switching tabs
       queryClient.invalidateQueries({
-        queryKey: ['consolidated-history', organizationId, teamName, huntId]
+        queryKey: ['consolidated-history', organizationId, teamId, huntId]
       })
 
       // Trigger transition animation

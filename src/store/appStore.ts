@@ -36,6 +36,7 @@ interface AppActions {
   setHuntId: (huntId: string) => void
   initializeSettings: (orgId: string, teamId: string, huntId: string, teamName?: string) => Promise<void>
   saveSettingsToServer: () => Promise<void>
+  resetState: () => void
 }
 
 type AppStore = AppState & AppActions
@@ -191,5 +192,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
       console.error('[AppStore] Error saving settings:', error)
       set({ error: error instanceof Error ? error.message : 'Save failed' })
     }
+  },
+
+  // Reset state to initial values (for logout)
+  resetState: () => {
+    set({
+      locationName: 'BHHS',
+      teamName: '',
+      teamId: '',
+      sessionId: generateSessionId(), // Generate new session ID
+      eventName: '',
+      lockedByQuery: false,
+      organizationId: '',
+      huntId: '',
+      isLoading: false,
+      error: null
+    })
+    console.log('[AppStore] State reset')
   }
 }))

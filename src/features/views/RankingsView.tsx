@@ -20,11 +20,17 @@ const RankingsView: React.FC = () => {
   const { data: leaderboardData, isLoading, error } = useQuery({
     queryKey: ['leaderboard', organizationId, huntId],
     queryFn: async () => {
-      const orgId = organizationId || 'bhhs'
-      const hunt = huntId || 'fall-2025'
+      // Safety check: Ensure all required auth context is present
+      if (!organizationId || !huntId) {
+        console.error('[RankingsView] Missing required authentication context', {
+          organizationId: !!organizationId,
+          huntId: !!huntId
+        })
+        throw new Error('Missing required authentication context')
+      }
 
       try {
-        const response = await fetch(`/api/leaderboard/${orgId}/${hunt}`)
+        const response = await fetch(`/api/leaderboard/${organizationId}/${huntId}`)
         if (!response.ok) {
           if (response.status === 404) {
             // No data yet, return empty leaderboard

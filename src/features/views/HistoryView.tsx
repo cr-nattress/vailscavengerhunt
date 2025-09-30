@@ -30,25 +30,31 @@ interface ConsolidatedHistoryResponse {
 
 const HistoryView: React.FC = () => {
   // const { info } = useToastActions()
-  const { organizationId, teamName, huntId, locationName } = useAppStore()
+  const { organizationId, teamId, huntId, locationName } = useAppStore()
   const { activeTab } = useNavigationStore()
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
 
   // Fetch history data from consolidated endpoint
   const { data, isLoading, error, refetch } = useQuery<ConsolidatedHistoryResponse>({
-    queryKey: ['consolidated-history', organizationId, teamName, huntId],
+    queryKey: ['consolidated-history', organizationId, teamId, huntId],
     queryFn: async () => {
-      const orgId = organizationId || 'bhhs'
-      const teamId = teamName || 'berrypicker'
-      const hunt = huntId || 'fall-2025'
+      // Safety check: Ensure all required auth context is present
+      if (!organizationId || !teamId || !huntId) {
+        console.error('[HistoryView] Missing required authentication context', {
+          organizationId: !!organizationId,
+          teamId: !!teamId,
+          huntId: !!huntId
+        })
+        throw new Error('Missing required authentication context')
+      }
 
       try {
-        const response = await apiClient.get<ConsolidatedHistoryResponse>(`/consolidated/history/${orgId}/${teamId}/${hunt}`)
+        const response = await apiClient.get<ConsolidatedHistoryResponse>(`/consolidated/history/${organizationId}/${teamId}/${huntId}`)
 
         // Ensure we always return a valid response object
         if (!response) {
           return {
-            orgId,
+            orgId: organizationId,
             teamId,
             huntId,
             settings: {},
@@ -64,7 +70,7 @@ const HistoryView: React.FC = () => {
         console.error('Failed to fetch history:', err)
         // Return empty history on error rather than throwing to prevent React Query error
         return {
-          orgId,
+          orgId: organizationId,
           teamId,
           huntId,
           settings: {},
@@ -74,7 +80,7 @@ const HistoryView: React.FC = () => {
         }
       }
     },
-    enabled: !!teamName && !!organizationId && !!huntId,
+    enabled: !!teamId && !!organizationId && !!huntId,
     refetchInterval: 30000, // Refresh every 30 seconds (less frequent than before)
     refetchOnWindowFocus: true, // Refresh when window regains focus
     refetchOnMount: 'always', // Always fetch fresh data on mount

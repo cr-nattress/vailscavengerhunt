@@ -1,5 +1,6 @@
 import React from 'react'
 import { TeamLockService } from '../../services/TeamLockService'
+import { useAppStore } from '../../store/appStore'
 
 interface HeaderProps {
   isMenuOpen: boolean
@@ -109,6 +110,11 @@ export default function Header({
                   try {
                     // Clear the team lock (primary gate)
                     TeamLockService.clearLock()
+                    
+                    // Clear Zustand app state
+                    const { resetState } = useAppStore.getState()
+                    resetState()
+                    
                     // Clear app-specific localStorage keys (prefix-based safe clear)
                     const prefixes = ['hunt.', 'vail.', 'scavenger.']
                     try {
@@ -123,6 +129,7 @@ export default function Header({
                     } catch (e) {
                       console.warn('LocalStorage cleanup failed:', e)
                     }
+                    
                     // Dispatch a logout event so TeamLockWrapper shows SplashGate immediately
                     window.dispatchEvent(new Event('team-logout'))
                   } finally {

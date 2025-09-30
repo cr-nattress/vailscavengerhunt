@@ -33,9 +33,16 @@ export default function LeaderboardView() {
       setLoading(true)
       setError(null)
 
-      const orgId = organizationId || 'bhhs'
-      const hunt = huntId || 'fall-2025'
-      const response = await apiClient.get(`/api/leaderboard/${orgId}/${hunt}`)
+      // Safety check: Ensure all required auth context is present
+      if (!organizationId || !huntId) {
+        console.error('[LeaderboardView] Missing required authentication context', {
+          organizationId: !!organizationId,
+          huntId: !!huntId
+        })
+        throw new Error('Missing required authentication context')
+      }
+
+      const response = await apiClient.get(`/api/leaderboard/${organizationId}/${huntId}`)
 
       setLeaderboard(response.data)
     } catch (err) {
