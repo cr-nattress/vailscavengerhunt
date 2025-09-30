@@ -1,0 +1,152 @@
+[
+    {
+      "schemaname": "public",
+      "tablename": "teams",
+      "rows_inserted": 10,
+      "rows_updated": 842,
+      "rows_deleted": 0,
+      "approximate_row_count": 10,
+      "last_vacuum": null,
+      "last_autovacuum": "2025-09-28 08:15:40.234548+00"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "hunt_progress",
+      "rows_inserted": 156,
+      "rows_updated": 681,
+      "rows_deleted": 133,
+      "approximate_row_count": 23,
+      "last_vacuum": null,
+      "last_autovacuum": "2025-09-28 07:03:38.822355+00"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "hunt_settings",
+      "rows_inserted": 5,
+      "rows_updated": 292,
+      "rows_deleted": 0,
+      "approximate_row_count": 5,
+      "last_vacuum": null,
+      "last_autovacuum": "2025-09-26 18:07:56.638678+00"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "debug_logs",
+      "rows_inserted": 240,
+      "rows_updated": 0,
+      "rows_deleted": 2,
+      "approximate_row_count": 238,
+      "last_vacuum": null,
+      "last_autovacuum": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "team_stop_orders",
+      "rows_inserted": 120,
+      "rows_updated": 0,
+      "rows_deleted": 0,
+      "approximate_row_count": 120,
+      "last_vacuum": null,
+      "last_autovacuum": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "kv_store",
+      "rows_inserted": 101,
+      "rows_updated": 12,
+      "rows_deleted": 14,
+      "approximate_row_count": 87,
+      "last_vacuum": null,
+      "last_autovacuum": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "hunt_configurations",
+      "rows_inserted": 27,
+      "rows_updated": 0,
+      "rows_deleted": 11,
+      "approximate_row_count": 12,
+      "last_vacuum": null,
+      "last_autovacuum": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "hunt_stops",
+      "rows_inserted": 24,
+      "rows_updated": 0,
+      "rows_deleted": 0,
+      "approximate_row_count": 20,
+      "last_vacuum": null,
+      "last_autovacuum": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "team_codes",
+      "rows_inserted": 10,
+      "rows_updated": 2,
+      "rows_deleted": 0,
+      "approximate_row_count": 10,
+      "last_vacuum": null,
+      "last_autovacuum": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "settings",
+      "rows_inserted": 10,
+      "rows_updated": 0,
+      "rows_deleted": 0,
+      "approximate_row_count": 10,
+      "last_vacuum": null,
+      "last_autovacuum": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "organizations",
+      "rows_inserted": 8,
+      "rows_updated": 2,
+      "rows_deleted": 1,
+      "approximate_row_count": 1,
+      "last_vacuum": null,
+      "last_autovacuum": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "hunt_ordering_config",
+      "rows_inserted": 6,
+      "rows_updated": 2,
+      "rows_deleted": 2,
+      "approximate_row_count": 1,
+      "last_vacuum": null,
+      "last_autovacuum": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "key_value_store",
+      "rows_inserted": 5,
+      "rows_updated": 2,
+      "rows_deleted": 0,
+      "approximate_row_count": 5,
+      "last_vacuum": null,
+      "last_autovacuum": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "hunts",
+      "rows_inserted": 3,
+      "rows_updated": 3,
+      "rows_deleted": 2,
+      "approximate_row_count": 1,
+      "last_vacuum": null,
+      "last_autovacuum": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "sponsor_assets",
+      "rows_inserted": 3,
+      "rows_updated": 0,
+      "rows_deleted": 1,
+      "approximate_row_count": 2,
+      "last_vacuum": null,
+      "last_autovacuum": null
+    }
+  ]
