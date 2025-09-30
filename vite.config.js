@@ -184,7 +184,7 @@ export default defineConfig({
         secure: false
       },
       '/api/consolidated': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:8888',
         changeOrigin: true,
         secure: false
       },
