@@ -14,7 +14,7 @@
 /api/test-supabase /.netlify/functions/test-supabase 200
 /api/settings/* /.netlify/functions/settings-get/:splat 200
 /api/sponsors /.netlify/functions/sponsors-get 200
-/api/leaderboard/* /.netlify/functions/leaderboard-get/:splat 200
+/api/leaderboard/:orgId/:huntId /.netlify/functions/leaderboard-get-supabase?orgId=:orgId&huntId=:huntId 200
 /api/team-verify /.netlify/functions/team-verify 200
 /api/team-current /.netlify/functions/team-current 200
 /api/team-setup /.netlify/functions/team-setup 200
