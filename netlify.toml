@@ -82,10 +82,10 @@
   force = true
 
 
-# Leaderboard endpoint
+# Leaderboard endpoint - convert path params to query params
 [[redirects]]
-  from = "/api/leaderboard/*"
-  to = "/.netlify/functions/leaderboard-get-supabase/:splat"
+  from = "/api/leaderboard/:orgId/:huntId"
+  to = "/.netlify/functions/leaderboard-get-supabase?orgId=:orgId&huntId=:huntId"
   status = 200
   conditions = {method = ["GET"]}
   force = true
