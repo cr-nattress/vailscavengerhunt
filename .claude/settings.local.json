@@ -25,7 +25,8 @@
       "Bash(findstr:*)",
       "Bash(netstat:*)",
       "Bash(cmd /c:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(npm run server:dev:*)"
     ],
     "deny": [],
     "ask": []

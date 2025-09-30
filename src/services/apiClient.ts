@@ -258,7 +258,7 @@ class ApiClient {
           addApiErrorBreadcrumb(
             init.method || 'GET',
             url,
-            error?.message || 'Unknown error'
+            error instanceof Error ? error.message : 'Unknown error'
           )
         }
 
@@ -273,7 +273,7 @@ class ApiClient {
         this.logger.warn('Request failed, retrying', {
           message: `❌ Request failed (attempt ${attempt + 1})`,
           attempt: attempt + 1,
-          error: error.message
+          error: error instanceof Error ? error.message : String(error)
         })
         
         // If this is the last attempt, throw the error

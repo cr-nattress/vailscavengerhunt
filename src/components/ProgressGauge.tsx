@@ -1,5 +1,5 @@
 /**
- * @file components/ProgressGauge.jsx
+ * @file components/ProgressGauge.tsx
  * @component ProgressGauge
  * @category UI Components
  *
@@ -33,17 +33,33 @@
  * - Responsive sizing with relative units
  */
 
-import React from 'react';
+import React from 'react'
+
+interface Stop {
+  id: string
+  [key: string]: any
+}
+
+interface ProgressItem {
+  done?: boolean
+  [key: string]: any
+}
+
+interface ProgressGaugeProps {
+  /** Completion percentage (0-100) */
+  percent: number
+  /** Number of completed stops */
+  completeCount: number
+  /** Total number of stops in hunt */
+  totalStops: number
+  /** Stop objects for dot rendering */
+  stops: Stop[]
+  /** Completion map by stop ID */
+  progress: Record<string, ProgressItem>
+}
 
 /**
  * Renders a progress gauge with completion visualization.
- *
- * @param {Object} props - Component properties
- * @param {number} props.percent - Completion percentage (0-100)
- * @param {number} props.completeCount - Number of completed stops
- * @param {number} props.totalStops - Total number of stops in hunt
- * @param {Array<{id: string}>} props.stops - Stop objects for dot rendering
- * @param {Object<string, {done: boolean}>} props.progress - Completion map by stop ID
  *
  * @example
  * <ProgressGauge
@@ -54,7 +70,13 @@ import React from 'react';
  *   progress={{'1': {done: true}, '2': {done: false}}}
  * />
  */
-const ProgressGauge = ({ percent, completeCount, totalStops, stops, progress }) => {
+const ProgressGauge: React.FC<ProgressGaugeProps> = ({ 
+  percent, 
+  completeCount, 
+  totalStops, 
+  stops, 
+  progress 
+}) => {
   return (
     <div className='mt-4'>
       <div className='flex items-center justify-between mb-2'>
@@ -123,12 +145,12 @@ const ProgressGauge = ({ percent, completeCount, totalStops, stops, progress }) 
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
 /**
  * OPTIMIZATION: React.memo prevents re-renders
  * Component only updates when props actually change
  * Important for parent components that render frequently
  */
-export default React.memo(ProgressGauge);
+export default React.memo(ProgressGauge)

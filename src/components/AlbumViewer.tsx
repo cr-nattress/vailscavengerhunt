@@ -1,5 +1,5 @@
 /**
- * @file components/AlbumViewer.jsx
+ * @file components/AlbumViewer.tsx
  * @component AlbumViewer
  * @category UI Components
  *
@@ -31,13 +31,17 @@
 
 import React, { useState, useEffect } from 'react';
 
+interface AlbumViewerProps {
+  /** URL indicator (presence triggers render) */
+  collageUrl?: string | null;
+  /** Full resolution image to display */
+  imageUrl?: string | null;
+  /** Default expanded state */
+  initialExpanded?: boolean;
+}
+
 /**
  * Renders a collapsible album viewer for photo collages.
- *
- * @param {Object} props - Component properties
- * @param {string} [props.collageUrl] - URL indicator (presence triggers render)
- * @param {string} [props.imageUrl] - Full resolution image to display
- * @param {boolean} [props.initialExpanded=true] - Default expanded state
  *
  * @example
  * <AlbumViewer
@@ -46,7 +50,11 @@ import React, { useState, useEffect } from 'react';
  *   initialExpanded={false}
  * />
  */
-const AlbumViewer = ({ collageUrl, imageUrl, initialExpanded = true }) => {
+const AlbumViewer: React.FC<AlbumViewerProps> = ({ 
+  collageUrl, 
+  imageUrl, 
+  initialExpanded = true 
+}) => {
   const [expanded, setExpanded] = useState(initialExpanded);
   const [imageLoaded, setImageLoaded] = useState(false);
 
@@ -100,7 +108,7 @@ const AlbumViewer = ({ collageUrl, imageUrl, initialExpanded = true }) => {
         {expanded && imageLoaded && (
           <div className='flex justify-center transition-all duration-300 ease-in-out mt-4'>
             <img
-              src={imageUrl}
+              src={imageUrl || undefined}
               alt="Full size collage"
               className='max-w-full h-auto rounded-lg shadow-md'
               style={{ maxHeight: '70vh' }} // CONSTRAINT: Prevent viewport overflow

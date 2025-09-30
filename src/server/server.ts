@@ -23,7 +23,6 @@ import collageRouter from './collageRoute';
 import kvRouter from './kvRoute';
 import photoRouter from './photoRoute';
 import settingsRouter from './settingsRoute';
-;
 import leaderboardRouter from './leaderboardRoute';
 import teamRouter from './teamRoute';
 import sponsorsRouter from './sponsorsRoute';
