@@ -85,7 +85,7 @@
 # Leaderboard endpoint
 [[redirects]]
   from = "/api/leaderboard/*"
-  to = "/.netlify/functions/leaderboard-get/:splat"
+  to = "/.netlify/functions/leaderboard-get-supabase/:splat"
   status = 200
   conditions = {method = ["GET"]}
   force = true
