@@ -133,7 +133,7 @@ export default defineConfig({
         secure: false
       },
       '/api/leaderboard': {
-        target: 'http://localhost:8889',
+        target: 'http://localhost:8888',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => {
@@ -142,9 +142,9 @@ export default defineConfig({
           if (m) {
             const orgId = encodeURIComponent(m[1])
             const huntId = encodeURIComponent(m[2])
-            return `/.netlify/functions/leaderboard-get?orgId=${orgId}&huntId=${huntId}`
+            return `/.netlify/functions/leaderboard-get-supabase?orgId=${orgId}&huntId=${huntId}`
           }
-          return '/.netlify/functions/leaderboard-get'
+          return '/.netlify/functions/leaderboard-get-supabase'
         }
       },
       '/api/export': {

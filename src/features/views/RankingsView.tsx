@@ -1,23 +1,31 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '../../store/appStore'
 import { useToastActions } from '../notifications/ToastProvider'
+import { useNavigationStore } from '../navigation/navigationStore'
 
 interface LeaderboardEntry {
   teamId: string
   completedStops: number
   totalStops: number
   percentComplete: number
-  latestActivity?: string | null
+  totalTimeMs?: number | null
+  totalTimeFormatted?: string | null
+  averageTimeMs?: number | null
+  averageTimeFormatted?: string | null
+  firstCompletedAt?: string | null
+  lastCompletedAt?: string | null
+  isComplete?: boolean
   rank: number
 }
 
 const RankingsView: React.FC = () => {
   // const { error: showError } = useToastActions()
   const { organizationId, huntId, teamName: currentTeam } = useAppStore()
+  const { activeTab } = useNavigationStore()
 
   // Fetch leaderboard data
-  const { data: leaderboardData, isLoading, error } = useQuery({
+  const { data: leaderboardData, isLoading, error, refetch } = useQuery({
     queryKey: ['leaderboard', organizationId, huntId],
     queryFn: async () => {
       // Safety check: Ensure all required auth context is present
@@ -48,6 +56,13 @@ const RankingsView: React.FC = () => {
     enabled: !!organizationId && !!huntId,
     refetchInterval: 30000, // Refresh every 30 seconds
   })
+
+  // Refetch when tab becomes active
+  useEffect(() => {
+    if (activeTab === 'rankings') {
+      refetch()
+    }
+  }, [activeTab, refetch])
 
   const leaderboard = leaderboardData?.teams || []
 
@@ -113,9 +128,10 @@ const RankingsView: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-3">
-          {sortedLeaderboard.map((entry) => {
+          {sortedLeaderboard.map((entry: LeaderboardEntry) => {
             const percentage = entry.percentComplete || getCompletionPercentage(entry.completedStops, entry.totalStops)
             const isCurrentTeam = entry.teamId === currentTeam
+            const isWinner = entry.isComplete && entry.rank === 1
 
             return (
               <div
@@ -123,6 +139,7 @@ const RankingsView: React.FC = () => {
                 className={`
                   bg-white rounded-lg border overflow-hidden shadow-sm
                   ${isCurrentTeam ? 'border-blue-500 border-2' : 'border-gray-200'}
+                  ${isWinner ? 'ring-2 ring-yellow-400' : ''}
                 `}
               >
                 <div className="p-4">
@@ -132,24 +149,39 @@ const RankingsView: React.FC = () => {
                         {getRankIcon(entry.rank)}
                       </span>
                       <div>
-                        <h3 className={`font-semibold ${isCurrentTeam ? 'text-blue-600' : 'text-gray-900'}`}>
-                          {entry.teamId.toUpperCase()}
-                          {isCurrentTeam && (
-                            <span className="ml-2 text-xs font-normal text-blue-500">
-                              (You)
+                        <div className="flex items-center gap-2">
+                          <h3 className={`font-semibold ${isCurrentTeam ? 'text-blue-600' : 'text-gray-900'}`}>
+                            {entry.teamId.toUpperCase()}
+                            {isCurrentTeam && (
+                              <span className="ml-2 text-xs font-normal text-blue-500">
+                                (You)
+                              </span>
+                            )}
+                          </h3>
+                          {isWinner && (
+                            <span className="px-2 py-0.5 text-xs font-bold bg-yellow-100 text-yellow-800 rounded-full">
+                              🏆 WINNER
                             </span>
                           )}
-                        </h3>
+                        </div>
                         <p className="text-sm text-gray-500">
                           {entry.completedStops} of {entry.totalStops} stops
+                          {entry.totalTimeFormatted && (
+                            <span className="ml-2">• {entry.totalTimeFormatted} total</span>
+                          )}
                         </p>
+                        {entry.averageTimeFormatted && entry.completedStops > 0 && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            Avg: {entry.averageTimeFormatted} per stop
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold text-gray-900">
                         {percentage}%
                       </div>
-                      {percentage === 100 && (
+                      {entry.isComplete && (
                         <p className="text-xs text-green-600">
                           Finished!
                         </p>
@@ -161,7 +193,7 @@ const RankingsView: React.FC = () => {
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className={`h-2 rounded-full transition-all duration-500 ${
-                        percentage === 100
+                        entry.isComplete
                           ? 'bg-green-500'
                           : isCurrentTeam
                           ? 'bg-blue-500'
@@ -182,8 +214,10 @@ const RankingsView: React.FC = () => {
         <div className="mt-8 p-4 bg-gray-50 rounded-lg">
           <h3 className="font-semibold text-sm text-gray-700 mb-2">How Rankings Work</h3>
           <ul className="text-xs text-gray-600 space-y-1">
-            <li>• Teams are ranked by completion percentage</li>
-            <li>• Ties are broken by who finished first</li>
+            <li>• Teams with more completed stops rank higher</li>
+            <li>• Teams with same completions are ranked by fastest total time</li>
+            <li>• First team to complete ALL stops wins overall 🏆</li>
+            <li>• Total time = time from first to last completion</li>
             <li>• Rankings update automatically every 30 seconds</li>
           </ul>
         </div>

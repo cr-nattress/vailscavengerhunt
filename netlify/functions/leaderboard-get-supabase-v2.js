@@ -1,7 +1,6 @@
 const { createClient } = require('@supabase/supabase-js')
 const { withSentry } = require('./_lib/sentry')
 const { rankTeams, enrichTeamWithTimeData } = require('./_lib/rankingService')
-const { getHuntLocations } = require('./_lib/locationsHelper')
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -61,9 +60,14 @@ exports.handler = withSentry(async (event) => {
 
     console.log(`[leaderboard-v2] Found ${teamsData.length} teams`)
 
-    // Get hunt locations to determine total stops
-    const huntLocations = await getHuntLocations(supabase, orgId, huntId)
-    const totalStops = huntLocations?.locations?.length || 0
+    // Get total number of stops for this hunt from kv_store
+    const { data: stopsData } = await supabase
+      .from('kv_store')
+      .select('value')
+      .eq('key', `${orgId}/${huntId}/stops/index`)
+      .single()
+
+    const totalStops = stopsData?.value?.locations?.length || 0
     console.log(`[leaderboard-v2] Total stops in hunt: ${totalStops}`)
 
     // Build leaderboard for each team
