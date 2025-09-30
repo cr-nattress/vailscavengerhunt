@@ -32,7 +32,7 @@ const HistoryView: React.FC = () => {
   // const { info } = useToastActions()
   const { organizationId, teamName, huntId, locationName } = useAppStore()
   const { activeTab } = useNavigationStore()
-  const [expandedPhotos, setExpandedPhotos] = useState<Set<string>>(new Set())
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
 
   // Fetch history data from consolidated endpoint
   const { data, isLoading, error, refetch } = useQuery<ConsolidatedHistoryResponse>({
@@ -89,8 +89,8 @@ const HistoryView: React.FC = () => {
     }
   }, [activeTab, refetch])
 
-  const togglePhotoExpanded = (locationId: string) => {
-    setExpandedPhotos(prev => {
+  const toggleCardExpanded = (locationId: string) => {
+    setExpandedCards(prev => {
       const next = new Set(prev)
       if (next.has(locationId)) {
         next.delete(locationId)
@@ -166,66 +166,84 @@ const HistoryView: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {historyEntries.map((entry) => (
-            <div
-              key={entry.locationId}
-              className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm"
-            >
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">
-                      {entry.title}
-                    </h3>
-                    {entry.description && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        {entry.description}
+          {historyEntries.map((entry) => {
+            const isExpanded = expandedCards.has(entry.locationId)
+            
+            return (
+              <div
+                key={entry.locationId}
+                className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => toggleCardExpanded(entry.locationId)}
+              >
+                <div className="p-4">
+                  {/* Collapsed view - always visible */}
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">
+                        {entry.title}
+                      </h3>
+                      {entry.description && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          {entry.description}
+                        </p>
+                      )}
+                      <p className="text-sm text-gray-500 mt-1">
+                        {formatDate(entry.completedAt)}
                       </p>
-                    )}
-                    <p className="text-sm text-gray-500 mt-1">
-                      {formatDate(entry.completedAt)}
-                    </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                        Completed
+                      </span>
+                      {/* Expand/collapse indicator */}
+                      <svg
+                        className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+                          isExpanded ? 'rotate-180' : ''
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
                   </div>
-                  <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                    Completed
-                  </span>
+
+                  {/* Expanded view - only visible when expanded */}
+                  {isExpanded && (
+                    <div className="mt-4 space-y-3">
+                      {entry.photo && (
+                        <div className="relative">
+                          <img
+                            src={entry.photo}
+                            alt={entry.title}
+                            className="w-full rounded-lg object-cover"
+                          />
+                        </div>
+                      )}
+
+                      {entry.notes && (
+                        <div className="p-2 bg-gray-50 rounded text-sm text-gray-700">
+                          <span className="font-medium">Notes:</span> {entry.notes}
+                        </div>
+                      )}
+
+                      {entry.revealedHints > 0 && (
+                        <div className="text-xs text-gray-500">
+                          {entry.revealedHints} hint{entry.revealedHints !== 1 ? 's' : ''} revealed
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-
-                {entry.photo && (
-                  <div
-                    className="relative cursor-pointer"
-                    onClick={() => togglePhotoExpanded(entry.locationId)}
-                  >
-                    <img
-                      src={entry.photo}
-                      alt={entry.title}
-                      className={`
-                        w-full rounded-lg object-cover transition-all duration-300
-                        ${expandedPhotos.has(entry.locationId) ? 'max-h-none' : 'max-h-48'}
-                      `}
-                    />
-                    {!expandedPhotos.has(entry.locationId) && (
-                      <div className="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
-                        Tap to expand
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {entry.notes && (
-                  <div className="mt-3 p-2 bg-gray-50 rounded text-sm text-gray-700">
-                    <span className="font-medium">Notes:</span> {entry.notes}
-                  </div>
-                )}
-
-                {entry.revealedHints > 0 && (
-                  <div className="mt-2 text-xs text-gray-500">
-                    {entry.revealedHints} hint{entry.revealedHints !== 1 ? 's' : ''} revealed
-                  </div>
-                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
