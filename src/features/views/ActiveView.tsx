@@ -87,19 +87,6 @@ const ActiveView: React.FC = () => {
       console.log(`[PHOTO-FLOW] Photo URL:`, photoUrl?.substring(0, 100) + '...')
       console.log(`[PHOTO-FLOW] Progress updated:`, progressUpdated ? 'YES' : 'NO')
 
-      const completedAt = new Date().toISOString()
-
-      // Update local progress immediately (server already updated)
-      setProgress((prev: any) => ({
-        ...prev,
-        [stopId]: {
-          ...prev[stopId],
-          photo: photoUrl,
-          done: true,
-          completedAt
-        }
-      }))
-
       // Clear preview
       setPreviewUrls(prev => {
         const url = prev[stopId]
@@ -107,6 +94,10 @@ const ActiveView: React.FC = () => {
         const { [stopId]: _omit, ...rest } = prev
         return rest
       })
+
+      // Refetch consolidated data to get updated progress from server
+      console.log(`[PHOTO-FLOW] Refetching consolidated/active data to sync progress...`)
+      await refetchData()
 
       // Invalidate history so the new photo appears promptly when switching tabs
       queryClient.invalidateQueries({
@@ -120,11 +111,6 @@ const ActiveView: React.FC = () => {
       }, 600)
 
       // success(`📸 Photo uploaded for ${stops.find(s => s.id === stopId)?.title || 'stop'}`)
-
-      // Note: No need to save progress separately - the new endpoint handles it atomically!
-      if (!progressUpdated) {
-        console.warn(`[PHOTO-FLOW] ⚠️ Photo uploaded but progress update failed for stop ${stopId}`)
-      }
     },
     onError: (stopId, error) => {
       console.error(`Failed to upload photo for stop ${stopId}:`, error)
