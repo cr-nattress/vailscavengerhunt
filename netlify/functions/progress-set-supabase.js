@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Progress Set Function with Supabase Bridge
  * Handles updating progress data in Supabase hunt_progress table
  */
@@ -138,7 +138,7 @@ exports.handler = withSentry(async (event, context) => {
       }
     }
 
-    console.log('Updated progress for team:', stops)
+    console.log('[progress-set] Updated progress for team:', teamId, 'stops:', updates.length)
 
     return {
       statusCode: 200,
