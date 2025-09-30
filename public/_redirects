@@ -8,7 +8,6 @@
 /api/photo-upload-orchestrated /.netlify/functions/photo-upload-orchestrated 200
 /api/photo-upload-complete /.netlify/functions/photo-upload-complete 200
 /api/progress/:orgId/:teamId/:huntId/stop/:stopId /.netlify/functions/progress-patch-supabase 200
-/api/progress/:orgId/:teamId/:huntId /.netlify/functions/progress-set-supabase 200
 /api/progress/:orgId/:teamId/:huntId /.netlify/functions/progress-get-supabase 200
 /api/write-log /.netlify/functions/write-log 200
 /api/test-supabase /.netlify/functions/test-supabase 200
