@@ -22,6 +22,20 @@ export default async (req, context) => {
     return new Response('', { status: 200, headers })
   }
 
+  // Handle POST requests by proxying to progress-set-supabase
+  if (req.method === 'POST') {
+    try {
+      const progressSetModule = await import('./progress-set-supabase.js')
+      return await progressSetModule.handler(req, context)
+    } catch (error) {
+      console.error('Error proxying to progress-set-supabase:', error)
+      return new Response(JSON.stringify({ error: 'Internal server error' }), {
+        status: 500,
+        headers
+      })
+    }
+  }
+
   if (req.method !== 'GET') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
