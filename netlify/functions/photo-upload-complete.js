@@ -1,3 +1,43 @@
+/**
+ * POST /api/photo-upload-complete
+ * 
+ * Atomic endpoint that uploads photo to Cloudinary AND updates hunt progress in one transaction.
+ * This ensures photo upload and progress update succeed or fail together (no partial state).
+ * 
+ * Request:  multipart/form-data with fields:
+ *   - file: Image file (JPEG, PNG, GIF, WebP; max 10MB)
+ *   - organizationId: Organization ID (e.g., 'bhhs')
+ *   - teamId: Team UUID
+ *   - huntId: Hunt ID (e.g., 'fall-2025')
+ *   - locationId: Stop ID (e.g., 'stop-1')
+ *   - locationTitle: Stop title for metadata
+ *   - sessionId: Session GUID for idempotency
+ *   - teamName: (optional) Team name for metadata
+ *   - locationName: (optional) Location name for metadata
+ *   - eventName: (optional) Event name for metadata
+ * 
+ * Response: {
+ *   success: true,
+ *   photoUrl: string (Cloudinary URL),
+ *   publicId: string,
+ *   progress: ProgressItem (updated progress record),
+ *   progressUpdated: true
+ * }
+ * 
+ * Errors:
+ *   400 - Missing required fields or invalid file
+ *   413 - File too large (>10MB)
+ *   500 - Cloudinary upload failed or database update failed
+ * 
+ * Side effects:
+ *   - Uploads image to Cloudinary (folder: vail-scavenger-hunt/{orgId}/{huntId})
+ *   - Updates hunt_progress table (sets photo_url, done=true, completed_at)
+ *   - Idempotent: Same file+session+location won't duplicate upload
+ * 
+ * @ai-purpose: Atomic photo upload + progress update; prevents inconsistent state
+ * @ai-dont: Don't call this endpoint twice for same photo; use idempotency key (sessionId + locationTitle)
+ * @ai-related-files: /src/hooks/usePhotoUpload.ts, /src/client/PhotoUploadService.ts
+ */
 const multipart = require('parse-multipart-data');
 const cloudinary = require('cloudinary').v2;
 const crypto = require('crypto');

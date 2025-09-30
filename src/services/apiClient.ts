@@ -1,6 +1,15 @@
 /**
+ * Exports: ApiClient singleton — Central HTTP client with error handling, timeouts, retries
+ * Runtime: client
+ * Used by: All services (TeamService, ProgressService, SponsorsService, etc.)
+ * 
  * Central API client with automatic base URL resolution, error handling,
- * timeout support, and both JSON and FormData request capabilities
+ * timeout support, and both JSON and FormData request capabilities.
+ * 
+ * @ai-purpose: Singleton HTTP wrapper; all API calls must use this (never raw fetch)
+ * @ai-dont: Don't call fetch() directly; use apiClient.get/post/put/delete. Adds Sentry breadcrumbs automatically
+ * @ai-related-files: /src/logging/sentryBreadcrumbUtils.ts, /netlify/functions/*.js
+ * @stable
  */
 import { addApiResponseBreadcrumb, addApiErrorBreadcrumb } from '../logging/sentryBreadcrumbUtils'
 import { createLegacyLogger } from '../logging/client'

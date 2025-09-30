@@ -1,3 +1,34 @@
+/**
+ * GET /api/consolidated/active/:orgId/:teamId/:huntId
+ * 
+ * Consolidated endpoint that fetches all active hunt data in a single request.
+ * 
+ * Request:  GET with path parameters (orgId, teamId, huntId)
+ * Response: {
+ *   activeData: {
+ *     stops: HuntLocation[],
+ *     progress: Record<string, ProgressItem>,
+ *     settings: TeamSettings,
+ *     sponsors: SponsorData
+ *   },
+ *   organization: Organization,
+ *   hunt: Hunt,
+ *   team: Team
+ * }
+ * 
+ * Errors:
+ *   400 - Missing required parameters (orgId, teamId, huntId)
+ *   404 - Team, hunt, or organization not found
+ *   500 - Database query failed
+ * 
+ * Side effects:
+ *   - None (read-only endpoint)
+ *   - Cache-Control: no-store (prevents stale data)
+ * 
+ * @ai-purpose: Single-request data fetch for ActiveView; reduces network overhead
+ * @ai-dont: Don't cache this response; always fetch fresh data for progress accuracy
+ * @ai-related-files: /src/hooks/useActiveData.ts, /src/services/ConsolidatedDataService.ts
+ */
 const { getSupabaseClient } = require('./_lib/supabaseClient')
 const { SupabaseTeamStorage } = require('./_lib/supabaseTeamStorage')
 const { getSettings } = require('./_lib/supabaseSettings')

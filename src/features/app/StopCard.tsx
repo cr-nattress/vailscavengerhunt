@@ -1,3 +1,13 @@
+/**
+ * Exports: StopCard component — Individual stop card with photo upload, hints, and completion tracking
+ * Runtime: client
+ * Used by: /src/features/app/StopsList.tsx → /src/features/views/ActiveView.tsx
+ * 
+ * @ai-purpose: Renders single hunt stop with photo upload, progressive hints, completion animation
+ * @ai-dont: Don't manage upload state internally; all state passed via props. Don't mutate progress directly
+ * @ai-related-files: /src/hooks/usePhotoUpload.ts, /src/components/ProgressRing.tsx, /src/types/hunt-system.ts
+ * @stable
+ */
 import React from 'react'
 import ProgressRing from '../../components/ProgressRing'
 

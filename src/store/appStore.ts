@@ -1,3 +1,13 @@
+/**
+ * Exports: useAppStore hook — Global application state (team identity, hunt config, settings)
+ * Runtime: client
+ * Used by: All views and components requiring team/hunt context
+ * 
+ * @ai-purpose: Zustand store for team identity, hunt configuration, and user settings
+ * @ai-dont: Don't use localStorage for critical data; server is source of truth. Call initializeSettings() on app start
+ * @ai-related-files: /src/services/ServerSettingsService.ts, /src/store/uiStore.ts, /netlify/functions/settings-set-supabase.js
+ * @stable
+ */
 import { create } from 'zustand'
 import serverSettingsService from '../services/ServerSettingsService'
 import ConsolidatedDataService from '../services/ConsolidatedDataService'

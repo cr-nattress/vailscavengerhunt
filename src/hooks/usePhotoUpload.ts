@@ -1,3 +1,12 @@
+/**
+ * Exports: usePhotoUpload hook — Photo upload orchestration with validation and state management
+ * Runtime: client
+ * Used by: /src/features/views/ActiveView.tsx
+ * 
+ * @ai-purpose: Manages photo upload lifecycle (validation, upload, progress tracking, callbacks)
+ * @ai-dont: Don't call PhotoUploadService directly; use this hook. Respects MAX_UPLOAD_BYTES from server config
+ * @ai-related-files: /src/client/PhotoUploadService.ts, /netlify/functions/photo-upload-complete.js, /src/utils/image.ts
+ */
 import { useState, useCallback } from 'react'
 import { PhotoUploadService } from '../client/PhotoUploadService'
 import { base64ToFile } from '../utils/image'

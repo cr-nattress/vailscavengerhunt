@@ -1,6 +1,37 @@
 /**
- * Team verification Netlify Function
- * Handles team code validation and lock token issuance
+ * POST /api/team-verify
+ * 
+ * Team verification endpoint that validates team codes and issues JWT tokens.
+ * Implements device locking to prevent users from joining multiple teams.
+ * 
+ * Request:  {
+ *   code: string (team verification code, e.g., 'team-alpha-2025'),
+ *   deviceHint: string (optional device fingerprint for locking)
+ * }
+ * 
+ * Response: {
+ *   success: true,
+ *   teamId: string (UUID),
+ *   teamName: string,
+ *   token: string (JWT token for authentication),
+ *   organization: Organization,
+ *   hunt: Hunt
+ * }
+ * 
+ * Errors:
+ *   400 - Missing or invalid team code
+ *   401 - Code not found, expired, or inactive
+ *   403 - Device already locked to different team
+ *   500 - Database query failed or token generation failed
+ * 
+ * Side effects:
+ *   - Creates device_locks record (prevents multi-team joining)
+ *   - Creates sessions record (tracks team sessions)
+ *   - Generates JWT token (24h expiration)
+ * 
+ * @ai-purpose: Team authentication and device locking; gateway to app access
+ * @ai-dont: Don't bypass device locking; it prevents data corruption from multi-team participation
+ * @ai-related-files: /src/features/teamLock/useTeamLock.ts, /src/services/TeamLockService.ts
  */
 const { SupabaseTeamStorage } = require('./_lib/supabaseTeamStorage')
 const { LockUtils } = require('./_lib/lockUtils')

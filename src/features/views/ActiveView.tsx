@@ -1,3 +1,13 @@
+/**
+ * Exports: ActiveView component — Main hunt interface with stops, progress, and photo upload
+ * Runtime: client
+ * Used by: /src/features/navigation/TabContainer.tsx (default tab)
+ * 
+ * @ai-purpose: Primary hunt UI; orchestrates stop cards, photo uploads, progress tracking, sponsors
+ * @ai-dont: Don't fetch data directly; use useActiveData() hook. Don't manage upload state locally; use usePhotoUpload()
+ * @ai-related-files: /src/hooks/useActiveData.ts, /src/hooks/usePhotoUpload.ts, /src/features/app/StopCard.tsx, /netlify/functions/consolidated-active.js
+ * @stable
+ */
 import React, { useState, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import ProgressGauge from '../../components/ProgressGauge'
