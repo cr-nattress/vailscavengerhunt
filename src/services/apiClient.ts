@@ -64,9 +64,11 @@ class ApiClient {
       return '/api'
     }
 
-    // In development, default to local Express server unless overridden above
-    const devUrl = 'http://localhost:3001/api'
-    this.logger.info('🌐 Development mode, using local server', { devUrl })
+    // In development, use Netlify Dev if VITE_USE_NETLIFY_DEV is set, otherwise use local Express server
+    // If env var is not set, defaults to false (Express server)
+    const useNetlifyDev = import.meta.env.VITE_USE_NETLIFY_DEV === 'true'
+    const devUrl = useNetlifyDev ? 'http://localhost:8888/api' : 'http://localhost:3001/api'
+    this.logger.info('🌐 Development mode, using local server', { devUrl, useNetlifyDev })
     return devUrl
   }
 

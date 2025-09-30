@@ -31,7 +31,7 @@ export function usePhotoUpload({
   onError
 }: UsePhotoUploadOptions) {
   const [uploadingStops, setUploadingStops] = useState<Set<string>>(new Set())
-  const { error: showError } = useToastActions()
+  // const { error: showError } = useToastActions()
 
   const uploadPhoto = useCallback(async (
     stopId: string,
@@ -67,7 +67,7 @@ export function usePhotoUpload({
         const sizeMB = (file.size / 1024 / 1024).toFixed(2)
         const maxMB = (maxSizeBytes / 1024 / 1024).toFixed(0)
         const errorMsg = `Image is too large (${sizeMB}MB). Please choose a smaller photo (max ${maxMB}MB).`
-        showError(errorMsg)
+        // showError(errorMsg)
         setUploadingStops(prev => {
           const newSet = new Set(prev)
           newSet.delete(stopId)
@@ -80,7 +80,7 @@ export function usePhotoUpload({
       // Validate file type
       if (!file.type.startsWith('image/')) {
         const errorMsg = 'Please select a valid image file (JPEG, PNG, GIF, or WebP)'
-        showError(errorMsg)
+        // showError(errorMsg)
         setUploadingStops(prev => {
           const newSet = new Set(prev)
           newSet.delete(stopId)
@@ -159,7 +159,7 @@ export function usePhotoUpload({
     } catch (error) {
       console.error('Photo upload failed:', error)
       const msg = error instanceof Error ? error.message : String(error)
-      showError(`Failed to upload photo: ${msg}`)
+      // showError(`Failed to upload photo: ${msg}`)
 
       // Remove from uploading set
       setUploadingStops(prev => {
@@ -173,7 +173,7 @@ export function usePhotoUpload({
 
       return null
     }
-  }, [sessionId, teamName, locationName, eventName, teamId, orgId, huntId, useOrchestrated, showError, onSuccess, onError])
+  }, [sessionId, teamName, locationName, eventName, teamId, orgId, huntId, useOrchestrated, onSuccess, onError])
 
   const isUploading = useCallback((stopId: string) => {
     return uploadingStops.has(stopId)

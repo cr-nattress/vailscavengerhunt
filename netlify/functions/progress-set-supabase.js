@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Progress Set Function with Supabase Bridge
  * Handles updating progress data in Supabase hunt_progress table
  */
@@ -32,21 +32,53 @@ exports.handler = withSentry(async (event, context) => {
   }
 
   try {
-    const body = JSON.parse(event.body || '{}')
-    const { orgId, teamId, huntId, progress, sessionId, timestamp } = body
+    // Extract orgId, teamId, huntId from URL path
+    console.log('[progress-set] Raw path:', event.path)
 
-    if (!orgId || !teamId || !huntId || !progress) {
+    let pathToProcess = event.path || ''
+
+    // Remove function prefix to get parameters
+    if (pathToProcess.includes('/.netlify/functions/progress-set-supabase/')) {
+      pathToProcess = pathToProcess.split('/.netlify/functions/progress-set-supabase/')[1]
+    } else if (pathToProcess.includes('/progress-set-supabase/')) {
+      pathToProcess = pathToProcess.split('/progress-set-supabase/')[1]
+    } else if (pathToProcess.includes('/api/progress/')) {
+      pathToProcess = pathToProcess.split('/api/progress/')[1]
+    }
+
+    const pathParts = pathToProcess ? pathToProcess.split('/').filter(Boolean) : []
+    console.log('[progress-set] Parsed path parts:', pathParts)
+
+    if (pathParts.length < 3) {
+      console.error('[progress-set] Missing path parameters. Path:', event.path, 'Parts:', pathParts)
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({
-          error: 'Missing required parameters',
-          required: ['orgId', 'teamId', 'huntId', 'progress']
+          error: 'Missing required path parameters: orgId, teamId, huntId',
+          path: event.path
         })
       }
     }
 
-    console.log('Updating Supabase progress for:', { orgId, teamId, huntId, stopCount: Object.keys(progress).length })
+    const [orgId, teamId, huntId] = pathParts
+
+    // Parse request body
+    const body = JSON.parse(event.body || '{}')
+    const { progress, sessionId, timestamp } = body
+
+    if (!progress) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: 'Missing required body parameter: progress',
+          received: Object.keys(body)
+        })
+      }
+    }
+
+    console.log('[progress-set] Updating Supabase progress for:', { orgId, teamId, huntId, stopCount: Object.keys(progress).length })
 
     // Initialize Supabase client
     const supabase = getSupabaseClient()
@@ -106,7 +138,7 @@ exports.handler = withSentry(async (event, context) => {
       }
     }
 
-    console.log(`✅ Updated progress for team ${teamId}: ${updates.length} stops`)
+    console.log('Updated progress for team:', stops)
 
     return {
       statusCode: 200,

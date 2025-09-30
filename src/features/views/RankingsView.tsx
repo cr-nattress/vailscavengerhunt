@@ -13,7 +13,7 @@ interface LeaderboardEntry {
 }
 
 const RankingsView: React.FC = () => {
-  const { error: showError } = useToastActions()
+  // const { error: showError } = useToastActions()
   const { organizationId, huntId, teamName: currentTeam } = useAppStore()
 
   // Fetch leaderboard data

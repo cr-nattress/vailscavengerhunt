@@ -29,7 +29,7 @@ interface ConsolidatedHistoryResponse {
 }
 
 const HistoryView: React.FC = () => {
-  const { info } = useToastActions()
+  // const { info } = useToastActions()
   const { organizationId, teamName, huntId, locationName } = useAppStore()
   const { activeTab } = useNavigationStore()
   const [expandedPhotos, setExpandedPhotos] = useState<Set<string>>(new Set())

@@ -16,7 +16,7 @@ import { useActiveData } from '../../hooks/useActiveData'
 import { LoginService } from '../../services/LoginService'
 
 const ActiveView: React.FC = () => {
-  const { success, error: showError, warning, info } = useToastActions()
+  // const { success, error: showError, warning, info } = useToastActions()
 
   const {
     locationName,
@@ -29,7 +29,7 @@ const ActiveView: React.FC = () => {
   } = useAppStore()
 
   const [stops, setStops] = useState<any[]>([])
-  const { progress, setProgress, completeCount, percent } = useProgress(stops)
+  const { progress, setProgress, seedProgress, completeCount, percent } = useProgress(stops)
   const [fullSizeImageUrl, setFullSizeImageUrl] = useState(null)
 
   // Use UI store for UI state management
@@ -105,7 +105,7 @@ const ActiveView: React.FC = () => {
         setTransitioning(stopId, false)
       }, 600)
 
-      success(`📸 Photo uploaded for ${stops.find(s => s.id === stopId)?.title || 'stop'}`)
+      // success(`📸 Photo uploaded for ${stops.find(s => s.id === stopId)?.title || 'stop'}`)
 
       // Note: No need to save progress separately - the new endpoint handles it atomically!
       if (!progressUpdated) {
@@ -148,10 +148,11 @@ const ActiveView: React.FC = () => {
           revealedHints: 0
         }
       }
-      setProgress(progressWithResetHints)
-      success('✅ Loaded saved progress and data from server')
+      // Use seedProgress instead of setProgress to avoid unnecessary server save on page load
+      seedProgress(progressWithResetHints)
+      // success('✅ Loaded saved progress and data from server')
     }
-  }, [activeData?.progress])
+  }, [activeData?.progress, seedProgress])
 
   // Note: Auto-save removed - progress is now saved atomically with photo uploads
   // via the consolidated photo-upload-complete endpoint
