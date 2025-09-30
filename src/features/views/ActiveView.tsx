@@ -62,6 +62,10 @@ const ActiveView: React.FC = () => {
     huntId || 'fall-2025'
   )
 
+  // ⚠️ CRITICAL: Must call useQueryClient at top level, not inside callbacks
+  // This fixes React error #321 in production (hook called in callback)
+  const queryClient = useQueryClient()
+
   // Photo upload hook replaces uploadingStops state and handlePhotoUpload function
   const serverConfig = LoginService.getCachedConfig()
   // New UI state for upload lifecycle
@@ -104,7 +108,6 @@ const ActiveView: React.FC = () => {
       })
 
       // Invalidate history so the new photo appears promptly when switching tabs
-      const queryClient = useQueryClient()
       queryClient.invalidateQueries({
         queryKey: ['consolidated-history', organizationId, teamName, huntId]
       })
