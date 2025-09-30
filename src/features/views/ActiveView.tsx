@@ -153,18 +153,23 @@ const ActiveView: React.FC = () => {
 
   // Load progress from consolidated data
   useEffect(() => {
-    if (activeData?.progress && Object.keys(activeData.progress).length > 0) {
-      // Reset revealedHints to 0 on page refresh to hide hints
-      const progressWithResetHints: Record<string, any> = {}
-      for (const [stopId, stopProgress] of Object.entries(activeData.progress)) {
-        progressWithResetHints[stopId] = {
-          ...stopProgress,
-          revealedHints: 0
+    if (activeData?.progress) {
+      if (Object.keys(activeData.progress).length > 0) {
+        // Reset revealedHints to 0 on page refresh to hide hints
+        const progressWithResetHints: Record<string, any> = {}
+        for (const [stopId, stopProgress] of Object.entries(activeData.progress)) {
+          progressWithResetHints[stopId] = {
+            ...stopProgress,
+            revealedHints: 0
+          }
         }
+        // Use seedProgress instead of setProgress to avoid unnecessary server save on page load
+        seedProgress(progressWithResetHints)
+        // success('✅ Loaded saved progress and data from server')
+      } else {
+        // Initialize with empty progress if no progress exists yet
+        seedProgress({})
       }
-      // Use seedProgress instead of setProgress to avoid unnecessary server save on page load
-      seedProgress(progressWithResetHints)
-      // success('✅ Loaded saved progress and data from server')
     }
   }, [activeData?.progress, seedProgress])
 
@@ -268,6 +273,7 @@ const ActiveView: React.FC = () => {
           uploadingStops={uploadingStops}
           onPhotoUpload={handlePhotoUpload}
           setProgress={setProgress}
+          seedProgress={seedProgress}
           previewUrls={previewUrls}
           savingStops={savingStops}
         />

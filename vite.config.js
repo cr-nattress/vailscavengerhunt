@@ -128,7 +128,7 @@ export default defineConfig({
       //   secure: false
       // },
       '/api/progress': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:8888',
         changeOrigin: true,
         secure: false
       },

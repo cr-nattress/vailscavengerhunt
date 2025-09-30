@@ -10,6 +10,7 @@ interface StopsListProps {
   uploadingStops: Set<string>
   onPhotoUpload: (stopId: string, file: File) => Promise<void>
   setProgress: (updateFn: any) => void
+  seedProgress: (updateFn: any) => void
   previewUrls: Record<string, string>
   savingStops: Set<string>
 }
@@ -23,6 +24,7 @@ export default function StopsList({
   uploadingStops,
   onPhotoUpload,
   setProgress,
+  seedProgress,
   previewUrls,
   savingStops
 }: StopsListProps) {
@@ -84,10 +86,11 @@ export default function StopsList({
     const state = progress[stopId] || { done: false, notes: '', photo: null, revealedHints: 0 }
     const stop = stops.find(s => s.id === stopId)
     if (stop && stop.hints && state.revealedHints < stop.hints.length) {
-      setProgress((p: any) => ({
-        ...p,
+      // Use seedProgress for local-only state (hints don't need server save)
+      seedProgress({
+        ...progress,
         [stopId]: { ...state, revealedHints: state.revealedHints + 1 }
-      }))
+      })
     }
   }
 
