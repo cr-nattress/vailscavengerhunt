@@ -20,6 +20,7 @@ import { useUIStore } from '../../store/uiStore'
 import { useProgress } from '../../hooks/useProgress'
 import { usePhotoUpload } from '../../hooks/usePhotoUpload'
 import { useCollage } from '../../hooks/useCollage'
+import { useStopSelection } from '../../hooks/useStopSelection'
 import { photoFlowLogger } from '../../utils/photoFlowLogger'
 import { SponsorCard } from '../sponsors/SponsorCard'
 import { useActiveData } from '../../hooks/useActiveData'
@@ -38,7 +39,19 @@ const ActiveView: React.FC = () => {
     organizationId,
   } = useAppStore()
 
-  const [stops, setStops] = useState<any[]>([])
+  // Use consolidated data hook for all data in one request
+  const { data: activeData, isLoading: dataLoading, error: dataError, refetch: refetchData } = useActiveData(
+    organizationId,
+    teamId,
+    huntId
+  )
+
+  // Use stop selection hook (extracts shuffle logic)
+  const stops = useStopSelection({
+    locations: activeData?.locations?.locations,
+    locationName
+  })
+
   const { progress, setProgress, seedProgress, completeCount, percent } = useProgress(stops)
   const [fullSizeImageUrl, setFullSizeImageUrl] = useState(null)
 
@@ -54,14 +67,6 @@ const ActiveView: React.FC = () => {
 
   // Use collage hook for automatic collage creation
   const { collageUrl } = useCollage({ stops, progress, teamName })
-
-  // Use consolidated data hook for all data in one request
-  // Note: useActiveData has its own enabled guard, but we pass undefined to let it handle the check
-  const { data: activeData, isLoading: dataLoading, error: dataError, refetch: refetchData } = useActiveData(
-    organizationId,
-    teamId,
-    huntId
-  )
 
   // ⚠️ CRITICAL: Must call useQueryClient at top level, not inside callbacks
   // This fixes React error #321 in production (hook called in callback)
@@ -116,26 +121,6 @@ const ActiveView: React.FC = () => {
       console.error(`Failed to upload photo for stop ${stopId}:`, error)
     }
   })
-
-  // Update stops when activeData loads with location data
-  useEffect(() => {
-    if (activeData?.locations?.locations) {
-      console.log(`🗺️ Loaded ${activeData.locations.locations.length} locations from API`)
-      // Shuffle and select random stops from the loaded locations
-      const allLocations = [...activeData.locations.locations]
-
-      // Fisher-Yates shuffle
-      for (let i = allLocations.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [allLocations[i], allLocations[j]] = [allLocations[j], allLocations[i]]
-      }
-
-      // Select appropriate number of stops
-      const stopCount = locationName === 'BHHS' ? allLocations.length : Math.min(5, allLocations.length)
-      const selectedStops = allLocations.slice(0, stopCount)
-      setStops(selectedStops)
-    }
-  }, [activeData?.locations, locationName])
 
   // Load progress from consolidated data
   useEffect(() => {
