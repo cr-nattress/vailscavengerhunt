@@ -21,6 +21,7 @@ import { useProgress } from '../../hooks/useProgress'
 import { usePhotoUpload } from '../../hooks/usePhotoUpload'
 import { useCollage } from '../../hooks/useCollage'
 import { useStopSelection } from '../../hooks/useStopSelection'
+import { useProgressSync } from '../../hooks/useProgressSync'
 import { photoFlowLogger } from '../../utils/photoFlowLogger'
 import { SponsorCard } from '../sponsors/SponsorCard'
 import { useActiveData } from '../../hooks/useActiveData'
@@ -122,27 +123,11 @@ const ActiveView: React.FC = () => {
     }
   })
 
-  // Load progress from consolidated data
-  useEffect(() => {
-    if (activeData?.progress) {
-      if (Object.keys(activeData.progress).length > 0) {
-        // Reset revealedHints to 0 on page refresh to hide hints
-        const progressWithResetHints: Record<string, any> = {}
-        for (const [stopId, stopProgress] of Object.entries(activeData.progress)) {
-          progressWithResetHints[stopId] = {
-            ...stopProgress,
-            revealedHints: 0
-          }
-        }
-        // Use seedProgress instead of setProgress to avoid unnecessary server save on page load
-        seedProgress(progressWithResetHints)
-        // success('✅ Loaded saved progress and data from server')
-      } else {
-        // Initialize with empty progress if no progress exists yet
-        seedProgress({})
-      }
-    }
-  }, [activeData?.progress, seedProgress])
+  // Sync progress from server data (extracts useEffect logic)
+  useProgressSync({
+    serverProgress: activeData?.progress,
+    seedProgress
+  })
 
   // Note: Auto-save removed - progress is now saved atomically with photo uploads
   // via the consolidated photo-upload-complete endpoint
