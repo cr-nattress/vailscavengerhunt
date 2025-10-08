@@ -61,6 +61,16 @@ exports.handler = withSentry(async (event) => {
     const supabase = getSupabaseClient()
     const warnings = []
 
+    // Fetch hunt metadata to get photo_mode
+    const { data: huntData, error: huntError } = await supabase
+      .from('hunts')
+      .select('photo_mode')
+      .eq('organization_id', orgId)
+      .eq('id', huntId)
+      .single()
+
+    const photoMode = huntData?.photo_mode || 'upload' // Default to upload mode
+
     // Fetch all data in parallel (independent requests)
     const [settings, locations, sponsors, config] = await Promise.all([
       // Settings (no cache - may change frequently)
@@ -111,6 +121,7 @@ exports.handler = withSentry(async (event) => {
         orgId,
         teamId,
         huntId,
+        photoMode, // Include hunt's photo mode
         settings,
         progress,
         sponsors,

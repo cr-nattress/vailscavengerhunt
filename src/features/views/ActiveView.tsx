@@ -48,6 +48,9 @@ const ActiveView: React.FC = () => {
     huntId
   )
 
+  // Check if this is a pre-populated image hunt
+  const isPrePopulatedHunt = activeData?.photoMode === 'pre_populated'
+
   // Use stop selection hook (extracts shuffle logic)
   const stops = useStopSelection({
     locations: activeData?.locations?.locations,
@@ -130,6 +133,39 @@ const ActiveView: React.FC = () => {
     seedProgress
   })
 
+  // Reset progress on INITIAL page load only for pre-populated hunts
+  // Use ref to track if reset has already happened in this session
+  const hasResetProgress = React.useRef(false)
+
+  useEffect(() => {
+    // Only reset once per session, on initial load
+    if (isPrePopulatedHunt && activeData?.photoMode === 'pre_populated' && !hasResetProgress.current) {
+      console.log('[ActiveView] Pre-populated hunt detected - resetting progress on initial page load')
+      hasResetProgress.current = true
+
+      // Reset local progress state
+      seedProgress({})
+
+      // Reset progress on server
+      const resetServerProgress = async () => {
+        try {
+          const progressService = (await import('../../services/ProgressService')).default
+          await progressService.resetProgress(
+            organizationId,
+            teamId,
+            huntId,
+            sessionId
+          )
+          console.log('[ActiveView] ✅ Server progress reset for pre-populated hunt')
+        } catch (error) {
+          console.error('[ActiveView] Failed to reset server progress:', error)
+        }
+      }
+
+      resetServerProgress()
+    }
+  }, [isPrePopulatedHunt, organizationId, teamId, huntId, sessionId, activeData?.photoMode])
+
   // Note: Auto-save removed - progress is now saved atomically with photo uploads
   // via the consolidated photo-upload-complete endpoint
 
@@ -146,6 +182,68 @@ const ActiveView: React.FC = () => {
     const stop = stops.find((s: any) => s.id === stopId)
     const stopTitle = stop?.title || stopId
     await uploadPhoto(stopId, fileOrDataUrl, stopTitle)
+  }
+
+  // Handler for "Next Step" button in pre-populated image mode
+  const handleNextStep = async (stopId: string) => {
+    console.log(`[ActiveView] Next Step clicked for stop: ${stopId}`)
+
+    const completedAt = new Date().toISOString()
+
+    // Mark the current stop as complete locally
+    setProgress((prev: any) => ({
+      ...prev,
+      [stopId]: {
+        ...prev[stopId],
+        done: true,
+        completedAt,
+        photo: null // No photo upload needed in pre-populated mode
+      }
+    }))
+
+    // Save progress to server
+    // In pre-populated mode, we don't need a photo URL since they're viewing reference images
+    try {
+      const stop = stops.find((s: any) => s.id === stopId)
+      const stopTitle = stop?.title || stopId
+
+      console.log(`[ActiveView] Saving progress for stop ${stopTitle} without photo`)
+
+      const progressService = (await import('../../services/ProgressService')).default
+      const success = await progressService.updateStopProgress(
+        organizationId,
+        teamId,
+        huntId,
+        stopId,
+        {
+          done: true,
+          completedAt,
+          photo: null // Explicitly null in pre-populated mode
+        },
+        sessionId
+      )
+
+      if (success) {
+        console.log(`[ActiveView] ✅ Progress saved for ${stopTitle}`)
+
+        // Invalidate history so the completed stop appears when switching tabs
+        queryClient.invalidateQueries({
+          queryKey: ['consolidated-history', organizationId, teamId, huntId]
+        })
+
+        // Trigger transition animation
+        setTransitioning(stopId, true)
+        setTimeout(() => {
+          setTransitioning(stopId, false)
+        }, 600)
+      } else {
+        console.error(`[ActiveView] ❌ Failed to save progress for ${stopTitle}`)
+        // TODO: Show error toast to user
+      }
+    } catch (error) {
+      console.error(`[ActiveView] Error saving progress:`, error)
+      // TODO: Show error toast to user
+    }
   }
 
   // Convert Set to object for compatibility with StopsList
@@ -206,6 +304,8 @@ const ActiveView: React.FC = () => {
           seedProgress={seedProgress}
           previewUrls={previewUrls}
           savingStops={savingStops}
+          onNextStep={handleNextStep}
+          isPrePopulatedHunt={isPrePopulatedHunt}
         />
 
         <TipsModal isOpen={showTips} onClose={() => setShowTips(false)} />

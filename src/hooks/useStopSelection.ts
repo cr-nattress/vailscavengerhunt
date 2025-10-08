@@ -33,7 +33,8 @@ function shuffleArray<T>(array: T[]): T[] {
 
 /**
  * Select stops from available locations
- * - Shuffles locations randomly
+ * - Preserves order from database (does NOT shuffle)
+ * - Database controls ordering via ordering_strategy (fixed/random)
  * - Selects appropriate number based on hunt type
  * - BHHS: All stops, Others: 5 stops max
  *
@@ -64,8 +65,9 @@ export function useStopSelection({
     // Create copy to avoid mutating original
     const allLocations = [...locations]
 
-    // Shuffle using Fisher-Yates
-    shuffleArray(allLocations)
+    // DO NOT SHUFFLE - preserve order from database
+    // The database controls ordering via hunt_ordering_config table
+    // (ordering_strategy: 'fixed' or 'random')
 
     // Determine how many stops to select
     let count: number
@@ -84,7 +86,7 @@ export function useStopSelection({
     const selectedStops = allLocations.slice(0, count)
     setStops(selectedStops)
 
-    console.log(`✅ Selected ${selectedStops.length} stops for ${locationName}`)
+    console.log(`✅ Selected ${selectedStops.length} stops for ${locationName} (preserving database order)`)
   }, [locations, locationName, stopCount])
 
   return stops

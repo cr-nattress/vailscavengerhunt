@@ -13,6 +13,8 @@ interface StopsListProps {
   seedProgress: (updateFn: any) => void
   previewUrls: Record<string, string>
   savingStops: Set<string>
+  onNextStep?: (stopId: string) => void
+  isPrePopulatedHunt?: boolean
 }
 
 export default function StopsList({
@@ -26,7 +28,9 @@ export default function StopsList({
   setProgress,
   seedProgress,
   previewUrls,
-  savingStops
+  savingStops,
+  onNextStep,
+  isPrePopulatedHunt = false
 }: StopsListProps) {
   // Get completed stops sorted by completion timestamp (earliest first)
   const completedStops = stops
@@ -67,18 +71,20 @@ export default function StopsList({
   
   // Find the first incomplete stop (excluding transitioning ones)
   // Only show if there are no transitioning stops (wait for completion transition to finish)
-  const firstIncomplete = transitioningStops.size === 0 
-    ? stopsWithNumbers.find(stop => !(progress[stop.id]?.done))
-    : null
-  
+  const firstIncomplete = stopsWithNumbers.find(stop => !(progress[stop.id]?.done))
+
   // Get transitioning stops (keep them in their current position)
   const transitioningStopsArray = stopsWithNumbers
     .filter(stop => transitioningStops.has(stop.id))
-  
-  // Show transitioning and first incomplete stop
+
+  // Show ONLY transitioning stop during transition, or first incomplete stop
+  // For pre-populated hunts, skip showing transitioning stop (go directly to next)
   const activeStops = []
-  activeStops.push(...transitioningStopsArray)
-  if (firstIncomplete) {
+  if (transitioningStopsArray.length > 0 && !isPrePopulatedHunt) {
+    // During transition, only show the transitioning stop (unless pre-populated mode)
+    activeStops.push(...transitioningStopsArray)
+  } else if (firstIncomplete) {
+    // After transition completes (or immediately in pre-populated mode), show next incomplete stop
     activeStops.push(firstIncomplete)
   }
 
@@ -111,6 +117,7 @@ export default function StopsList({
           index={i}
           previewImage={previewUrls[s.id]}
           isSaving={savingStops.has(s.id)}
+          onNextStep={onNextStep}
         />
       ))}
 

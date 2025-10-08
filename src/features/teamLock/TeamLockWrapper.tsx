@@ -35,25 +35,30 @@ export function TeamLockWrapper({ children }: TeamLockWrapperProps) {
     try {
       setIsInitializing(true)
 
-      // Use the response data if provided (from SplashGate), otherwise fetch it
-      const response = fullResponse || await LoginService.quickInit('bhhs', 'fall-2025', sessionId)
-
-      // Update app store with all data from consolidated response
-      setOrganizationId(response.organization.id)
-      setHuntId(response.hunt.id)
-
-      if (response.activeData?.settings) {
-        setLocationName(response.activeData.settings.locationName)
-        setEventName(response.activeData.settings.eventName || '')
+      // The fullResponse from SplashGate should always be provided now
+      // and contains the correct organization and hunt data
+      if (!fullResponse) {
+        console.error('No response data provided to handleTeamVerified')
+        throw new Error('Missing initialization data')
       }
 
-      console.log('Settings initialized for team:', teamId, 'with name:', teamName)
+      // Update app store with all data from consolidated response
+      setOrganizationId(fullResponse.organization.id)
+      setHuntId(fullResponse.hunt.id)
+
+      if (fullResponse.activeData?.settings) {
+        setLocationName(fullResponse.activeData.settings.locationName)
+        setEventName(fullResponse.activeData.settings.eventName || '')
+      }
+
+      console.log('Settings initialized for team:', teamId, 'with name:', teamName,
+                  'org:', fullResponse.organization.id, 'hunt:', fullResponse.hunt.id)
     } catch (error) {
       console.error('Failed to initialize settings after team verification:', error)
     } finally {
       setIsInitializing(false)
     }
-  }, [onTeamVerified, setTeamId, setTeamName, setLocationName, setEventName, setOrganizationId, setHuntId, sessionId])
+  }, [onTeamVerified, setTeamId, setTeamName, setLocationName, setEventName, setOrganizationId, setHuntId])
 
   // Initialize settings when we have an existing team lock (e.g., on page refresh)
   useEffect(() => {
@@ -71,8 +76,18 @@ export function TeamLockWrapper({ children }: TeamLockWrapperProps) {
         setTeamName(teamName)
 
         try {
+          // Get the stored lock to retrieve org and hunt info
+          const { TeamLockService } = await import('../../services/TeamLockService')
+          const lock = TeamLockService.getLock()
+
+          // Use stored org/hunt or fall back to defaults
+          const orgId = lock?.organizationId || 'bhhs'
+          const huntId = lock?.huntId || 'fall-2025'
+
+          console.log('Initializing with org:', orgId, 'hunt:', huntId)
+
           // Fetch complete data using consolidated endpoint
-          const response = await LoginService.quickInit('bhhs', 'fall-2025', sessionId)
+          const response = await LoginService.quickInit(orgId, huntId, sessionId)
 
           // Update app store with all data
           setOrganizationId(response.organization.id)
@@ -95,9 +110,7 @@ export function TeamLockWrapper({ children }: TeamLockWrapperProps) {
             extra: {
               teamId,
               teamName,
-              sessionId,
-              orgId: 'bhhs',
-              huntId: 'fall-2025'
+              sessionId
             },
             level: 'error'
           })
