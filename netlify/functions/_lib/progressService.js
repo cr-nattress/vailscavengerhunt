@@ -14,7 +14,7 @@
  * @param {Array} locations - Array of hunt locations (optional, for enrichment)
  * @returns {Promise<object>} Progress data keyed by location ID
  */
-export async function getEnrichedProgress(supabase, teamId, orgId, huntId, locations = null) {
+async function getEnrichedProgress(supabase, teamId, orgId, huntId, locations = null) {
   try {
     console.log(`[ProgressService] Fetching progress for team: ${teamId}`)
 
@@ -96,7 +96,7 @@ export async function getEnrichedProgress(supabase, teamId, orgId, huntId, locat
  * @param {string} teamUuid - Team UUID (not team_id)
  * @returns {Promise<Array>} Array of progress rows
  */
-export async function getAllProgress(supabase, teamUuid) {
+async function getAllProgress(supabase, teamUuid) {
   try {
     const { data, error } = await supabase
       .from('hunt_progress')
@@ -125,7 +125,7 @@ export async function getAllProgress(supabase, teamUuid) {
  * @param {object} progressData - Progress update data
  * @returns {Promise<object|null>} Updated progress row or null
  */
-export async function setProgress(supabase, teamUuid, locationId, progressData) {
+async function setProgress(supabase, teamUuid, locationId, progressData) {
   try {
     const { data, error } = await supabase
       .from('hunt_progress')
@@ -164,7 +164,7 @@ export async function setProgress(supabase, teamUuid, locationId, progressData) 
  * @param {object} updates - Partial update data
  * @returns {Promise<object|null>} Updated progress row or null
  */
-export async function patchProgress(supabase, teamUuid, locationId, updates) {
+async function patchProgress(supabase, teamUuid, locationId, updates) {
   try {
     const updateData = {}
 
@@ -212,7 +212,7 @@ export async function patchProgress(supabase, teamUuid, locationId, updates) {
  * @param {string} teamUuid - Team UUID
  * @returns {Promise<{total: number, completed: number}>} Progress counts
  */
-export async function getProgressCounts(supabase, teamUuid) {
+async function getProgressCounts(supabase, teamUuid) {
   try {
     const { count: total, error: totalError } = await supabase
       .from('hunt_progress')
@@ -246,7 +246,7 @@ export async function getProgressCounts(supabase, teamUuid) {
  * @param {string} huntId - Hunt ID
  * @returns {Promise<string|null>} Team UUID or null if not found
  */
-export async function resolveTeamUuid(supabase, teamId, orgId, huntId) {
+async function resolveTeamUuid(supabase, teamId, orgId, huntId) {
   try {
     const { data, error } = await supabase
       .from('teams')
@@ -277,7 +277,7 @@ export async function resolveTeamUuid(supabase, teamId, orgId, huntId) {
  * @param {string} photoUrl - Cloudinary photo URL
  * @returns {Promise<object|null>} Updated progress row or null
  */
-export async function updateProgressWithPhoto(supabase, teamUuid, locationId, photoUrl) {
+async function updateProgressWithPhoto(supabase, teamUuid, locationId, photoUrl) {
   try {
     const { data, error } = await supabase
       .from('hunt_progress')

@@ -173,7 +173,6 @@ if (typeof setInterval !== 'undefined') {
  * @param {string} key - Cache key
  * @param {number} ttl - Time to live in seconds
  * @param {Function} fn - Async function to execute on cache miss
- * @returns {Promise<any>} Cached or fresh value
  *
  * @example
  * const locations = await withCache(
@@ -182,21 +181,21 @@ if (typeof setInterval !== 'undefined') {
  *   () => getHuntLocations(supabase, orgId, huntId)
  * )
  */
-export async function withCache(key, ttl, fn) {
-  // Check cache first
-  const cached = cache.get(key)
-  if (cached !== null) {
-    return cached
-  }
+ async function withCache(key, ttl, fn) {
+   // Check cache first
+   const cached = cache.get(key)
+   if (cached !== null) {
+     return cached
+   }
 
-  // Cache miss - execute function
-  const value = await fn()
+   // Cache miss - execute function
+   const value = await fn()
 
-  // Store in cache
-  cache.set(key, value, ttl)
+   // Store in cache
+   cache.set(key, value, ttl)
 
-  return value
-}
+   return value
+ }
 
 /**
  * Invalidate cache entries matching a pattern
@@ -211,43 +210,43 @@ export async function withCache(key, ttl, fn) {
  * // Invalidate specific org/hunt
  * invalidatePattern(`locations:${orgId}:${huntId}`)
  */
-export function invalidatePattern(pattern) {
-  const regex = typeof pattern === 'string'
-    ? new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
-    : pattern
+ function invalidatePattern(pattern) {
+   const regex = typeof pattern === 'string'
+     ? new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
+     : pattern
 
-  let count = 0
+   let count = 0
 
-  for (const key of cache.keys()) {
-    if (regex.test(key)) {
-      cache.delete(key)
-      count++
-    }
-  }
+   for (const key of cache.keys()) {
+     if (regex.test(key)) {
+       cache.delete(key)
+       count++
+     }
+   }
 
-  return count
-}
+   return count
+ }
 
 /**
  * Get cache statistics
  *
- * @returns {object} Cache statistics
- */
-export function getCacheStats() {
+  * @returns {object} Cache statistics
+  */
+ function getCacheStats() {
   return cache.getStats()
 }
 
 /**
- * Clear all cache entries
- */
-export function clearCache() {
+  * Clear all cache entries
+  */
+ function clearCache() {
   cache.clear()
 }
 
 /**
  * Cache key builders for common patterns
- */
-export const CacheKeys = {
+  */
+ const CacheKeys = {
   locations: (orgId, huntId) => `locations:${orgId}:${huntId}`,
   sponsors: (orgId, huntId) => `sponsors:${orgId}:${huntId}`,
   settings: (orgId, teamId, huntId) => `settings:${orgId}:${teamId}:${huntId}`,
@@ -256,5 +255,12 @@ export const CacheKeys = {
   config: () => 'config:public'
 }
 
-// Export singleton for direct access
-export default cache
+ // CommonJS exports
+ module.exports = {
+   withCache,
+   invalidatePattern,
+   getCacheStats,
+   clearCache,
+   CacheKeys,
+   cache
+ }
