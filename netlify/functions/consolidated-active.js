@@ -61,15 +61,23 @@ exports.handler = withSentry(async (event) => {
     const supabase = getSupabaseClient()
     const warnings = []
 
-    // Fetch hunt metadata to get photo_mode
-    const { data: huntData, error: huntError } = await supabase
-      .from('hunts')
-      .select('photo_mode')
-      .eq('organization_id', orgId)
-      .eq('id', huntId)
-      .single()
+    // Fetch hunt metadata to get photo_mode (with error handling for missing column)
+    let photoMode = 'upload' // Default to upload mode
+    try {
+      const { data: huntData, error: huntError } = await supabase
+        .from('hunts')
+        .select('photo_mode')
+        .eq('organization_id', orgId)
+        .eq('id', huntId)
+        .single()
 
-    const photoMode = huntData?.photo_mode || 'upload' // Default to upload mode
+      if (!huntError && huntData) {
+        photoMode = huntData.photo_mode || 'upload'
+      }
+    } catch (photoModeError) {
+      // If photo_mode column doesn't exist yet, just use default
+      console.warn(`[consolidated-active:${requestId}] Could not fetch photo_mode, using default:`, photoModeError.message)
+    }
 
     // Fetch all data in parallel (independent requests)
     const [settings, locations, sponsors, config] = await Promise.all([
