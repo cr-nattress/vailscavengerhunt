@@ -10,8 +10,8 @@
  */
 import React, { useState, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import ProgressGauge from '../../components/ProgressGauge'
 import AlbumViewer from '../../components/AlbumViewer'
+import { ProgressCard } from '../../components/ProgressCard'
 import StopsList from '../app/StopsList'
 import { UploadProvider } from '../upload/UploadContext'
 import { useToastActions } from '../notifications/ToastProvider'
@@ -20,10 +20,13 @@ import { useUIStore } from '../../store/uiStore'
 import { useProgress } from '../../hooks/useProgress'
 import { usePhotoUpload } from '../../hooks/usePhotoUpload'
 import { useCollage } from '../../hooks/useCollage'
+import { useStopSelection } from '../../hooks/useStopSelection'
+import { useProgressSync } from '../../hooks/useProgressSync'
 import { photoFlowLogger } from '../../utils/photoFlowLogger'
 import { SponsorCard } from '../sponsors/SponsorCard'
 import { useActiveData } from '../../hooks/useActiveData'
 import { LoginService } from '../../services/LoginService'
+import { TipsModal } from '../../components/TipsModal'
 
 const ActiveView: React.FC = () => {
   // const { success, error: showError, warning, info } = useToastActions()
@@ -38,7 +41,22 @@ const ActiveView: React.FC = () => {
     organizationId,
   } = useAppStore()
 
-  const [stops, setStops] = useState<any[]>([])
+  // Use consolidated data hook for all data in one request
+  const { data: activeData, isLoading: dataLoading, error: dataError, refetch: refetchData } = useActiveData(
+    organizationId,
+    teamId,
+    huntId
+  )
+
+  // Check if this is a pre-populated image hunt
+  const isPrePopulatedHunt = activeData?.photoMode === 'pre_populated'
+
+  // Use stop selection hook (extracts shuffle logic)
+  const stops = useStopSelection({
+    locations: activeData?.locations?.locations,
+    locationName
+  })
+
   const { progress, setProgress, seedProgress, completeCount, percent } = useProgress(stops)
   const [fullSizeImageUrl, setFullSizeImageUrl] = useState(null)
 
@@ -54,14 +72,6 @@ const ActiveView: React.FC = () => {
 
   // Use collage hook for automatic collage creation
   const { collageUrl } = useCollage({ stops, progress, teamName })
-
-  // Use consolidated data hook for all data in one request
-  // Note: useActiveData has its own enabled guard, but we pass undefined to let it handle the check
-  const { data: activeData, isLoading: dataLoading, error: dataError, refetch: refetchData } = useActiveData(
-    organizationId,
-    teamId,
-    huntId
-  )
 
   // ⚠️ CRITICAL: Must call useQueryClient at top level, not inside callbacks
   // This fixes React error #321 in production (hook called in callback)
@@ -117,47 +127,44 @@ const ActiveView: React.FC = () => {
     }
   })
 
-  // Update stops when activeData loads with location data
+  // Sync progress from server data (extracts useEffect logic)
+  useProgressSync({
+    serverProgress: activeData?.progress,
+    seedProgress
+  })
+
+  // Reset progress on INITIAL page load only for pre-populated hunts
+  // Use ref to track if reset has already happened in this session
+  const hasResetProgress = React.useRef(false)
+
   useEffect(() => {
-    if (activeData?.locations?.locations) {
-      console.log(`🗺️ Loaded ${activeData.locations.locations.length} locations from API`)
-      // Shuffle and select random stops from the loaded locations
-      const allLocations = [...activeData.locations.locations]
+    // Only reset once per session, on initial load
+    if (isPrePopulatedHunt && activeData?.photoMode === 'pre_populated' && !hasResetProgress.current) {
+      console.log('[ActiveView] Pre-populated hunt detected - resetting progress on initial page load')
+      hasResetProgress.current = true
 
-      // Fisher-Yates shuffle
-      for (let i = allLocations.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [allLocations[i], allLocations[j]] = [allLocations[j], allLocations[i]]
-      }
+      // Reset local progress state
+      seedProgress({})
 
-      // Select appropriate number of stops
-      const stopCount = locationName === 'BHHS' ? allLocations.length : Math.min(5, allLocations.length)
-      const selectedStops = allLocations.slice(0, stopCount)
-      setStops(selectedStops)
-    }
-  }, [activeData?.locations, locationName])
-
-  // Load progress from consolidated data
-  useEffect(() => {
-    if (activeData?.progress) {
-      if (Object.keys(activeData.progress).length > 0) {
-        // Reset revealedHints to 0 on page refresh to hide hints
-        const progressWithResetHints: Record<string, any> = {}
-        for (const [stopId, stopProgress] of Object.entries(activeData.progress)) {
-          progressWithResetHints[stopId] = {
-            ...stopProgress,
-            revealedHints: 0
-          }
+      // Reset progress on server
+      const resetServerProgress = async () => {
+        try {
+          const progressService = (await import('../../services/ProgressService')).default
+          await progressService.resetProgress(
+            organizationId,
+            teamId,
+            huntId,
+            sessionId
+          )
+          console.log('[ActiveView] ✅ Server progress reset for pre-populated hunt')
+        } catch (error) {
+          console.error('[ActiveView] Failed to reset server progress:', error)
         }
-        // Use seedProgress instead of setProgress to avoid unnecessary server save on page load
-        seedProgress(progressWithResetHints)
-        // success('✅ Loaded saved progress and data from server')
-      } else {
-        // Initialize with empty progress if no progress exists yet
-        seedProgress({})
       }
+
+      resetServerProgress()
     }
-  }, [activeData?.progress, seedProgress])
+  }, [isPrePopulatedHunt, organizationId, teamId, huntId, sessionId, activeData?.photoMode])
 
   // Note: Auto-save removed - progress is now saved atomically with photo uploads
   // via the consolidated photo-upload-complete endpoint
@@ -175,6 +182,68 @@ const ActiveView: React.FC = () => {
     const stop = stops.find((s: any) => s.id === stopId)
     const stopTitle = stop?.title || stopId
     await uploadPhoto(stopId, fileOrDataUrl, stopTitle)
+  }
+
+  // Handler for "Next Step" button in pre-populated image mode
+  const handleNextStep = async (stopId: string) => {
+    console.log(`[ActiveView] Next Step clicked for stop: ${stopId}`)
+
+    const completedAt = new Date().toISOString()
+
+    // Mark the current stop as complete locally
+    setProgress((prev: any) => ({
+      ...prev,
+      [stopId]: {
+        ...prev[stopId],
+        done: true,
+        completedAt,
+        photo: null // No photo upload needed in pre-populated mode
+      }
+    }))
+
+    // Save progress to server
+    // In pre-populated mode, we don't need a photo URL since they're viewing reference images
+    try {
+      const stop = stops.find((s: any) => s.id === stopId)
+      const stopTitle = stop?.title || stopId
+
+      console.log(`[ActiveView] Saving progress for stop ${stopTitle} without photo`)
+
+      const progressService = (await import('../../services/ProgressService')).default
+      const success = await progressService.updateStopProgress(
+        organizationId,
+        teamId,
+        huntId,
+        stopId,
+        {
+          done: true,
+          completedAt,
+          photo: null // Explicitly null in pre-populated mode
+        },
+        sessionId
+      )
+
+      if (success) {
+        console.log(`[ActiveView] ✅ Progress saved for ${stopTitle}`)
+
+        // Invalidate history so the completed stop appears when switching tabs
+        queryClient.invalidateQueries({
+          queryKey: ['consolidated-history', organizationId, teamId, huntId]
+        })
+
+        // Trigger transition animation
+        setTransitioning(stopId, true)
+        setTimeout(() => {
+          setTransitioning(stopId, false)
+        }, 600)
+      } else {
+        console.error(`[ActiveView] ❌ Failed to save progress for ${stopTitle}`)
+        // TODO: Show error toast to user
+      }
+    } catch (error) {
+      console.error(`[ActiveView] Error saving progress:`, error)
+      // TODO: Show error toast to user
+    }
   }
 
   // Convert Set to object for compatibility with StopsList
@@ -205,43 +274,16 @@ const ActiveView: React.FC = () => {
         )}
 
         {/* Progress Card with Team/Hunt Info */}
-        <div className={`border rounded-lg shadow-sm px-4 py-3 relative ${activeData?.sponsors && activeData.sponsors.items.length > 0 ? 'mt-3' : 'mt-0'}`} style={{
-          backgroundColor: 'var(--color-white)',
-          borderColor: 'var(--color-light-grey)'
-        }}>
-          {/* Team and Hunt Name */}
-          <div className='flex items-center justify-between text-sm'>
-            {teamName && (
-              <div className='flex-shrink-0'>
-                <span className='text-blue-600 font-medium uppercase'>{teamName}</span>
-              </div>
-            )}
-            {huntId && (
-              <div className='flex-shrink-0'>
-                <span className='text-gray-700 uppercase'>{huntId}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Progress Section */}
-          {percent === 100 ? (
-            <div className='mt-1'>
-              <p className='text-lg font-semibold' style={{color: 'var(--color-cabernet)'}}>
-                🎉 Congratulations! You completed the scavenger hunt.
-              </p>
-            </div>
-          ) : (
-            <div className='mt-1'>
-              <ProgressGauge
-                percent={percent}
-                completeCount={completeCount}
-                totalStops={stops.length}
-                stops={stops}
-                progress={progress}
-              />
-            </div>
-          )}
-        </div>
+        <ProgressCard
+          teamName={teamName}
+          huntId={huntId}
+          percent={percent}
+          completeCount={completeCount}
+          totalStops={stops.length}
+          stops={stops}
+          progress={progress}
+          hasSponsors={!!(activeData?.sponsors && activeData.sponsors.items.length > 0)}
+        />
 
         {/* Album Viewer Component */}
         <AlbumViewer
@@ -262,57 +304,11 @@ const ActiveView: React.FC = () => {
           seedProgress={seedProgress}
           previewUrls={previewUrls}
           savingStops={savingStops}
+          onNextStep={handleNextStep}
+          isPrePopulatedHunt={isPrePopulatedHunt}
         />
 
-        {showTips && (
-          <div className='fixed inset-0 z-30'>
-            <div
-              className='absolute inset-0 bg-black/40 backdrop-blur-sm'
-              onClick={() => setShowTips(false)}
-              style={{
-                animation: 'fadeIn 0.2s ease-out forwards'
-              }}
-            />
-            <div
-              className='absolute inset-x-0 bottom-0 rounded-t-3xl p-5 shadow-2xl'
-              style={{
-                backgroundColor: 'var(--color-white)',
-                animation: 'slideUpModal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
-              }}
-            >
-              <div className='mx-auto max-w-screen-sm'>
-                <div className='flex items-center justify-between'>
-                  <h3 className='text-lg font-semibold flex items-center gap-2' style={{ color: 'var(--color-cabernet)' }}>
-                    📖 Rules
-                  </h3>
-                  <button
-                    className='p-2 rounded-lg transition-all duration-150 transform hover:scale-110 active:scale-95'
-                    onClick={() => setShowTips(false)}
-                    aria-label='Close'
-                  >
-                    <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                      <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
-                    </svg>
-                  </button>
-                </div>
-                <div className='mt-3 space-y-3 text-sm'>
-                  <p className='font-medium'>📸 Take a group photo in front of each location to prove you completed the clue.</p>
-
-                  <div className='space-y-2'>
-                    <p className='font-medium'>👑 Two winners will be crowned:</p>
-                    <ul className='pl-5 space-y-1'>
-                      <li>🏁 The team that finishes first</li>
-                      <li>🎨 The team with the most creative photos</li>
-                    </ul>
-                  </div>
-
-                  <p>👀 Pay attention to your surroundings — details you notice along the way might help you.</p>
-                  <p>🤝 Work together, ✨ be creative, and 🏔️ enjoy exploring Vail Village!</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <TipsModal isOpen={showTips} onClose={() => setShowTips(false)} />
       </div>
     </UploadProvider>
   )

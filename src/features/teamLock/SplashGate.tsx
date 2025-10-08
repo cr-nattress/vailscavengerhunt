@@ -34,10 +34,32 @@ export function SplashGate({ onTeamVerified, onCancel }: SplashGateProps) {
     setError(null)
 
     try {
-      // Use consolidated login service with defaults
+      // Step 1: Verify team code to get organization and hunt info
+      const verifyResponse = await fetch('/.netlify/functions/team-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: teamCode.trim().toUpperCase() })
+      })
+
+      if (!verifyResponse.ok) {
+        const errorData = await verifyResponse.json()
+        throw new Error(errorData.error || 'Team verification failed')
+      }
+
+      const verifyData = await verifyResponse.json()
+
+      // Step 2: Use the organization and hunt from the team code
+      const orgId = verifyData.organizationId
+      const huntId = verifyData.huntId
+
+      if (!orgId || !huntId) {
+        throw new Error('Invalid team code response - missing organization or hunt information')
+      }
+
+      // Step 3: Call login-initialize with the correct org/hunt
       const response = await LoginService.verifyTeam(
-        'bhhs',        // Default org
-        'fall-2025',   // Default hunt
+        orgId,
+        huntId,
         teamCode.trim().toUpperCase(),
         sessionId
       )
@@ -53,7 +75,9 @@ export function SplashGate({ onTeamVerified, onCancel }: SplashGateProps) {
             issuedAt: Date.now(),
             expiresAt: Date.now() + (response.teamVerification.ttlSeconds || 86400) * 1000,
             teamCodeHash,
-            lockToken: response.teamVerification.lockToken
+            lockToken: response.teamVerification.lockToken,
+            organizationId: orgId,
+            huntId: huntId
           }
           TeamLockService.storeLock(lock)
         }
@@ -86,20 +110,15 @@ export function SplashGate({ onTeamVerified, onCancel }: SplashGateProps) {
     <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-6">
       {/* Logo/Header Area */}
       <div className="mb-8 text-center">
-        <div className="flex items-center justify-center mb-4">
-          {/* BHHS Logo */}
-          <svg width="280" height="40" viewBox="0 0 280 40" className="text-gray-800">
-            <g transform="translate(0,10)">
-              <path d="M8 8 L16 1 L24 8 L24 16 L20 16 L20 10 L12 10 L12 16 L8 16 Z" fill="currentColor"/>
-              <rect x="15" y="3" width="2" height="4" fill="currentColor"/>
-            </g>
-            <text x="38" y="16" fill="currentColor" fontSize="11" fontWeight="bold" fontFamily="Arial, sans-serif">BERKSHIRE HATHAWAY</text>
-            <text x="38" y="30" fill="currentColor" fontSize="9" fontWeight="normal" fontFamily="Arial, sans-serif">HomeServices</text>
-            <line x1="38" y1="20" x2="220" y2="20" stroke="currentColor" strokeWidth="0.8"/>
+        <div className="flex items-center justify-center mb-6">
+          {/* Generic Logo - Scavenger Hunt Icon */}
+          <svg width="64" height="64" viewBox="0 0 64 64" className="text-gray-700">
+            <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="3" fill="none"/>
+            <path d="M32 12 L38 24 L50 26 L41 35 L43 48 L32 42 L21 48 L23 35 L14 26 L26 24 Z" fill="currentColor"/>
           </svg>
         </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Join Your Team
+          Scavenger Hunt
         </h1>
         <p className="text-gray-600">
           Enter your team code to get started

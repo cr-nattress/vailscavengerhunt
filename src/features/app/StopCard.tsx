@@ -25,6 +25,7 @@ interface StopCardProps {
   index: number
   previewImage?: string
   isSaving?: boolean
+  onNextStep?: (stopId: string) => void
 }
 
 export default function StopCard({
@@ -38,10 +39,20 @@ export default function StopCard({
   revealNextHint,
   index,
   previewImage,
-  isSaving
+  isSaving,
+  onNextStep
 }: StopCardProps) {
   const state = progress[stop.id] || { done: false, notes: '', photo: null, revealedHints: 0 }
-  const displayImage = previewImage || state.photo || PLACEHOLDER
+
+  // Check if this stop has a pre-populated image (viewing mode)
+  const hasPrePopulatedImage = !!(stop as any).pre_populated_image_url
+  const prePopulatedImageUrl = (stop as any).pre_populated_image_url
+
+  // Display logic: pre-populated > user photo > preview > placeholder
+  const displayImage = hasPrePopulatedImage
+    ? prePopulatedImageUrl
+    : (previewImage || state.photo || PLACEHOLDER)
+
   const isTransitioning = transitioningStops.has(stop.id)
   const isUploading = uploadingStops.has(stop.id)
 
@@ -89,7 +100,7 @@ export default function StopCard({
                   size={36}
                 />
               )}
-              <h3 className={`text-base font-semibold ${!state.photo ? 'blur-sm' : ''}`} style={{ color: 'var(--color-text-primary)' }}>{stop.title}</h3>
+              <h3 className={`text-base font-semibold ${!state.photo && !hasPrePopulatedImage ? 'blur-sm' : ''}`} style={{ color: 'var(--color-text-primary)' }}>{stop.title}</h3>
             </div>
             {state.done && (
               <span style={{ color: 'var(--color-text-primary)' }}>
@@ -97,7 +108,7 @@ export default function StopCard({
               </span>
             )}
             
-            {/* Minimal Icon Badge hint button */}
+            {/* Minimal Icon Badge hint button - show for incomplete stops without user photos */}
             {(!state.done || expanded) && !state.photo && stop.hints && stop.hints.length > 0 && state.revealedHints < stop.hints.length && (
               <button
                 onClick={(e) => {
@@ -199,35 +210,61 @@ export default function StopCard({
         <>
           <div className='mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3'>
             <div className='rounded-xl p-3' style={{ border: '1px solid var(--color-border)' }}>
-              {(state.photo || previewImage) && (
+              {/* Status indicator */}
+              {hasPrePopulatedImage ? (
+                <div className='text-xs uppercase tracking-wide flex items-center gap-1' style={{ color: 'var(--color-text-secondary)' }}>
+                  📷 Reference Photo
+                </div>
+              ) : (state.photo || previewImage) ? (
                 <div className={`text-xs uppercase tracking-wide`} style={{ color: 'var(--color-success)' }}>
                   ✅ Photo Complete
                 </div>
+              ) : null}
+
+              {/* Image display */}
+              {displayImage && (
+                <img
+                  src={displayImage}
+                  alt={hasPrePopulatedImage ? 'Reference photo' : 'Selfie'}
+                  className='mt-2 rounded-md object-contain w-full'
+                  style={{
+                    aspectRatio: '1 / 1',
+                    maxHeight: '300px',
+                    opacity: hasPrePopulatedImage ? 0.95 : 1,
+                    filter: hasPrePopulatedImage ? 'brightness(0.95)' : 'none'
+                  }}
+                  onError={(e) => {(e.target as HTMLElement).style.display='none'}}
+                />
               )}
-              {/* If this image fails to load, confirm the path root (see PHOTO_GUIDES note). */}
-              {displayImage && <img src={displayImage} alt='Selfie' className='mt-2 rounded-md object-cover w-full h-40' onError={(e) => {(e.target as HTMLElement).style.display='none'}} />}
+
+              {/* Caption */}
               <div className='mt-2 flex items-center gap-2 text-xs' style={{ color: 'var(--color-text-secondary)' }}>
-                {state.photo || previewImage ? '✨ Your selected photo' : '📷 Capture a creative selfie together at this location.'}
+                {hasPrePopulatedImage
+                  ? '🖼️ Location reference image'
+                  : (state.photo || previewImage)
+                    ? '✨ Your selected photo'
+                    : '📷 Capture a creative selfie together at this location.'}
               </div>
             </div>
           </div>
 
-          {!state.photo && (
+          {/* Upload button - only show if NOT pre-populated mode and no photo yet */}
+          {!hasPrePopulatedImage && !state.photo && (
             <div className='mt-3'>
-              <input 
-                type='file' 
-                accept='image/*' 
+              <input
+                type='file'
+                accept='image/*'
                 onChange={handlePhotoUpload}
                 className='hidden'
                 id={`file-${stop.id}`}
               />
-              <label 
+              <label
                 htmlFor={`file-${stop.id}`}
                 className={`w-full px-4 py-3 text-white font-medium rounded-lg cursor-pointer flex items-center justify-center gap-2 transition-all duration-200 transform ${
-                  (isUploading || isSaving) 
-                    ? 'cursor-wait hover:scale-[1.02] active:scale-[0.98]' 
+                  (isUploading || isSaving)
+                    ? 'cursor-wait hover:scale-[1.02] active:scale-[0.98]'
                     : 'hover:scale-[1.02] active:scale-[0.98]'
-                }`} 
+                }`}
                 style={{ backgroundColor: (isUploading || isSaving) ? 'var(--color-warm-grey)' : 'var(--color-accent)' }}
                 onMouseEnter={(e) => { if (!isUploading && !isSaving) (e.target as HTMLElement).style.backgroundColor = 'var(--color-accent)' }}
                 onMouseLeave={(e) => { if (!isUploading && !isSaving) (e.target as HTMLElement).style.backgroundColor = 'var(--color-accent)' }}
@@ -253,6 +290,26 @@ export default function StopCard({
                   <>📸 Upload Photo</>
                 )}
               </label>
+            </div>
+          )}
+
+          {/* Pre-populated mode: Show "Next Step" button */}
+          {hasPrePopulatedImage && !state.done && (
+            <div className='mt-3'>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (onNextStep) {
+                    onNextStep(stop.id)
+                  }
+                }}
+                className='w-full px-4 py-3 text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]'
+                style={{ backgroundColor: 'var(--color-accent)' }}
+                onMouseEnter={(e) => { (e.target as HTMLElement).style.backgroundColor = 'var(--color-accent)' }}
+                onMouseLeave={(e) => { (e.target as HTMLElement).style.backgroundColor = 'var(--color-accent)' }}
+              >
+                <span>→ Next Step</span>
+              </button>
             </div>
           )}
 

@@ -155,7 +155,9 @@ export const TeamLockSchema = z.object({
   issuedAt: z.number().int().positive('Issue timestamp required'),
   expiresAt: z.number().int().positive('Expiry timestamp required'),
   teamCodeHash: z.string().optional(), // Optional for client-side
-  lockToken: z.string().min(1, 'Lock token required')
+  lockToken: z.string().min(1, 'Lock token required'),
+  organizationId: z.string().optional(), // Organization context
+  huntId: z.string().optional() // Hunt context
 })
 
 // Lock token payload (server-side)

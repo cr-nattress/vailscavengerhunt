@@ -177,11 +177,48 @@ exports.handler = withSentry(async (event, context) => {
     // Store device lock to prevent conflicts
     await storeDeviceLock(deviceFingerprint, mapping.teamId, expiresAt)
 
+    // Fetch organization and hunt data
+    let organization = null
+    let hunt = null
+
+    try {
+      const supabase = SupabaseTeamStorage.getClient()
+
+      // Get organization data
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .eq('id', mapping.organizationId)
+        .single()
+
+      if (orgError) {
+        console.warn('[team-verify] Failed to fetch organization:', orgError)
+      } else {
+        organization = orgData
+      }
+
+      // Get hunt data
+      const { data: huntData, error: huntError } = await supabase
+        .from('hunts')
+        .select('id, organization_id, name, start_date, end_date, is_active')
+        .eq('organization_id', mapping.organizationId)
+        .eq('id', mapping.huntId)
+        .single()
+
+      if (huntError) {
+        console.warn('[team-verify] Failed to fetch hunt:', huntError)
+      } else {
+        hunt = huntData
+      }
+    } catch (error) {
+      console.error('[team-verify] Error fetching organization/hunt data:', error)
+    }
+
     // Log successful verification
     TeamLogger.logVerificationAttempt(normalizedCode, 'success', mapping.teamId)
     TeamLogger.logLockOperation('issued', mapping.teamId, { deviceFingerprint })
 
-    // Return successful response
+    // Return successful response with organization and hunt data
     return {
       statusCode: 200,
       headers,
@@ -189,7 +226,11 @@ exports.handler = withSentry(async (event, context) => {
         teamId: mapping.teamId,
         teamName: mapping.teamName,
         lockToken: token,
-        ttlSeconds
+        ttlSeconds,
+        organizationId: mapping.organizationId,
+        huntId: mapping.huntId,
+        organization: organization || { id: mapping.organizationId, name: mapping.organizationId },
+        hunt: hunt || { id: mapping.huntId, name: mapping.huntId, is_active: true }
       })
     }
 
