@@ -3,9 +3,10 @@
  * Handles getting progress data from Supabase hunt_progress table
  */
 
-import { createClient } from '@supabase/supabase-js'
+const { getSupabaseClient } = require('./_lib/supabaseClient')
+const { withSentry } = require('./_lib/sentry')
 
-export default async (req, context) => {
+exports.handler = withSentry(async (event, context) => {
   // Handle CORS and prevent caching for fresh data
   const headers = {
     'Content-Type': 'application/json',
@@ -18,33 +19,35 @@ export default async (req, context) => {
     'Expires': '0'
   }
 
-  if (req.method === 'OPTIONS') {
-    return new Response('', { status: 200, headers })
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' }
   }
 
   // Handle POST requests by proxying to progress-set-supabase
-  if (req.method === 'POST') {
+  if (event.httpMethod === 'POST') {
     try {
-      const progressSetModule = await import('./progress-set-supabase.js')
-      return await progressSetModule.handler(req, context)
+      const progressSetModule = require('./progress-set-supabase.js')
+      return await progressSetModule.handler(event, context)
     } catch (error) {
       console.error('Error proxying to progress-set-supabase:', error)
-      return new Response(JSON.stringify({ error: 'Internal server error' }), {
-        status: 500,
-        headers
-      })
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Internal server error' })
+      }
     }
   }
 
-  if (req.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers
-    })
+  if (event.httpMethod !== 'GET') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    }
   }
 
   // Extract orgId, teamId, huntId from URL
-  const url = new URL(req.url)
+  const url = new URL(event.rawUrl || `https://example.com${event.path}`)
 
   // Get the path after /.netlify/functions/progress-get-supabase/
   let pathToProcess = url.pathname
@@ -59,10 +62,11 @@ export default async (req, context) => {
 
   if (pathParts.length < 3) {
     console.error('Missing parameters. Path parts:', pathParts, 'URL:', url.pathname)
-    return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
-      status: 400,
-      headers
-    })
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ error: 'Missing required parameters' })
+    }
   }
 
   const [orgId, teamId, huntId] = pathParts
@@ -70,14 +74,7 @@ export default async (req, context) => {
 
   try {
     // Initialize Supabase client
-    const supabaseUrl = process.env.SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase configuration missing')
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabase = getSupabaseClient()
 
     // Get team UUID from team_id (case-insensitive)
     const { data: teamData, error: teamError } = await supabase
@@ -91,10 +88,11 @@ export default async (req, context) => {
     if (teamError) {
       if (teamError.code === 'PGRST116') {
         // Team not found, return empty progress
-        return new Response(JSON.stringify({}), {
-          status: 200,
-          headers
-        })
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({})
+        }
       }
       throw teamError
     }
@@ -162,18 +160,20 @@ export default async (req, context) => {
       }
     }
 
-    return new Response(JSON.stringify(progress), {
-      status: 200,
-      headers
-    })
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify(progress)
+    }
   } catch (error) {
     console.error('Error fetching Supabase progress:', error)
-    return new Response(JSON.stringify({
-      error: 'Failed to fetch progress',
-      details: error.message
-    }), {
-      status: 500,
-      headers
-    })
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: 'Failed to fetch progress',
+        details: error.message
+      })
+    }
   }
-}
+})
