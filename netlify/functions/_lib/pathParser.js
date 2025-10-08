@@ -14,7 +14,7 @@
  * @returns {{ orgId: string, teamId: string, huntId: string }}
  * @throws {Error} If path format is invalid or missing required params
  */
-export function parseConsolidatedPath(path) {
+function parseConsolidatedPath(path) {
   if (!path) {
     throw new Error('Path is required')
   }
@@ -75,7 +75,7 @@ export function parseConsolidatedPath(path) {
  * @returns {{ orgId: string, teamId: string, huntId: string }}
  * @throws {Error} If path format is invalid
  */
-export function parseProgressPath(path) {
+function parseProgressPath(path) {
   if (!path) {
     throw new Error('Path is required')
   }
@@ -125,7 +125,7 @@ export function parseProgressPath(path) {
  * @returns {{ orgId: string, teamId: string, huntId?: string }}
  * @throws {Error} If path format is invalid
  */
-export function parseTeamPath(path, requireHuntId = true) {
+function parseTeamPath(path, requireHuntId = true) {
   if (!path) {
     throw new Error('Path is required')
   }
@@ -176,7 +176,7 @@ export function parseTeamPath(path, requireHuntId = true) {
  * @param {string} functionName - Name of the function for error messages
  * @returns {{ orgId: string, teamId: string, huntId: string }}
  */
-export function parseGenericPath(path, functionName = 'function') {
+function parseGenericPath(path, functionName = 'function') {
   if (!path) {
     throw new Error(`[${functionName}] Path is required`)
   }
@@ -211,7 +211,7 @@ export function parseGenericPath(path, functionName = 'function') {
  * @param {object} event - Netlify function event
  * @returns {object} Query parameters object
  */
-export function getQueryParams(event) {
+function getQueryParams(event) {
   return event.queryStringParameters || {}
 }
 
@@ -222,10 +222,20 @@ export function getQueryParams(event) {
  * @param {string[]} required - Required parameter names
  * @throws {Error} If any required parameter is missing
  */
-export function validateParams(params, required = []) {
+function validateParams(params, required = []) {
   const missing = required.filter(key => !params[key])
 
   if (missing.length > 0) {
     throw new Error(`Missing required parameters: ${missing.join(', ')}`)
   }
+}
+
+// CommonJS exports for Netlify functions
+module.exports = {
+  parseConsolidatedPath,
+  parseProgressPath,
+  parseTeamPath,
+  parseGenericPath,
+  getQueryParams,
+  validateParams
 }
