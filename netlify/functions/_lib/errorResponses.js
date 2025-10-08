@@ -21,7 +21,7 @@ const STANDARD_HEADERS = {
  * @param {string|null} requestId - Request correlation ID (optional)
  * @returns {object} Netlify function response object
  */
-export function errorResponse(statusCode, error, details = null, requestId = null) {
+function errorResponse(statusCode, error, details = null, requestId = null) {
   const body = {
     error,
     statusCode,
@@ -49,49 +49,49 @@ export function errorResponse(statusCode, error, details = null, requestId = nul
 /**
  * 400 Bad Request - Invalid input
  */
-export function badRequestResponse(message = 'Invalid request', details = null, requestId = null) {
+function badRequestResponse(message = 'Invalid request', details = null, requestId = null) {
   return errorResponse(400, message, details, requestId)
 }
 
 /**
  * 401 Unauthorized - Authentication required
  */
-export function unauthorizedResponse(message = 'Unauthorized', details = null, requestId = null) {
+function unauthorizedResponse(message = 'Unauthorized', details = null, requestId = null) {
   return errorResponse(401, message, details, requestId)
 }
 
 /**
  * 403 Forbidden - Insufficient permissions
  */
-export function forbiddenResponse(message = 'Forbidden', details = null, requestId = null) {
+function forbiddenResponse(message = 'Forbidden', details = null, requestId = null) {
   return errorResponse(403, message, details, requestId)
 }
 
 /**
  * 404 Not Found - Resource doesn't exist
  */
-export function notFoundResponse(message = 'Not found', details = null, requestId = null) {
+function notFoundResponse(message = 'Not found', details = null, requestId = null) {
   return errorResponse(404, message, details, requestId)
 }
 
 /**
  * 409 Conflict - Resource conflict
  */
-export function conflictResponse(message = 'Conflict', details = null, requestId = null) {
+function conflictResponse(message = 'Conflict', details = null, requestId = null) {
   return errorResponse(409, message, details, requestId)
 }
 
 /**
  * 422 Unprocessable Entity - Validation error
  */
-export function validationErrorResponse(message = 'Validation failed', errors = null, requestId = null) {
+function validationErrorResponse(message = 'Validation failed', errors = null, requestId = null) {
   return errorResponse(422, message, errors, requestId)
 }
 
 /**
  * 429 Too Many Requests - Rate limit exceeded
  */
-export function rateLimitResponse(message = 'Rate limit exceeded', retryAfter = null, requestId = null) {
+function rateLimitResponse(message = 'Rate limit exceeded', retryAfter = null, requestId = null) {
   const response = errorResponse(429, message, retryAfter ? `Retry after ${retryAfter} seconds` : null, requestId)
 
   if (retryAfter) {
@@ -104,7 +104,7 @@ export function rateLimitResponse(message = 'Rate limit exceeded', retryAfter = 
 /**
  * 500 Internal Server Error - Generic server error
  */
-export function internalErrorResponse(message = 'Internal server error', details = null, requestId = null) {
+function internalErrorResponse(message = 'Internal server error', details = null, requestId = null) {
   // Don't expose internal details in production
   const sanitizedDetails = process.env.NODE_ENV === 'production' ? null : details
   return errorResponse(500, message, sanitizedDetails, requestId)
@@ -113,14 +113,14 @@ export function internalErrorResponse(message = 'Internal server error', details
 /**
  * 502 Bad Gateway - Upstream service error
  */
-export function badGatewayResponse(service = 'upstream service', details = null, requestId = null) {
+function badGatewayResponse(service = 'upstream service', details = null, requestId = null) {
   return errorResponse(502, `${service} is unavailable`, details, requestId)
 }
 
 /**
  * 503 Service Unavailable - Service temporarily down
  */
-export function serviceUnavailableResponse(message = 'Service unavailable', retryAfter = null, requestId = null) {
+function serviceUnavailableResponse(message = 'Service unavailable', retryAfter = null, requestId = null) {
   const response = errorResponse(503, message, null, requestId)
 
   if (retryAfter) {
@@ -133,7 +133,7 @@ export function serviceUnavailableResponse(message = 'Service unavailable', retr
 /**
  * 504 Gateway Timeout - Upstream timeout
  */
-export function gatewayTimeoutResponse(service = 'upstream service', requestId = null) {
+function gatewayTimeoutResponse(service = 'upstream service', requestId = null) {
   return errorResponse(504, `${service} timeout`, 'Request took too long to complete', requestId)
 }
 
@@ -146,7 +146,7 @@ export function gatewayTimeoutResponse(service = 'upstream service', requestId =
  * @param {string|null} requestId - Request correlation ID (optional)
  * @returns {object} Netlify function response object
  */
-export function successResponse(data, warnings = [], statusCode = 200, requestId = null) {
+function successResponse(data, warnings = [], statusCode = 200, requestId = null) {
   const body = {
     ...data,
     timestamp: new Date().toISOString()
@@ -178,7 +178,7 @@ export function successResponse(data, warnings = [], statusCode = 200, requestId
  * @param {string|null} requestId - Request correlation ID (optional)
  * @returns {object} Appropriate error response
  */
-export function handleError(error, requestId = null) {
+function handleError(error, requestId = null) {
   // Path parsing errors
   if (error.message.includes('Invalid path') || error.message.includes('Missing required path')) {
     return badRequestResponse('Invalid request path', error.message, requestId)
@@ -215,7 +215,7 @@ export function handleError(error, requestId = null) {
  * @param {string|null} origin - Request origin
  * @returns {object} CORS headers
  */
-export function getCorsHeaders(origin = null) {
+function getCorsHeaders(origin = null) {
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['*']
 
   const isAllowed = origin && (
@@ -237,7 +237,7 @@ export function getCorsHeaders(origin = null) {
  * @param {object} event - Netlify function event
  * @returns {object} CORS preflight response
  */
-export function handleCorsPreflightResponse(event) {
+function handleCorsPreflightResponse(event) {
   const origin = event.headers.origin || event.headers.Origin
 
   return {
@@ -248,4 +248,24 @@ export function handleCorsPreflightResponse(event) {
     },
     body: ''
   }
+}
+
+// CommonJS exports
+module.exports = {
+  errorResponse,
+  badRequestResponse,
+  unauthorizedResponse,
+  forbiddenResponse,
+  notFoundResponse,
+  conflictResponse,
+  validationErrorResponse,
+  rateLimitResponse,
+  internalErrorResponse,
+  badGatewayResponse,
+  serviceUnavailableResponse,
+  gatewayTimeoutResponse,
+  successResponse,
+  handleError,
+  getCorsHeaders,
+  handleCorsPreflightResponse
 }

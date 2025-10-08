@@ -182,7 +182,7 @@ if (typeof setInterval !== 'undefined') {
  *   () => getHuntLocations(supabase, orgId, huntId)
  * )
  */
-export async function withCache(key, ttl, fn) {
+async function withCache(key, ttl, fn) {
   // Check cache first
   const cached = cache.get(key)
   if (cached !== null) {
@@ -211,7 +211,7 @@ export async function withCache(key, ttl, fn) {
  * // Invalidate specific org/hunt
  * invalidatePattern(`locations:${orgId}:${huntId}`)
  */
-export function invalidatePattern(pattern) {
+function invalidatePattern(pattern) {
   const regex = typeof pattern === 'string'
     ? new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
     : pattern
@@ -233,21 +233,21 @@ export function invalidatePattern(pattern) {
  *
  * @returns {object} Cache statistics
  */
-export function getCacheStats() {
+function getCacheStats() {
   return cache.getStats()
 }
 
 /**
  * Clear all cache entries
  */
-export function clearCache() {
+function clearCache() {
   cache.clear()
 }
 
 /**
  * Cache key builders for common patterns
  */
-export const CacheKeys = {
+const CacheKeys = {
   locations: (orgId, huntId) => `locations:${orgId}:${huntId}`,
   sponsors: (orgId, huntId) => `sponsors:${orgId}:${huntId}`,
   settings: (orgId, teamId, huntId) => `settings:${orgId}:${teamId}:${huntId}`,
@@ -256,5 +256,12 @@ export const CacheKeys = {
   config: () => 'config:public'
 }
 
-// Export singleton for direct access
-export default cache
+// CommonJS exports
+module.exports = {
+  withCache,
+  invalidatePattern,
+  getCacheStats,
+  clearCache,
+  CacheKeys,
+  default: cache
+}

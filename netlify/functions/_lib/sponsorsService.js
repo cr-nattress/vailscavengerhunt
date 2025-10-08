@@ -11,7 +11,7 @@
  * @param {string} huntId - Hunt ID
  * @returns {Promise<object>} Sponsor data with layout and items
  */
-export async function getSponsors(supabase, orgId, huntId) {
+async function getSponsors(supabase, orgId, huntId) {
   try {
     console.log(`[SponsorsService] Fetching sponsors for ${orgId}/${huntId}`)
 
@@ -90,7 +90,7 @@ function getLayoutForSponsorCount(count) {
  * @param {string} sponsorId - Sponsor UUID
  * @returns {Promise<object|null>} Sponsor data or null if not found
  */
-export async function getSponsorById(supabase, sponsorId) {
+async function getSponsorById(supabase, sponsorId) {
   try {
     const { data, error } = await supabase
       .from('sponsor_assets')
@@ -126,7 +126,7 @@ export async function getSponsorById(supabase, sponsorId) {
  * @param {string} huntId - Hunt ID
  * @returns {Promise<object>} Sponsors grouped by tier
  */
-export async function getSponsorsByTier(supabase, orgId, huntId) {
+async function getSponsorsByTier(supabase, orgId, huntId) {
   try {
     const sponsorsData = await getSponsors(supabase, orgId, huntId)
 
@@ -178,7 +178,7 @@ export async function getSponsorsByTier(supabase, orgId, huntId) {
  * @param {string} huntId - Hunt ID
  * @returns {Promise<boolean>} True if sponsors exist
  */
-export async function hasSponsors(supabase, orgId, huntId) {
+async function hasSponsors(supabase, orgId, huntId) {
   try {
     const { count, error } = await supabase
       .from('sponsor_assets')
@@ -197,4 +197,13 @@ export async function hasSponsors(supabase, orgId, huntId) {
     console.error('[SponsorsService] Error:', error)
     return false
   }
+}
+
+// CommonJS exports
+module.exports = {
+  getSponsors,
+  getLayoutForSponsorCount,
+  getSponsorById,
+  getSponsorsByTier,
+  hasSponsors
 }

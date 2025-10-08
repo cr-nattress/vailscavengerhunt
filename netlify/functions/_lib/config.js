@@ -9,7 +9,7 @@
  *
  * @returns {object} Public configuration object
  */
-export function getPublicConfig() {
+function getPublicConfig() {
   return {
     // API Configuration
     API_URL: process.env.API_URL || '',
@@ -54,7 +54,7 @@ export function getPublicConfig() {
  *
  * @returns {object} Server configuration object
  */
-export function getServerConfig() {
+function getServerConfig() {
   return {
     // Supabase Service Role (admin access)
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
@@ -91,7 +91,7 @@ export function getServerConfig() {
  *
  * @returns {object} Full configuration object
  */
-export function getFullConfig() {
+function getFullConfig() {
   return {
     ...getPublicConfig(),
     ...getServerConfig()
@@ -104,7 +104,7 @@ export function getFullConfig() {
  *
  * @throws {Error} If required environment variables are missing
  */
-export function validateRequiredEnvVars() {
+function validateRequiredEnvVars() {
   const required = [
     'SUPABASE_URL',
     'SUPABASE_ANON_KEY',
@@ -129,7 +129,7 @@ export function validateRequiredEnvVars() {
  *
  * @returns {boolean} True if in development
  */
-export function isDevelopment() {
+function isDevelopment() {
   return process.env.NODE_ENV === 'development' || process.env.NETLIFY_DEV === 'true'
 }
 
@@ -138,7 +138,7 @@ export function isDevelopment() {
  *
  * @returns {boolean} True if in production
  */
-export function isProduction() {
+function isProduction() {
   return process.env.NODE_ENV === 'production' && process.env.NETLIFY_DEV !== 'true'
 }
 
@@ -147,7 +147,7 @@ export function isProduction() {
  *
  * @returns {object} Cloudinary transformation parameters
  */
-export function getCloudinaryTransformConfig() {
+function getCloudinaryTransformConfig() {
   return {
     quality: process.env.CLOUDINARY_IMAGE_QUALITY || 'auto:good',
     fetch_format: process.env.CLOUDINARY_FETCH_FORMAT || 'auto',
@@ -162,7 +162,7 @@ export function getCloudinaryTransformConfig() {
  *
  * @returns {object} Cloudinary upload configuration
  */
-export function getCloudinaryUploadConfig() {
+function getCloudinaryUploadConfig() {
   return {
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
@@ -176,7 +176,7 @@ export function getCloudinaryUploadConfig() {
  *
  * @returns {object} Team lock settings
  */
-export function getTeamLockConfig() {
+function getTeamLockConfig() {
   return {
     enabled: process.env.ENABLE_TEAM_LOCK !== 'false',
     timeout: parseInt(process.env.LOCK_TIMEOUT_MS || '300000', 10),
@@ -189,11 +189,25 @@ export function getTeamLockConfig() {
  *
  * @returns {object} Logging settings
  */
-export function getLoggingConfig() {
+function getLoggingConfig() {
   return {
     level: process.env.LOG_LEVEL || 'info',
     sentryDsn: process.env.SENTRY_DSN || '',
     sentryEnvironment: process.env.SENTRY_ENVIRONMENT || 'production',
     enableConsole: isDevelopment()
   }
+}
+
+// CommonJS exports
+module.exports = {
+  getPublicConfig,
+  getServerConfig,
+  getFullConfig,
+  validateRequiredEnvVars,
+  isDevelopment,
+  isProduction,
+  getCloudinaryTransformConfig,
+  getCloudinaryUploadConfig,
+  getTeamLockConfig,
+  getLoggingConfig
 }
